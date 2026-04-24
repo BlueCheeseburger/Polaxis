@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Compass, FileText, CheckSquare, Loader2, AlertCircle, Send, RotateCcw, Moon, Sun, Bug, SlidersHorizontal, Globe2, Landmark, Flag, BookmarkPlus, Pencil, Trash2, Check, X, Bookmark } from 'lucide-react';
 import './App.css';
 
+/** Production: set VITE_API_BASE_URL on Vercel (e.g. https://your-api.onrender.com). Local dev: omit so /api is proxied to the backend. */
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+
 const DAILY_API_LIMIT = 5;
 const API_USAGE_STORAGE_KEY = "political_compass_api_usage_v1";
 const IP_CACHE_STORAGE_KEY = "political_compass_ip_cache_v1";
@@ -91,7 +94,7 @@ const runGeminiJsonRequest = async ({ promptText, systemInstructionText, respons
 
   while (attempt <= delays.length) {
     try {
-      const response = await fetch(`/api/gemini-json`, {
+      const response = await fetch(`${API_BASE}/api/gemini-json`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ promptText, systemInstructionText, responseSchema })
