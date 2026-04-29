@@ -5,11 +5,10 @@ import './App.css';
 /** Production: set VITE_API_BASE_URL on Vercel (e.g. https://your-api.onrender.com). Local dev: omit so /api is proxied to the backend. */
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
-const DAILY_API_LIMIT = 5;
-const API_USAGE_STORAGE_KEY = "political_compass_api_usage_v1";
-const IP_CACHE_STORAGE_KEY = "political_compass_ip_cache_v1";
+const CLIENT_ID_STORAGE_KEY = "political_compass_client_id_v1";
 const MAX_MULTI_POINTS = 4;
 const FIRST_SAVE_HINT_SESSION_KEY = "political_compass_first_save_hint_seen_v1";
+const LEGACY_SAVED_POINTS_STORAGE_KEY = "politicalCompass.savedPoints";
 const TEXT_INPUT_HINTS = [
   "Put your beliefs here",
   "Example: I support strong unions, higher taxes on billionaires, and universal healthcare.",
@@ -73,72 +72,48 @@ const extractApiErrorMessage = async (response) => {
   return `API error ${response.status}${errorDetail ? `: ${errorDetail}` : ""}`;
 };
 
-const getDateKey = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+const getOrCreateStableClientId = () => {
+  const existing = localStorage.getItem(CLIENT_ID_STORAGE_KEY);
+  if (existing) return existing;
+  const generated = (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
+    ? crypto.randomUUID()
+    : `pc-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  localStorage.setItem(CLIENT_ID_STORAGE_KEY, generated);
+  return generated;
 };
 
-const readUsageStore = () => {
-  try {
-    const raw = localStorage.getItem(API_USAGE_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-};
-
-const writeUsageStore = (store) => {
-  localStorage.setItem(API_USAGE_STORAGE_KEY, JSON.stringify(store));
-};
-
-const getClientIdentifier = async () => {
-  const cached = localStorage.getItem(IP_CACHE_STORAGE_KEY);
-  if (cached) return cached;
-
-  try {
-    const response = await fetch("https://api.ipify.org?format=json");
-    if (!response.ok) throw new Error("Failed IP lookup");
-    const data = await response.json();
-    const ip = data?.ip || "unknown-client";
-    localStorage.setItem(IP_CACHE_STORAGE_KEY, ip);
-    return ip;
-  } catch {
-    return "unknown-client";
-  }
-};
-
-const reserveDailyApiCall = async ({ bypassLimit }) => {
-  if (bypassLimit) return;
-
-  const store = readUsageStore();
-  const dateKey = getDateKey();
-  const clientId = await getClientIdentifier();
-
-  const byDate = store[dateKey] || {};
-  const usedCalls = byDate[clientId] || 0;
-  if (usedCalls >= DAILY_API_LIMIT) {
-    throw new Error(`Daily API limit reached (${DAILY_API_LIMIT} calls per person). Please try again tomorrow.`);
-  }
-
-  byDate[clientId] = usedCalls + 1;
-  store[dateKey] = byDate;
-  writeUsageStore(store);
-};
-
-const runGeminiJsonRequest = async ({ promptText, systemInstructionText, responseSchema, bypassLimit = false }) => {
+const runGeminiJsonRequest = async ({
+  promptText,
+  systemInstructionText,
+  responseSchema,
+  mode = "text",
+  inputLength,
+  bypassLimit = false
+}) => {
   const delays = [1000, 2000, 4000, 8000, 16000];
   let attempt = 0;
-  await reserveDailyApiCall({ bypassLimit });
+  const clientId = getOrCreateStableClientId();
+  const normalizedInputLength = typeof inputLength === "number"
+    ? inputLength
+    : (typeof promptText === "string" ? promptText.length : 0);
 
   while (attempt <= delays.length) {
     try {
       const response = await fetch(`${API_BASE}/api/gemini-json`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ promptText, systemInstructionText, responseSchema })
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Client-Id': clientId,
+          'X-Debug-Bypass': bypassLimit ? 'true' : 'false'
+        },
+        body: JSON.stringify({
+          promptText,
+          systemInstructionText,
+          responseSchema,
+          mode,
+          input_length: normalizedInputLength,
+          client_id: clientId
+        })
       });
 
       if (!response.ok) {
@@ -400,7 +375,7 @@ const OVERLAY_PRESETS = {
   },
 };
 const CANVAS_SIZE = 560;
-const SAVED_POINTS_STORAGE_KEY = 'politicalCompass.savedPoints';
+const getSavedPointsStorageKey = () => `politicalCompass.savedPoints.${getOrCreateStableClientId()}`;
 
 const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset }) => {
   const canvasRef = useRef(null);
@@ -682,7 +657,8 @@ export default function App() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      const raw = window.localStorage.getItem(SAVED_POINTS_STORAGE_KEY);
+      const namespacedKey = getSavedPointsStorageKey();
+      const raw = window.localStorage.getItem(namespacedKey) || window.localStorage.getItem(LEGACY_SAVED_POINTS_STORAGE_KEY);
       if (!raw) return;
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return;
@@ -702,6 +678,9 @@ export default function App() {
           : null,
       }));
       setSavedPoints(normalized);
+      if (!window.localStorage.getItem(namespacedKey)) {
+        window.localStorage.setItem(namespacedKey, JSON.stringify(normalized));
+      }
     } catch {
       setSavedPoints([]);
     } finally {
@@ -712,7 +691,7 @@ export default function App() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!hasHydratedSavedPoints) return;
-    window.localStorage.setItem(SAVED_POINTS_STORAGE_KEY, JSON.stringify(savedPoints));
+    window.localStorage.setItem(getSavedPointsStorageKey(), JSON.stringify(savedPoints));
   }, [savedPoints, hasHydratedSavedPoints]);
 
   useEffect(() => {
@@ -817,11 +796,14 @@ export default function App() {
 
     try {
       let promptText = "";
+      let inputLength = 0;
       if (mode === 'text') {
         if (!textInput.trim()) throw new Error("Please enter your beliefs first.");
+        inputLength = textInput.length;
         promptText = `User political description: "${textInput}"`;
       } else {
         const formattedAnswers = QUIZ_QUESTIONS.map((q, i) => `Q: ${q}\nA: ${quizAnswers[i]}`).join('\n\n');
+        inputLength = formattedAnswers.length;
         promptText = `Quiz Answers:\n${formattedAnswers}`;
       }
 
@@ -835,7 +817,11 @@ export default function App() {
         setFollowupLoading(true);
 
         try {
-          const evalResult = await evaluateBeliefs(promptText, { bypassLimit: isDebugBypassEnabled });
+          const evalResult = await evaluateBeliefs(promptText, {
+            mode,
+            inputLength,
+            bypassLimit: isDebugBypassEnabled
+          });
           if (submitRequestRef.current !== requestId) return;
           const normalizedPoints = normalizePlottedPoints(evalResult);
           setResult((prev) => ({
@@ -850,7 +836,11 @@ export default function App() {
           setSavedPoints((prev) => applyAiTitlesToPendingSaves(prev, requestId, normalizedPoints));
           setHasGeminiQuizResult(true);
           try {
-            const followup = await generateFollowupQuestion(promptText, evalResult, { bypassLimit: isDebugBypassEnabled });
+            const followup = await generateFollowupQuestion(promptText, evalResult, {
+              mode,
+              inputLength,
+              bypassLimit: isDebugBypassEnabled
+            });
             if (submitRequestRef.current !== requestId) return;
             const normalizedChoices = Array.isArray(followup.choices) ? followup.choices.slice(0, 5) : [];
             if (followup.question && normalizedChoices.length >= 2) {
@@ -874,7 +864,11 @@ export default function App() {
         return;
       }
 
-      const evalResult = await evaluateBeliefs(promptText, { bypassLimit: isDebugBypassEnabled });
+      const evalResult = await evaluateBeliefs(promptText, {
+        mode,
+        inputLength,
+        bypassLimit: isDebugBypassEnabled
+      });
 
       if (mode === 'text' && evalResult.hasSufficientData === false) {
         const insufficiencyMessage = evalResult.insufficiencyReason?.trim()
@@ -893,7 +887,11 @@ export default function App() {
       if (normalizedPoints.length === 1) {
         setFollowupLoading(true);
         try {
-          const followup = await generateFollowupQuestion(promptText, evalResult, { bypassLimit: isDebugBypassEnabled });
+          const followup = await generateFollowupQuestion(promptText, evalResult, {
+            mode,
+            inputLength,
+            bypassLimit: isDebugBypassEnabled
+          });
           const normalizedChoices = Array.isArray(followup.choices) ? followup.choices.slice(0, 5) : [];
           if (followup.question && normalizedChoices.length >= 2) {
             setFollowupQuestion({ question: followup.question, choices: normalizedChoices });
@@ -1004,6 +1002,8 @@ export default function App() {
         baseResult: result,
         question: followupQuestion.question,
         answer: choice,
+        mode,
+        inputLength: typeof sourcePrompt === "string" ? sourcePrompt.length : 0,
         bypassLimit: isDebugBypassEnabled,
       });
       setResult((prev) => ({ ...prev, x: refined.x, y: refined.y }));
