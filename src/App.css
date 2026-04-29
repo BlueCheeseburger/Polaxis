@@ -43,6 +43,50 @@
   color: #86efac;
 }
 
+.save-toast {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid rgba(37, 99, 235, 0.55);
+  background: rgba(219, 234, 254, 0.96);
+  color: #1e3a8a;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.16);
+}
+
+.app-shell.dark .save-toast {
+  border-color: rgba(96, 165, 250, 0.75);
+  background: rgba(30, 58, 138, 0.84);
+  color: #bfdbfe;
+}
+
+.saved-hint-cue {
+  position: fixed;
+  top: 76px;
+  right: 20px;
+  z-index: 30;
+  max-width: 240px;
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  border: 1px solid rgba(245, 158, 11, 0.65);
+  background: rgba(254, 243, 199, 0.97);
+  color: #92400e;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.16);
+}
+
+.app-shell.dark .saved-hint-cue {
+  border-color: rgba(251, 191, 36, 0.75);
+  background: rgba(120, 53, 15, 0.86);
+  color: #fcd34d;
+}
+
 .theme-toggle {
   width: 46px;
   height: 46px;
@@ -196,6 +240,9 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  overflow: hidden;
 }
 
 .mode-tab {
@@ -216,6 +263,14 @@
 .mode-tab.active {
   color: #1d4ed8;
   background: rgba(191, 219, 254, 0.4);
+}
+
+.mode-tab:first-child {
+  border-top-left-radius: 20px;
+}
+
+.mode-tab:last-child {
+  border-top-right-radius: 20px;
 }
 
 .app-shell.dark .mode-tab {
@@ -246,6 +301,27 @@
   outline: none;
 }
 
+.belief-input-wrap {
+  position: relative;
+}
+
+.belief-hint-overlay {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  right: 18px;
+  color: #64748b;
+  font-size: 0.98rem;
+  line-height: 1.45;
+  pointer-events: none;
+  opacity: 0.86;
+  transition: opacity 0.28s ease;
+}
+
+.belief-hint-overlay.fading {
+  opacity: 0;
+}
+
 .belief-textarea:focus {
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
@@ -255,6 +331,10 @@
   border-color: #334155;
   background: rgba(2, 6, 23, 0.75);
   color: #e2e8f0;
+}
+
+.app-shell.dark .belief-hint-overlay {
+  color: #94a3b8;
 }
 
 .quiz-list {
@@ -905,6 +985,12 @@
   .saved-menu {
     right: -54px;
     width: min(94vw, 420px);
+  }
+
+  .saved-hint-cue {
+    top: 86px;
+    right: 14px;
+    max-width: 220px;
   }
 
   .analyze-btn,
