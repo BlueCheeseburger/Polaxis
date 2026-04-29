@@ -8,6 +8,47 @@ const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 const DAILY_API_LIMIT = 5;
 const API_USAGE_STORAGE_KEY = "political_compass_api_usage_v1";
 const IP_CACHE_STORAGE_KEY = "political_compass_ip_cache_v1";
+const MAX_MULTI_POINTS = 4;
+const FIRST_SAVE_HINT_SESSION_KEY = "political_compass_first_save_hint_seen_v1";
+const TEXT_INPUT_HINTS = [
+  "Put your beliefs here",
+  "Example: I support strong unions, higher taxes on billionaires, and universal healthcare.",
+  "Example: I want lower taxes, deregulation, and tougher border enforcement.",
+  "Example: The government should enforce traditional values and expand surveillance for safety.",
+  "Example: Adults should be free to live however they want with minimal state interference.",
+  "Example: I favor strict climate rules even if they raise costs for large corporations.",
+  "Example: National security matters most, so immigration should be tightly controlled.",
+  "Example: Communities should self-govern more, with fewer centralized federal mandates.",
+];
+const QUIZ_SCORE_MAP = {
+  "Strongly Disagree": -2,
+  "Disagree": -1,
+  "Neutral": 0,
+  "Agree": 1,
+  "Strongly Agree": 2,
+};
+const QUIZ_AXIS_WEIGHTS = [
+  { x: -1.35, y: 0.7 },
+  { x: 1.25, y: 0.45 },
+  { x: -1.45, y: 0.2 },
+  { x: 1.5, y: 0.5 },
+  { x: -0.2, y: -1.35 },
+  { x: 0.15, y: 1.45 },
+  { x: 0.85, y: -0.45 },
+  { x: 0.35, y: 1.25 },
+  { x: 1.05, y: 0.95 },
+  { x: -0.35, y: -1.4 },
+  { x: -0.55, y: -0.35 },
+  { x: 0.65, y: 0.45 },
+  { x: -0.85, y: -0.65 },
+  { x: 0.55, y: 0.45 },
+  { x: 0.9, y: 0.85 },
+  { x: -0.65, y: -0.5 },
+  { x: -1.05, y: 0.15 },
+  { x: -0.25, y: -1.05 },
+  { x: 0.25, y: 1.15 },
+  { x: -0.2, y: -0.45 },
+];
 
 // Exponential backoff retry logic for API calls
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -120,20 +161,140 @@ const runGeminiJsonRequest = async ({ promptText, systemInstructionText, respons
 
 const evaluateBeliefs = async (promptText, options = {}) => runGeminiJsonRequest({
   promptText,
-  systemInstructionText: "You are an objective and highly analytical political science model. Assess political beliefs (provided as either raw text or quiz answers) and place them on the standard 2D political compass. X-axis (Economic): -10 (Far Left) to 10 (Far Right). Y-axis (Social/Government): 10 (Authoritarian) to -10 (Libertarian). If the input is clearly a first-person self-description, write analysis in second person ('you'). If the input is about another person, write in third person (prefer 'he'/'she' when clear from the subject, otherwise 'they'). If there is not enough concrete political-belief data to place the subject reliably, set hasSufficientData to false and include a brief insufficiencyReason. Ensure output strictly follows the requested JSON schema.",
+  systemInstructionText: "You are an objective and highly analytical political science model. Assess political beliefs (provided as either raw text or quiz answers) and place them on the standard 2D political compass. X-axis (Economic): -10 (Far Left) to 10 (Far Right). Y-axis (Social/Government): 10 (Authoritarian) to -10 (Libertarian). If the input is clearly a first-person self-description, write analysis in second person ('you'). If the input is about another person, write in third person (prefer 'he'/'she' when clear from the subject, otherwise 'they'). If the input contains clearly conflicting clusters of beliefs that cannot be represented by a single coherent point, include a points array with 2 to 4 distinct points. Each point must include x, y, analysis, and a short label (1 to 4 words). If using points, set top-level x/y to the best overall midpoint and top-level analysis to a concise summary. If there is not enough concrete political-belief data to place the subject reliably, set hasSufficientData to false and include a brief insufficiencyReason. Ensure output strictly follows the requested JSON schema.",
   responseSchema: {
     type: "OBJECT",
     properties: {
       x: { type: "NUMBER", description: "Economic score from -10 to 10" },
       y: { type: "NUMBER", description: "Social score from 10 (Authoritarian) to -10 (Libertarian)" },
+      title: { type: "STRING", description: "A concise 1-3 word point title. Prefer proper names when clear." },
       analysis: { type: "STRING", description: "A brief analysis of the subject's political alignment." },
+      points: {
+        type: "ARRAY",
+        description: "Optional multi-point output for mixed beliefs; each point is a distinct ideological cluster.",
+        minItems: 2,
+        maxItems: 4,
+        items: {
+          type: "OBJECT",
+          properties: {
+            x: { type: "NUMBER" },
+            y: { type: "NUMBER" },
+            analysis: { type: "STRING" },
+            label: { type: "STRING" }
+          },
+          required: ["x", "y", "analysis", "label"]
+        }
+      },
       hasSufficientData: { type: "BOOLEAN", description: "Whether the input contains enough political-belief information for reliable placement." },
+      isPoliticalInput: { type: "BOOLEAN", description: "True when the input is actually about politics or ideology. False when irrelevant (e.g., cooking, sports with no political content)." },
       insufficiencyReason: { type: "STRING", description: "Short explanation when there is not enough data to plot reliably." }
     },
-    required: ["x", "y", "analysis", "hasSufficientData", "insufficiencyReason"]
+    required: ["x", "y", "title", "analysis", "hasSufficientData", "isPoliticalInput", "insufficiencyReason"]
   },
   ...options,
 });
+
+const clampCompassValue = (value) => {
+  if (typeof value !== "number" || Number.isNaN(value)) return 0;
+  return Math.max(-10, Math.min(10, value));
+};
+
+const normalizePlottedPoints = (evalResult) => {
+  const parsedPoints = Array.isArray(evalResult?.points)
+    ? evalResult.points
+      .filter((point) => (
+        point &&
+        typeof point.x === "number" &&
+        typeof point.y === "number" &&
+        typeof point.analysis === "string" &&
+        typeof point.label === "string"
+      ))
+      .slice(0, MAX_MULTI_POINTS)
+      .map((point, index) => ({
+        id: `cluster-${index + 1}`,
+        label: point.label.trim() || `Point ${index + 1}`,
+        x: clampCompassValue(point.x),
+        y: clampCompassValue(point.y),
+        analysis: point.analysis.trim(),
+      }))
+    : [];
+
+  if (parsedPoints.length > 0) return parsedPoints;
+  return [{
+    id: "cluster-1",
+    label: (typeof evalResult?.title === "string" && evalResult.title.trim()) ? evalResult.title.trim() : "Primary",
+    x: clampCompassValue(evalResult?.x),
+    y: clampCompassValue(evalResult?.y),
+    analysis: typeof evalResult?.analysis === "string" ? evalResult.analysis : "",
+  }];
+};
+
+const evaluateQuizDeterministically = (quizAnswers) => {
+  const scoreValues = QUIZ_QUESTIONS.map((_, index) => QUIZ_SCORE_MAP[quizAnswers[index]] ?? 0);
+  const rawX = scoreValues.reduce((sum, score, index) => sum + (score * QUIZ_AXIS_WEIGHTS[index].x), 0);
+  const rawY = scoreValues.reduce((sum, score, index) => sum + (score * QUIZ_AXIS_WEIGHTS[index].y), 0);
+
+  // Typical max raw magnitude for this weight setup is ~30. Scale to compass bounds.
+  const scale = 3;
+  const x = clampCompassValue(rawX / scale);
+  const y = clampCompassValue(rawY / scale);
+
+  const econLabel = x < -2 ? "left-leaning" : x > 2 ? "right-leaning" : "economically mixed";
+  const socialLabel = y > 2 ? "more authoritarian" : y < -2 ? "more libertarian" : "socially mixed";
+
+  return {
+    x,
+    y,
+    title: "Quiz Estimate",
+    analysis: `Instant quiz estimate: your answers currently read as ${econLabel} and ${socialLabel}. Gemini details are loading in the background.`,
+    points: [{
+      id: "cluster-1",
+      label: "Quiz Estimate",
+      x,
+      y,
+      analysis: `Initial algorithmic placement based on direct quiz scoring (${econLabel}, ${socialLabel}).`,
+    }],
+    hasSufficientData: true,
+    isPoliticalInput: true,
+    insufficiencyReason: "",
+  };
+};
+
+const applyAiTitlesToPendingSaves = (existingSavedPoints, sourceBatchId, aiPoints) => {
+  if (!sourceBatchId || !Array.isArray(aiPoints) || aiPoints.length === 0) return existingSavedPoints;
+  const pendingCandidates = existingSavedPoints.filter((point) => point.titlePending && point.sourceBatchId === sourceBatchId);
+  if (pendingCandidates.length === 0) return existingSavedPoints;
+
+  const usedAiPointIndexes = new Set();
+  const titleUpdatesById = new Map();
+  pendingCandidates.forEach((savedPoint) => {
+    let bestIndex = -1;
+    let bestDist = Infinity;
+    aiPoints.forEach((aiPoint, aiIndex) => {
+      if (usedAiPointIndexes.has(aiIndex)) return;
+      const dist = Math.hypot((savedPoint.x - aiPoint.x), (savedPoint.y - aiPoint.y));
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestIndex = aiIndex;
+      }
+    });
+    if (bestIndex < 0) return;
+    usedAiPointIndexes.add(bestIndex);
+    titleUpdatesById.set(savedPoint.id, aiPoints[bestIndex]);
+  });
+
+  return existingSavedPoints.map((savedPoint) => {
+    const matchedAiPoint = titleUpdatesById.get(savedPoint.id);
+    if (!matchedAiPoint) return savedPoint;
+    const aiTitle = (matchedAiPoint.label || "").trim().split(/\s+/).slice(0, 3).join(" ");
+    return {
+      ...savedPoint,
+      title: aiTitle || savedPoint.title,
+      analysis: matchedAiPoint.analysis || savedPoint.analysis,
+      titlePending: false,
+    };
+  });
+};
 
 const generateFollowupQuestion = async (promptText, baseResult, options = {}) => runGeminiJsonRequest({
   promptText: `Original user input:\n${promptText}\n\nCurrent coordinates: x=${baseResult.x}, y=${baseResult.y}\nCurrent analysis: ${baseResult.analysis}\n\nAsk one concise follow-up question that best disambiguates placement. Provide 2 to 5 multiple-choice options.`,
@@ -194,15 +355,6 @@ const QUIZ_QUESTIONS = [
 
 const OPTIONS = ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"];
 const OVERLAY_PRESETS = {
-  core: {
-    label: "Core",
-    points: [
-      { name: "Barack Obama", x: -1.5, y: -1.5, description: "Center-left on economics and relatively liberal on social policy." },
-      { name: "Donald Trump", x: 4.5, y: 4.0, description: "Nationalist right economic lean with strong law-and-order positioning." },
-      { name: "Vladimir Putin", x: 7.0, y: 8.0, description: "State-centralized authoritarian governance with conservative nationalism." },
-      { name: "Xi Jinping", x: 2.5, y: 8.5, description: "State-directed economy with high-party-control authoritarian structure." },
-    ],
-  },
   global: {
     label: "Global",
     points: [
@@ -247,15 +399,15 @@ const OVERLAY_PRESETS = {
     ],
   },
 };
-
 const CANVAS_SIZE = 560;
 const SAVED_POINTS_STORAGE_KEY = 'politicalCompass.savedPoints';
 
-const CompassPlot = ({ x, y, isDarkMode, referencePoints, overlayPreset }) => {
+const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset }) => {
   const canvasRef = useRef(null);
   const [hoveredReference, setHoveredReference] = useState(null);
   const [hoverPosition, setHoverPosition] = useState(null);
   const [hasDismissedCue, setHasDismissedCue] = useState(false);
+  const isMobile = /Mobi|Android/i.test(navigator.userAgent);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -332,7 +484,7 @@ const CompassPlot = ({ x, y, isDarkMode, referencePoints, overlayPreset }) => {
       const isHovered = hoveredReference?.name === person.name;
 
       ctx.beginPath();
-      ctx.arc(refX, refY, isHovered ? 6 : 4, 0, 2 * Math.PI);
+      ctx.arc(refX, refY, isHovered ? 6 : (isMobile ? 7 : 4), 0, 2 * Math.PI);
       ctx.fillStyle = isHovered ? (isDarkMode ? 'rgba(248, 250, 252, 0.95)' : 'rgba(15, 23, 42, 0.9)') : referenceDotColor;
       ctx.fill();
 
@@ -349,24 +501,27 @@ const CompassPlot = ({ x, y, isDarkMode, referencePoints, overlayPreset }) => {
       }
     });
 
-    if (x !== undefined && y !== undefined) {
-      const pointX = ((x + 10) / 20) * width;
-      const pointY = ((10 - y) / 20) * height;
+    userPoints.forEach((point, index) => {
+      const pointX = ((point.x + 10) / 20) * width;
+      const pointY = ((10 - point.y) / 20) * height;
+      const haloRadius = index === 0 ? 12 : 9;
+      const coreRadius = index === 0 ? 6 : 5;
+      const haloOpacity = index === 0 ? 0.3 : 0.22;
 
       ctx.beginPath();
-      ctx.arc(pointX, pointY, 12, 0, 2 * Math.PI);
-      ctx.fillStyle = 'rgba(249, 115, 22, 0.3)';
+      ctx.arc(pointX, pointY, haloRadius, 0, 2 * Math.PI);
+      ctx.fillStyle = `rgba(249, 115, 22, ${haloOpacity})`;
       ctx.fill();
 
       ctx.beginPath();
-      ctx.arc(pointX, pointY, 6, 0, 2 * Math.PI);
+      ctx.arc(pointX, pointY, coreRadius, 0, 2 * Math.PI);
       ctx.fillStyle = '#f97316';
       ctx.fill();
       ctx.strokeStyle = '#fff';
       ctx.lineWidth = 2;
       ctx.stroke();
-    }
-  }, [x, y, isDarkMode, referencePoints, hoveredReference, overlayPreset]);
+    });
+  }, [userPoints, isDarkMode, referencePoints, hoveredReference, overlayPreset]);
 
   const handleMouseMove = (event) => {
     const canvas = canvasRef.current;
@@ -403,6 +558,40 @@ const CompassPlot = ({ x, y, isDarkMode, referencePoints, overlayPreset }) => {
     setHoverPosition(null);
   };
 
+  const handleTouchStart = (event) => {
+    event.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const touch = event.touches?.[0];
+    if (!touch) return;
+    const rect = canvas.getBoundingClientRect();
+    const xPos = ((touch.clientX - rect.left) / rect.width) * CANVAS_SIZE;
+    const yPos = ((touch.clientY - rect.top) / rect.height) * CANVAS_SIZE;
+
+    let nearest = null;
+    let nearestDist = Infinity;
+    referencePoints.forEach((person) => {
+      const pointX = ((person.x + 10) / 20) * CANVAS_SIZE;
+      const pointY = ((10 - person.y) / 20) * CANVAS_SIZE;
+      const dist = Math.hypot(pointX - xPos, pointY - yPos);
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearest = person;
+      }
+    });
+
+    const threshold = 20;
+    const hit = !!(nearest && nearestDist <= threshold);
+    if (hit) {
+      if (!hasDismissedCue) setHasDismissedCue(true);
+      setHoveredReference(nearest);
+      setHoverPosition({ x: xPos, y: yPos });
+    } else {
+      setHoveredReference(null);
+      setHoverPosition(null);
+    }
+  };
+
   return (
     <div className="compass-plot-wrap">
       <div className="compass-plot-card">
@@ -413,9 +602,11 @@ const CompassPlot = ({ x, y, isDarkMode, referencePoints, overlayPreset }) => {
           className="compass-canvas"
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={() => {}}
         />
         <div className={`hover-cue ${hasDismissedCue ? 'hidden' : ''}`}>
-          Hover points for details
+          {isMobile ? 'Tap points for details' : 'Hover points for details'}
         </div>
         {hoveredReference && hoverPosition && (
           <div
@@ -451,7 +642,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
   const [sourcePrompt, setSourcePrompt] = useState("");
-  const [overlayPreset, setOverlayPreset] = useState('core');
+  const [overlayPreset, setOverlayPreset] = useState('global');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [followupQuestion, setFollowupQuestion] = useState(null);
   const [followupLoading, setFollowupLoading] = useState(false);
@@ -465,6 +656,20 @@ export default function App() {
   const [hasHydratedSavedPoints, setHasHydratedSavedPoints] = useState(false);
   const [isDebugBypassEnabled, setIsDebugBypassEnabled] = useState(false);
   const [showBypassToast, setShowBypassToast] = useState(false);
+  const [isAnalysisPending, setIsAnalysisPending] = useState(false);
+  const [hasGeminiQuizResult, setHasGeminiQuizResult] = useState(false);
+  const [showSaveToast, setShowSaveToast] = useState(false);
+  const [showSavedHintCue, setShowSavedHintCue] = useState(false);
+  const [hintIndex, setHintIndex] = useState(0);
+  const [isHintFading, setIsHintFading] = useState(false);
+  const [isTextInputFocused, setIsTextInputFocused] = useState(false);
+  const [isHintIdleReady, setIsHintIdleReady] = useState(true);
+  const submitRequestRef = useRef(0);
+  const debugHoldTimerRef = useRef(null);
+  const ignoreNextDebugClickRef = useRef(false);
+  const hintIdleTimerRef = useRef(null);
+
+  const isMobile = /Mobi|Android/i.test(navigator.userAgent);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -489,7 +694,13 @@ export default function App() {
         typeof point.y === 'number' &&
         typeof point.analysis === 'string' &&
         typeof point.createdAt === 'string'
-      ));
+      )).map((point) => ({
+        ...point,
+        titlePending: typeof point.titlePending === 'boolean' ? point.titlePending : false,
+        sourceBatchId: typeof point.sourceBatchId === 'number' || typeof point.sourceBatchId === 'string'
+          ? point.sourceBatchId
+          : null,
+      }));
       setSavedPoints(normalized);
     } catch {
       setSavedPoints([]);
@@ -510,19 +721,99 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [showBypassToast]);
 
+  useEffect(() => {
+    if (!showSaveToast) return undefined;
+    const timer = window.setTimeout(() => setShowSaveToast(false), 1700);
+    return () => window.clearTimeout(timer);
+  }, [showSaveToast]);
+
+  useEffect(() => {
+    if (!showSavedHintCue) return undefined;
+    const timer = window.setTimeout(() => setShowSavedHintCue(false), 4200);
+    return () => window.clearTimeout(timer);
+  }, [showSavedHintCue]);
+
+  useEffect(() => {
+    if (mode !== 'text') return undefined;
+    if (textInput.trim()) return undefined;
+    if (isTextInputFocused && !isHintIdleReady) return undefined;
+
+    const cycleTimer = window.setTimeout(() => {
+      setIsHintFading(true);
+      const fadeTimer = window.setTimeout(() => {
+        setHintIndex((prev) => (prev + 1) % TEXT_INPUT_HINTS.length);
+        setIsHintFading(false);
+      }, 420);
+      return () => window.clearTimeout(fadeTimer);
+    }, 4200);
+
+    return () => window.clearTimeout(cycleTimer);
+  }, [mode, textInput, hintIndex, isTextInputFocused, isHintIdleReady]);
+
   const handleQuizChange = (qIndex, answer) => {
     setQuizAnswers(prev => ({ ...prev, [qIndex]: answer }));
   };
 
+  const scheduleHintIdleResume = () => {
+    if (hintIdleTimerRef.current) {
+      window.clearTimeout(hintIdleTimerRef.current);
+    }
+    if (mode !== 'text' || textInput.trim()) {
+      setIsHintIdleReady(false);
+      return;
+    }
+    setIsHintIdleReady(false);
+    hintIdleTimerRef.current = window.setTimeout(() => {
+      setIsHintIdleReady(true);
+      hintIdleTimerRef.current = null;
+    }, 1800);
+  };
+
+  const handleTextInputFocus = () => {
+    setIsTextInputFocused(true);
+    scheduleHintIdleResume();
+  };
+
+  const handleTextInputBlur = () => {
+    setIsTextInputFocused(false);
+    setIsHintIdleReady(true);
+    if (hintIdleTimerRef.current) {
+      window.clearTimeout(hintIdleTimerRef.current);
+      hintIdleTimerRef.current = null;
+    }
+  };
+
+  const handleTextInputChange = (nextValue) => {
+    setTextInput(nextValue);
+    if (nextValue.trim()) {
+      setIsHintIdleReady(false);
+      if (hintIdleTimerRef.current) {
+        window.clearTimeout(hintIdleTimerRef.current);
+        hintIdleTimerRef.current = null;
+      }
+      return;
+    }
+    if (isTextInputFocused) {
+      scheduleHintIdleResume();
+    } else {
+      setIsHintIdleReady(true);
+    }
+  };
+
   const isQuizComplete = Object.keys(quizAnswers).length === QUIZ_QUESTIONS.length;
+  const resultPoints = result ? normalizePlottedPoints(result) : [];
 
   const handleSubmit = async () => {
-    setLoading(true);
+    const requestId = Date.now();
+    submitRequestRef.current = requestId;
+    setLoading(mode === 'text');
     setError(null);
     setResult(null);
     setFollowupQuestion(null);
     setSelectedFollowupChoice("");
     setRefinementNote("");
+    setIsAnalysisPending(false);
+    setHasGeminiQuizResult(false);
 
     try {
       let promptText = "";
@@ -535,27 +826,85 @@ export default function App() {
       }
 
       setSourcePrompt(promptText);
-      const evalResult = await evaluateBeliefs(promptText, { bypassLimit: isDebugBypassEnabled });
+      if (mode === 'quiz') {
+        const deterministicResult = evaluateQuizDeterministically(quizAnswers);
+        setResult({ ...deterministicResult, fromGemini: false, sourceBatchId: requestId });
+        setLoading(false);
+        setIsAnalysisPending(true);
+        setHasGeminiQuizResult(false);
+        setFollowupLoading(true);
 
-      if (mode === 'text' && evalResult.hasSufficientData === false) {
-        const popupMessage = evalResult.insufficiencyReason?.trim()
-          ? evalResult.insufficiencyReason
-          : "This person cannot be plotted right now because there is not enough political-belief data.";
-        window.alert(popupMessage);
+        try {
+          const evalResult = await evaluateBeliefs(promptText, { bypassLimit: isDebugBypassEnabled });
+          if (submitRequestRef.current !== requestId) return;
+          const normalizedPoints = normalizePlottedPoints(evalResult);
+          setResult((prev) => ({
+            ...prev,
+            ...evalResult,
+            x: normalizedPoints[0]?.x ?? evalResult.x,
+            y: normalizedPoints[0]?.y ?? evalResult.y,
+            points: normalizedPoints,
+            fromGemini: true,
+            sourceBatchId: requestId,
+          }));
+          setSavedPoints((prev) => applyAiTitlesToPendingSaves(prev, requestId, normalizedPoints));
+          setHasGeminiQuizResult(true);
+          try {
+            const followup = await generateFollowupQuestion(promptText, evalResult, { bypassLimit: isDebugBypassEnabled });
+            if (submitRequestRef.current !== requestId) return;
+            const normalizedChoices = Array.isArray(followup.choices) ? followup.choices.slice(0, 5) : [];
+            if (followup.question && normalizedChoices.length >= 2) {
+              setFollowupQuestion({ question: followup.question, choices: normalizedChoices });
+            }
+          } catch {
+            if (submitRequestRef.current === requestId) {
+              setFollowupQuestion(null);
+            }
+          }
+        } catch (err) {
+          if (submitRequestRef.current === requestId) {
+            setError(`Gemini analysis unavailable right now. Showing instant quiz estimate only. ${err.message}`);
+          }
+        } finally {
+          if (submitRequestRef.current === requestId) {
+            setIsAnalysisPending(false);
+            setFollowupLoading(false);
+          }
+        }
         return;
       }
 
-      setResult(evalResult);
-      setFollowupLoading(true);
-      try {
-        const followup = await generateFollowupQuestion(promptText, evalResult, { bypassLimit: isDebugBypassEnabled });
-        const normalizedChoices = Array.isArray(followup.choices) ? followup.choices.slice(0, 5) : [];
-        if (followup.question && normalizedChoices.length >= 2) {
-          setFollowupQuestion({ question: followup.question, choices: normalizedChoices });
+      const evalResult = await evaluateBeliefs(promptText, { bypassLimit: isDebugBypassEnabled });
+
+      if (mode === 'text' && evalResult.hasSufficientData === false) {
+        const insufficiencyMessage = evalResult.insufficiencyReason?.trim()
+          ? evalResult.insufficiencyReason
+          : "There is not enough political-belief data to place this reliably.";
+        if (evalResult.isPoliticalInput === false) {
+          setError(insufficiencyMessage);
+        } else {
+          setError(insufficiencyMessage);
         }
-      } catch {
+        return;
+      }
+
+      const normalizedPoints = normalizePlottedPoints(evalResult);
+      setResult({ ...evalResult, points: normalizedPoints, fromGemini: true, sourceBatchId: requestId });
+      if (normalizedPoints.length === 1) {
+        setFollowupLoading(true);
+        try {
+          const followup = await generateFollowupQuestion(promptText, evalResult, { bypassLimit: isDebugBypassEnabled });
+          const normalizedChoices = Array.isArray(followup.choices) ? followup.choices.slice(0, 5) : [];
+          if (followup.question && normalizedChoices.length >= 2) {
+            setFollowupQuestion({ question: followup.question, choices: normalizedChoices });
+          }
+        } catch {
+          setFollowupQuestion(null);
+        } finally {
+          setFollowupLoading(false);
+        }
+      } else {
         setFollowupQuestion(null);
-      } finally {
         setFollowupLoading(false);
       }
     } catch (err) {
@@ -566,10 +915,11 @@ export default function App() {
   };
 
   const reset = () => {
+    submitRequestRef.current = Date.now();
     setResult(null);
     setTextInput('');
     setQuizAnswers({});
-    setOverlayPreset('core');
+    setOverlayPreset('global');
     setIsFilterOpen(false);
     setSourcePrompt("");
     setFollowupQuestion(null);
@@ -577,25 +927,70 @@ export default function App() {
     setSelectedFollowupChoice("");
     setIsRefining(false);
     setRefinementNote("");
+    setIsAnalysisPending(false);
+    setHasGeminiQuizResult(false);
   };
 
-  const showDebugPoint = (event) => {
-    if (event?.altKey) {
-      setIsDebugBypassEnabled(true);
-      setShowBypassToast(true);
+  const enableDebugBypass = () => {
+    setIsDebugBypassEnabled(true);
+    setShowBypassToast(true);
+  };
+
+  const showDebugPoint = ({ enableBypass = false } = {}) => {
+    if (enableBypass) {
+      enableDebugBypass();
     }
     setError(null);
     setLoading(false);
-    setOverlayPreset('core');
+    setOverlayPreset('global');
     setResult({
       x: 0,
       y: 0,
       analysis: "Debug mode: centered test point for quick compass checks without calling Gemini.",
+      points: [{
+        id: "cluster-1",
+        label: "Primary",
+        x: 0,
+        y: 0,
+        analysis: "Debug mode: centered test point for quick compass checks without calling Gemini.",
+      }],
+      fromGemini: false,
+      sourceBatchId: `debug-${Date.now()}`,
     });
     setSourcePrompt("Debug mode user profile.");
     setFollowupQuestion(null);
     setSelectedFollowupChoice("");
     setRefinementNote("");
+  };
+
+  const handleDebugButtonClick = (event) => {
+    if (ignoreNextDebugClickRef.current) {
+      ignoreNextDebugClickRef.current = false;
+      return;
+    }
+    if (event?.altKey) {
+      enableDebugBypass();
+      return;
+    }
+    showDebugPoint();
+  };
+
+  const startDebugHold = () => {
+    if (!isMobile) return;
+    if (debugHoldTimerRef.current) {
+      window.clearTimeout(debugHoldTimerRef.current);
+    }
+    debugHoldTimerRef.current = window.setTimeout(() => {
+      enableDebugBypass();
+      ignoreNextDebugClickRef.current = true;
+      debugHoldTimerRef.current = null;
+    }, 3000);
+  };
+
+  const cancelDebugHold = () => {
+    if (!debugHoldTimerRef.current) return;
+    window.clearTimeout(debugHoldTimerRef.current);
+    debugHoldTimerRef.current = null;
   };
 
   const handleFollowupChoice = async (choice) => {
@@ -628,21 +1023,45 @@ export default function App() {
 
   const handleSavePoint = () => {
     if (!result) return;
-    const pointNumber = savedPoints.length + 1;
-    const newPoint = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      title: `Point ${pointNumber}`,
-      x: result.x,
-      y: result.y,
-      analysis: result.analysis,
+    if (resultPoints.length === 0) return;
+    const timestamp = Date.now();
+    const baseCount = savedPoints.length;
+    const pointsToSave = resultPoints.map((point, index) => ({
+      id: `${timestamp}-${index}-${Math.random().toString(36).slice(2, 8)}`,
+      title: (point.label?.trim() || `Point ${baseCount + index + 1}`),
+      x: point.x,
+      y: point.y,
+      analysis: point.analysis || result.analysis,
       createdAt: new Date().toISOString(),
-    };
-    setSavedPoints((prev) => [newPoint, ...prev]);
+      titlePending: !result.fromGemini,
+      sourceBatchId: result.sourceBatchId || null,
+    }));
+    const inserted = [...pointsToSave].reverse();
+    setSavedPoints((prev) => [...inserted, ...prev]);
     setIsSavedPanelOpen(true);
+    setShowSaveToast(true);
+    if (typeof window !== "undefined") {
+      const hasShownFirstSaveHint = window.sessionStorage.getItem(FIRST_SAVE_HINT_SESSION_KEY) === "true";
+      if (!hasShownFirstSaveHint) {
+        setShowSavedHintCue(true);
+        window.sessionStorage.setItem(FIRST_SAVE_HINT_SESSION_KEY, "true");
+      }
+    }
   };
 
   const handleLoadSavedPoint = (point) => {
-    setResult({ x: point.x, y: point.y, analysis: point.analysis });
+    setResult({
+      x: point.x,
+      y: point.y,
+      analysis: point.analysis,
+      points: [{
+        id: "cluster-1",
+        label: point.title,
+        x: point.x,
+        y: point.y,
+        analysis: point.analysis,
+      }],
+    });
     setRefinementNote("");
     setFollowupQuestion(null);
     setSelectedFollowupChoice("");
@@ -678,9 +1097,14 @@ export default function App() {
   return (
     <div className={`app-shell ${isDarkMode ? 'dark' : ''} ${getOverlayThemeClass()}`}>
       {showBypassToast && <div className="bypass-toast">API bypass enabled</div>}
+      {showSaveToast && <div className="save-toast">Point saved</div>}
+      {showSavedHintCue && <div className="saved-hint-cue">Saved points live in the top-right bookmark.</div>}
       <div className="top-controls">
         <button
-          onClick={showDebugPoint}
+          onClick={handleDebugButtonClick}
+          onTouchStart={startDebugHold}
+          onTouchEnd={cancelDebugHold}
+          onTouchCancel={cancelDebugHold}
           className="theme-toggle debug-toggle"
           aria-label="Show debug center point"
           title="Show debug center point"
@@ -726,7 +1150,7 @@ export default function App() {
                             maxLength={60}
                           />
                         ) : (
-                          <h4>{point.title}</h4>
+                          <h4>{point.title}{point.titlePending ? " (title pending)" : ""}</h4>
                         )}
                         <p className="saved-point-meta">
                           Economic: {point.x.toFixed(2)} | Social: {point.y.toFixed(2)}
@@ -804,11 +1228,20 @@ export default function App() {
 
             <div className="panel-body">
               {mode === 'text' ? (
-                <div>
+                <div className="belief-input-wrap">
+                  {!textInput.trim() && (!isTextInputFocused || isHintIdleReady) && (
+                    <div className={`belief-hint-overlay ${isHintFading ? 'fading' : ''}`}>
+                      {TEXT_INPUT_HINTS[hintIndex]}
+                    </div>
+                  )}
                   <textarea
                     value={textInput}
-                    onChange={(e) => setTextInput(e.target.value)}
-                    placeholder="Describe your beliefs here..."
+                    onChange={(e) => handleTextInputChange(e.target.value)}
+                    onFocus={handleTextInputFocus}
+                    onBlur={handleTextInputBlur}
+                    onKeyDown={scheduleHintIdleResume}
+                    onPointerDown={scheduleHintIdleResume}
+                    placeholder=""
                     className="belief-textarea"
                   />
                 </div>
@@ -859,7 +1292,7 @@ export default function App() {
         {loading && (
           <div className="loading-state">
             <Loader2 size={48} className="spinner" />
-            <p>Processing with Gemini...</p>
+            <p>Analyzing your beliefs...</p>
           </div>
         )}
 
@@ -868,15 +1301,18 @@ export default function App() {
             <div className="result-header">
               <h2>Your Political Coordinates</h2>
               <div className="score-pills">
-                <span className="score-pill">Economic: {result.x.toFixed(2)}</span>
-                <span className="score-pill">Social: {result.y.toFixed(2)}</span>
+                {resultPoints.map((point, index) => (
+                  <span key={point.id || `score-${index}`} className="score-pill">
+                    {resultPoints.length > 1 ? `${point.label}: ` : ''}
+                    E {point.x.toFixed(2)} | S {point.y.toFixed(2)}
+                  </span>
+                ))}
               </div>
             </div>
 
             <div className="compass-area">
               <CompassPlot
-                x={result.x}
-                y={result.y}
+                userPoints={resultPoints}
                 isDarkMode={isDarkMode}
                 referencePoints={OVERLAY_PRESETS[overlayPreset].points}
                 overlayPreset={overlayPreset}
@@ -923,21 +1359,46 @@ export default function App() {
             </div>
             {(overlayPreset === 'republican' || overlayPreset === 'democratic') && (
               <div className="party-badge">
-                <span className="party-icon">{overlayPreset === 'republican' ? '🐘' : '🐎'}</span>
+                <span className="party-icon">{overlayPreset === 'republican' ? '🐘' : '🫏'}</span>
                 <span className="party-label">{overlayPreset === 'republican' ? 'Republican Overlay' : 'Democratic Overlay'}</span>
               </div>
             )}
 
             <div className="analysis-card">
               <h3>Analysis</h3>
-              <p>
-                "{result.analysis}"
-              </p>
+              {isAnalysisPending ? (
+                <div className="chat-bubble assistant">
+                  <Loader2 size={16} className="spinner" />
+                  Analyzing your quiz results...
+                </div>
+              ) : null}
+              {!isAnalysisPending && hasGeminiQuizResult && mode === 'quiz' && (
+                <p>Analysis complete.</p>
+              )}
+              {!isAnalysisPending && resultPoints.length > 1 ? (
+                <div>
+                  <p>"{result.analysis}"</p>
+                  {resultPoints.map((point, index) => (
+                    <p key={point.id || `analysis-${index}`}>
+                      <strong>{point.label}:</strong> "{point.analysis}"
+                    </p>
+                  ))}
+                </div>
+              ) : !isAnalysisPending ? (
+                <p>
+                  "{result.analysis}"
+                </p>
+              ) : null}
             </div>
             <div className="chat-followup">
+              {resultPoints.length > 1 && (
+                <div className="chat-bubble assistant">
+                  Mixed beliefs detected, so multiple points were plotted. Follow-up refinement is disabled for multi-point results.
+                </div>
+              )}
               {followupLoading && (
                 <div className="chat-bubble assistant">
-                  Gemini is preparing a follow-up question...
+                  Preparing a follow-up question...
                 </div>
               )}
               {followupQuestion && (
