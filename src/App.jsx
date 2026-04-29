@@ -82,6 +82,61 @@ const getOrCreateStableClientId = () => {
   return generated;
 };
 
+const buildClientHeaders = ({ bypassLimit = false } = {}) => {
+  const clientId = getOrCreateStableClientId();
+  return {
+    "Content-Type": "application/json",
+    "X-Client-Id": clientId,
+    "X-Debug-Bypass": bypassLimit ? "true" : "false"
+  };
+};
+
+const loadSavedPointsFromServer = async () => {
+  const response = await fetch(`${API_BASE}/api/saved-points`, {
+    method: "GET",
+    headers: buildClientHeaders()
+  });
+  if (!response.ok) {
+    throw new Error(await extractApiErrorMessage(response));
+  }
+  const payload = await response.json();
+  return Array.isArray(payload?.points) ? payload.points : [];
+};
+
+const savePointToServer = async (point) => {
+  const response = await fetch(`${API_BASE}/api/saved-points`, {
+    method: "POST",
+    headers: buildClientHeaders(),
+    body: JSON.stringify({ point })
+  });
+  if (!response.ok) {
+    throw new Error(await extractApiErrorMessage(response));
+  }
+  const payload = await response.json();
+  return payload?.point || point;
+};
+
+const renameSavedPointOnServer = async (pointId, title) => {
+  const response = await fetch(`${API_BASE}/api/saved-points/${encodeURIComponent(pointId)}`, {
+    method: "PATCH",
+    headers: buildClientHeaders(),
+    body: JSON.stringify({ title })
+  });
+  if (!response.ok) {
+    throw new Error(await extractApiErrorMessage(response));
+  }
+};
+
+const deleteSavedPointOnServer = async (pointId) => {
+  const response = await fetch(`${API_BASE}/api/saved-points/${encodeURIComponent(pointId)}`, {
+    method: "DELETE",
+    headers: buildClientHeaders()
+  });
+  if (!response.ok) {
+    throw new Error(await extractApiErrorMessage(response));
+  }
+};
+
 const runGeminiJsonRequest = async ({
   promptText,
   systemInstructionText,
@@ -101,11 +156,7 @@ const runGeminiJsonRequest = async ({
     try {
       const response = await fetch(`${API_BASE}/api/gemini-json`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Client-Id': clientId,
-          'X-Debug-Bypass': bypassLimit ? 'true' : 'false'
-        },
+        headers: buildClientHeaders({ bypassLimit }),
         body: JSON.stringify({
           promptText,
           systemInstructionText,
@@ -656,36 +707,57 @@ export default function App() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    try {
-      const namespacedKey = getSavedPointsStorageKey();
-      const raw = window.localStorage.getItem(namespacedKey) || window.localStorage.getItem(LEGACY_SAVED_POINTS_STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return;
-      const normalized = parsed.filter((point) => (
-        point &&
-        typeof point.id === 'string' &&
-        typeof point.title === 'string' &&
-        typeof point.x === 'number' &&
-        typeof point.y === 'number' &&
-        typeof point.analysis === 'string' &&
-        typeof point.createdAt === 'string'
-      )).map((point) => ({
-        ...point,
-        titlePending: typeof point.titlePending === 'boolean' ? point.titlePending : false,
-        sourceBatchId: typeof point.sourceBatchId === 'number' || typeof point.sourceBatchId === 'string'
-          ? point.sourceBatchId
-          : null,
-      }));
-      setSavedPoints(normalized);
-      if (!window.localStorage.getItem(namespacedKey)) {
-        window.localStorage.setItem(namespacedKey, JSON.stringify(normalized));
+    const loadInitialSavedPoints = async () => {
+      try {
+        const serverPoints = await loadSavedPointsFromServer();
+        setSavedPoints(serverPoints);
+        return;
+      } catch {
+        // Fall back to local cache when backend is unavailable.
       }
-    } catch {
-      setSavedPoints([]);
-    } finally {
+
+      try {
+        const namespacedKey = getSavedPointsStorageKey();
+        const raw = window.localStorage.getItem(namespacedKey) || window.localStorage.getItem(LEGACY_SAVED_POINTS_STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return;
+        const normalized = parsed.filter((point) => (
+          point &&
+          typeof point.id === 'string' &&
+          typeof point.title === 'string' &&
+          typeof point.x === 'number' &&
+          typeof point.y === 'number' &&
+          typeof point.analysis === 'string' &&
+          typeof point.createdAt === 'string'
+        )).map((point) => ({
+          ...point,
+          groupedPoints: Array.isArray(point.groupedPoints)
+            ? point.groupedPoints.filter((cluster) => (
+              cluster &&
+              typeof cluster.x === "number" &&
+              typeof cluster.y === "number" &&
+              typeof cluster.analysis === "string" &&
+              typeof cluster.label === "string"
+            )).slice(0, MAX_MULTI_POINTS)
+            : undefined,
+          titlePending: typeof point.titlePending === 'boolean' ? point.titlePending : false,
+          sourceBatchId: typeof point.sourceBatchId === 'number' || typeof point.sourceBatchId === 'string'
+            ? point.sourceBatchId
+            : null,
+        }));
+        setSavedPoints(normalized);
+        if (!window.localStorage.getItem(namespacedKey)) {
+          window.localStorage.setItem(namespacedKey, JSON.stringify(normalized));
+        }
+      } catch {
+        setSavedPoints([]);
+      }
+    };
+
+    loadInitialSavedPoints().finally(() => {
       setHasHydratedSavedPoints(true);
-    }
+    });
   }, []);
 
   useEffect(() => {
@@ -1021,23 +1093,45 @@ export default function App() {
     return 'overlay-neutral';
   };
 
-  const handleSavePoint = () => {
+  const handleSavePoint = async () => {
     if (!result) return;
     if (resultPoints.length === 0) return;
     const timestamp = Date.now();
     const baseCount = savedPoints.length;
-    const pointsToSave = resultPoints.map((point, index) => ({
-      id: `${timestamp}-${index}-${Math.random().toString(36).slice(2, 8)}`,
-      title: (point.label?.trim() || `Point ${baseCount + index + 1}`),
-      x: point.x,
-      y: point.y,
-      analysis: point.analysis || result.analysis,
+    const groupedPoints = resultPoints.length > 1
+      ? resultPoints.map((point, index) => ({
+        id: point.id || `cluster-${index + 1}`,
+        label: point.label?.trim() || `Point ${index + 1}`,
+        x: point.x,
+        y: point.y,
+        analysis: point.analysis || "",
+      }))
+      : undefined;
+
+    const savedPoint = {
+      id: `${timestamp}-${Math.random().toString(36).slice(2, 8)}`,
+      title: (result.title?.trim()
+        || (resultPoints.length > 1 ? "Mixed Views" : resultPoints[0].label?.trim())
+        || `Point ${baseCount + 1}`),
+      x: typeof result.x === "number" ? result.x : resultPoints[0].x,
+      y: typeof result.y === "number" ? result.y : resultPoints[0].y,
+      analysis: result.analysis || resultPoints[0].analysis || "",
       createdAt: new Date().toISOString(),
       titlePending: !result.fromGemini,
       sourceBatchId: result.sourceBatchId || null,
-    }));
-    const inserted = [...pointsToSave].reverse();
-    setSavedPoints((prev) => [...inserted, ...prev]);
+      groupedPoints,
+    };
+
+    setSavedPoints((prev) => [savedPoint, ...prev]);
+    try {
+      const savedFromServer = await savePointToServer(savedPoint);
+      setSavedPoints((prev) => {
+        const remaining = prev.filter((point) => point.id !== savedPoint.id);
+        return [savedFromServer, ...remaining];
+      });
+    } catch {
+      setError("Saved locally, but cloud sync failed. We'll try again next time.");
+    }
     setIsSavedPanelOpen(true);
     setShowSaveToast(true);
     if (typeof window !== "undefined") {
@@ -1050,17 +1144,29 @@ export default function App() {
   };
 
   const handleLoadSavedPoint = (point) => {
-    setResult({
-      x: point.x,
-      y: point.y,
-      analysis: point.analysis,
-      points: [{
+    const restoredPoints = Array.isArray(point.groupedPoints) && point.groupedPoints.length > 0
+      ? point.groupedPoints.map((cluster, index) => ({
+        id: cluster.id || `cluster-${index + 1}`,
+        label: cluster.label?.trim() || `Point ${index + 1}`,
+        x: clampCompassValue(cluster.x),
+        y: clampCompassValue(cluster.y),
+        analysis: cluster.analysis || "",
+      }))
+      : [{
         id: "cluster-1",
         label: point.title,
         x: point.x,
         y: point.y,
         analysis: point.analysis,
-      }],
+      }];
+
+    setResult({
+      x: point.x,
+      y: point.y,
+      analysis: point.analysis,
+      title: point.title,
+      points: restoredPoints,
+      fromGemini: true,
     });
     setRefinementNote("");
     setFollowupQuestion(null);
@@ -1078,19 +1184,34 @@ export default function App() {
     setEditingTitle("");
   };
 
-  const saveRenamedPoint = (pointId) => {
-    setSavedPoints((prev) => prev.map((point) => {
-      if (point.id !== pointId) return point;
-      const nextTitle = editingTitle.trim() || point.title;
-      return { ...point, title: nextTitle };
-    }));
+  const saveRenamedPoint = async (pointId) => {
+    const previousPoints = savedPoints;
+    const originalPoint = previousPoints.find((point) => point.id === pointId);
+    const nextTitle = editingTitle.trim() || originalPoint?.title;
+    if (!nextTitle) return;
+    setSavedPoints((prev) => prev.map((point) => (
+      point.id === pointId ? { ...point, title: nextTitle, titlePending: false } : point
+    )));
     cancelRenamingPoint();
+    try {
+      await renameSavedPointOnServer(pointId, nextTitle);
+    } catch {
+      setSavedPoints(previousPoints);
+      setError("Could not rename in cloud sync. Please try again.");
+    }
   };
 
-  const handleDeletePoint = (pointId) => {
+  const handleDeletePoint = async (pointId) => {
+    const previousPoints = savedPoints;
     setSavedPoints((prev) => prev.filter((point) => point.id !== pointId));
     if (editingId === pointId) {
       cancelRenamingPoint();
+    }
+    try {
+      await deleteSavedPointOnServer(pointId);
+    } catch {
+      setSavedPoints(previousPoints);
+      setError("Could not delete in cloud sync. Please try again.");
     }
   };
 
