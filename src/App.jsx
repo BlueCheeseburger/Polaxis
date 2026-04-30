@@ -870,7 +870,7 @@ export default function App() {
       let promptText = "";
       let inputLength = 0;
       if (mode === 'text') {
-        if (!textInput.trim()) throw new Error("Please enter your beliefs first.");
+        if (!textInput.trim()) throw new Error("Please enter your political beliefs first.");
         inputLength = textInput.length;
         promptText = `User political description: "${textInput}"`;
       } else {
