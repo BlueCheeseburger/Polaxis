@@ -1664,7 +1664,7 @@ export default function App() {
             </div>
             {(overlayPreset === 'republican' || overlayPreset === 'democratic') && (
               <div className="party-badge">
-                <span className="party-icon">{overlayPreset === 'republican' ? '🐘' : '🫏'}</span>
+                <img className="party-icon" src={overlayPreset === 'republican' ? '/images/republican.png' : '/images/democrat.png'} alt={overlayPreset === 'republican' ? 'Republican' : 'Democrat'} />
                 <span className="party-label">{overlayPreset === 'republican' ? 'Republican Overlay' : 'Democratic Overlay'}</span>
               </div>
             )}

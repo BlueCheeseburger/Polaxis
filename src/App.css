@@ -687,8 +687,9 @@
 }
 
 .party-icon {
-  font-size: 1rem;
-  line-height: 1;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
 .overlay-republican .party-badge,
