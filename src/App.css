@@ -828,6 +828,46 @@
   margin-top: 10px;
 }
 
+/* Multi-point analysis rendering */
+.analysis-summary {
+  margin: 0 0 14px !important;
+  color: #64748b !important;
+  font-size: 0.9rem;
+}
+
+.app-shell.dark .analysis-summary {
+  color: #94a3b8 !important;
+}
+
+.analysis-clusters {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.analysis-cluster {
+  border-left: 3px solid rgba(249, 115, 22, 0.55);
+  padding-left: 10px;
+}
+
+.analysis-cluster-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #c2410c;
+  margin-bottom: 4px;
+}
+
+.app-shell.dark .analysis-cluster-label {
+  color: #fb923c;
+}
+
+.analysis-cluster p {
+  margin: 0;
+}
+
 .reference-note {
   margin: 6px 2px 0;
   font-size: 0.8rem;
@@ -967,11 +1007,11 @@
 
 /* Axis breakdown panel */
 .axis-breakdown-panel {
-  min-width: 160px;
+  min-width: 190px;
   border-radius: 12px;
   border: 1px solid rgba(148, 163, 184, 0.4);
   background: rgba(248, 250, 252, 0.75);
-  padding: 12px 14px;
+  padding: 14px 16px;
 }
 
 .app-shell.dark .axis-breakdown-panel {
@@ -980,24 +1020,24 @@
 }
 
 .axis-breakdown-panel h3 {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: #64748b;
 }
 
 .party-match-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 7px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .party-match-name {
-  font-size: 0.74rem;
+  font-size: 0.82rem;
   font-weight: 700;
-  width: 78px;
+  width: 86px;
   flex-shrink: 0;
   color: #334155;
 }
@@ -1008,7 +1048,7 @@
 
 .party-match-bar-wrap {
   flex: 1;
-  height: 7px;
+  height: 12px;
   border-radius: 999px;
   background: rgba(148, 163, 184, 0.25);
   overflow: hidden;
@@ -1021,9 +1061,9 @@
 }
 
 .party-match-pct {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  width: 28px;
+  width: 32px;
   text-align: right;
   color: #64748b;
 }
@@ -1031,15 +1071,15 @@
 .axis-slider-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .axis-slider-label {
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: #64748b;
-  width: 22px;
+  width: 24px;
   flex-shrink: 0;
 }
 
@@ -1049,7 +1089,7 @@
 
 .axis-slider-track {
   flex: 1;
-  height: 5px;
+  height: 8px;
   border-radius: 999px;
   background: rgba(148, 163, 184, 0.3);
   position: relative;
@@ -1059,12 +1099,12 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: #f97316;
   border: 2px solid #fff;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.25);
 }
 
 /* Error banner quiz hint */

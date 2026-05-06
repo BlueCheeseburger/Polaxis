@@ -79,45 +79,91 @@ const incrementOrRejectDailyLimit = ({ store, key, limit, errorMessage }) => {
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 const clampCompassValue = (value) => Math.max(-10, Math.min(10, value));
 
+// --- Supabase helpers for saved_points persistence ---
+const fetchSavedPointsFromDb = async (clientId) => {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from("saved_points")
+      .select("id, title, analysis, x, y, created_at, title_pending, source_batch_id")
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: false })
+      .limit(MAX_SAVED_POINTS_PER_CLIENT);
+    if (error) { console.error("Supabase fetch saved_points:", error.message); return null; }
+    return data.map(r => ({
+      id: r.id, title: r.title, analysis: r.analysis, x: r.x, y: r.y,
+      createdAt: r.created_at, titlePending: r.title_pending, sourceBatchId: r.source_batch_id,
+    }));
+  } catch (e) { console.error("Supabase exception fetchSavedPoints:", e.message); return null; }
+};
+
+const upsertSavedPointToDb = async (clientId, point) => {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from("saved_points").upsert({
+      id: point.id, client_id: clientId, title: point.title, analysis: point.analysis,
+      x: point.x, y: point.y, created_at: point.createdAt,
+      title_pending: point.titlePending, source_batch_id: point.sourceBatchId || null,
+    });
+    if (error) { console.error("Supabase upsert saved_point:", error.message); return false; }
+    return true;
+  } catch (e) { console.error("Supabase exception upsertSavedPoint:", e.message); return false; }
+};
+
+const updateSavedPointTitleInDb = async (clientId, pointId, newTitle) => {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from("saved_points")
+      .update({ title: newTitle, title_pending: false })
+      .eq("id", pointId).eq("client_id", clientId);
+    if (error) { console.error("Supabase update saved_point title:", error.message); return false; }
+    return true;
+  } catch (e) { console.error("Supabase exception updateSavedPointTitle:", e.message); return false; }
+};
+
+const deleteSavedPointFromDb = async (clientId, pointId) => {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from("saved_points")
+      .delete().eq("id", pointId).eq("client_id", clientId);
+    if (error) { console.error("Supabase delete saved_point:", error.message); return false; }
+    return true;
+  } catch (e) { console.error("Supabase exception deleteSavedPoint:", e.message); return false; }
+};
+
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, message: "Backend is running" });
 });
 
-app.get("/api/saved-points", (req, res) => {
+app.get("/api/saved-points", async (req, res) => {
   const clientId = getClientIdFromRequest(req);
-  if (!clientId) {
-    return res.status(400).json({ error: "Missing X-Client-Id header" });
+  if (!clientId) return res.status(400).json({ error: "Missing X-Client-Id header" });
+  const dbPoints = await fetchSavedPointsFromDb(clientId);
+  if (dbPoints !== null) {
+    savedPointsByClient.set(clientId, dbPoints);
+    return res.json({ points: dbPoints });
   }
   return res.json({ points: savedPointsByClient.get(clientId) || [] });
 });
 
-app.post("/api/saved-points", (req, res) => {
+app.post("/api/saved-points", async (req, res) => {
   const clientId = getClientIdFromRequest(req);
-  if (!clientId) {
-    return res.status(400).json({ error: "Missing X-Client-Id header" });
-  }
+  if (!clientId) return res.status(400).json({ error: "Missing X-Client-Id header" });
   const parsedPoint = normalizeSavedPoint(req.body?.point);
-  if (!parsedPoint) {
-    return res.status(400).json({ error: "Invalid saved point payload" });
-  }
-
+  if (!parsedPoint) return res.status(400).json({ error: "Invalid saved point payload" });
+  await upsertSavedPointToDb(clientId, parsedPoint);
   const existing = savedPointsByClient.get(clientId) || [];
-  const nextPoints = [parsedPoint, ...existing].slice(0, MAX_SAVED_POINTS_PER_CLIENT);
+  const nextPoints = [parsedPoint, ...existing.filter(p => p.id !== parsedPoint.id)].slice(0, MAX_SAVED_POINTS_PER_CLIENT);
   savedPointsByClient.set(clientId, nextPoints);
   return res.status(201).json({ point: parsedPoint, points: nextPoints });
 });
 
-app.patch("/api/saved-points/:pointId", (req, res) => {
+app.patch("/api/saved-points/:pointId", async (req, res) => {
   const clientId = getClientIdFromRequest(req);
-  if (!clientId) {
-    return res.status(400).json({ error: "Missing X-Client-Id header" });
-  }
-
+  if (!clientId) return res.status(400).json({ error: "Missing X-Client-Id header" });
   const nextTitle = typeof req.body?.title === "string" ? req.body.title.trim().slice(0, 60) : "";
-  if (!nextTitle) {
-    return res.status(400).json({ error: "Missing title" });
-  }
-
+  if (!nextTitle) return res.status(400).json({ error: "Missing title" });
+  await updateSavedPointTitleInDb(clientId, req.params.pointId, nextTitle);
   const points = savedPointsByClient.get(clientId) || [];
   const updatedPoints = points.map((point) => (
     point.id === req.params.pointId ? { ...point, title: nextTitle, titlePending: false } : point
@@ -126,11 +172,10 @@ app.patch("/api/saved-points/:pointId", (req, res) => {
   return res.json({ points: updatedPoints });
 });
 
-app.delete("/api/saved-points/:pointId", (req, res) => {
+app.delete("/api/saved-points/:pointId", async (req, res) => {
   const clientId = getClientIdFromRequest(req);
-  if (!clientId) {
-    return res.status(400).json({ error: "Missing X-Client-Id header" });
-  }
+  if (!clientId) return res.status(400).json({ error: "Missing X-Client-Id header" });
+  await deleteSavedPointFromDb(clientId, req.params.pointId);
   const points = savedPointsByClient.get(clientId) || [];
   const nextPoints = points.filter((point) => point.id !== req.params.pointId);
   savedPointsByClient.set(clientId, nextPoints);

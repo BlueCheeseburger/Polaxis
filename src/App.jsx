@@ -187,7 +187,7 @@ const runGeminiJsonRequest = async ({
 
 const evaluateBeliefs = async (promptText, options = {}) => runGeminiJsonRequest({
   promptText,
-  systemInstructionText: "You are an objective and highly analytical political science model. Assess political beliefs (provided as either raw text or quiz answers) and place them on the standard 2D political compass. X-axis (Economic): -10 (Far Left) to 10 (Far Right). Y-axis (Social/Government): 10 (Authoritarian) to -10 (Libertarian). If the input is clearly a first-person self-description, write analysis in second person ('you'). If the input is about another person, write in third person (prefer 'he'/'she' when clear from the subject, otherwise 'they'). If the input contains clearly conflicting clusters of beliefs that cannot be represented by a single coherent point, include a points array with 2 to 4 distinct points. Each point must include x, y, analysis, and a short label (1 to 4 words). If using points, set top-level x/y to the best overall midpoint and top-level analysis to a concise summary. If there is not enough concrete political-belief data to place the subject reliably, set hasSufficientData to false and include a brief insufficiencyReason. Ensure output strictly follows the requested JSON schema.",
+  systemInstructionText: "You are an objective political science model. Assess political beliefs and place them on the standard 2D political compass. X-axis (Economic): -10 (Far Left) to 10 (Far Right). Y-axis (Social/Government): 10 (Authoritarian) to -10 (Libertarian). Writing style: use second person ('you') for first-person inputs, third person for inputs about others. Keep each analysis to 1-2 punchy sentences (max 35 words). No jargon — write for a general audience. If the input contains clearly conflicting clusters that cannot be represented by a single point, include a points array (2-4 points). Each point needs x, y, analysis, and a short label (1-4 words). Set top-level x/y to the midpoint and top-level analysis to a one-sentence summary of the tension. If there is not enough political-belief data, set hasSufficientData to false with a brief insufficiencyReason. Follow the JSON schema exactly.",
   responseSchema: {
     type: "OBJECT",
     properties: {
@@ -844,12 +844,15 @@ export default function App() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const loadInitialSavedPoints = async () => {
+      let serverPoints = null;
       try {
-        const serverPoints = await loadSavedPointsFromServer();
-        setSavedPoints(serverPoints);
-        return;
+        serverPoints = await loadSavedPointsFromServer();
+        if (serverPoints.length > 0) {
+          setSavedPoints(serverPoints);
+          return;
+        }
       } catch {
-        // Fall back to local cache when backend is unavailable.
+        // server unavailable, fall through to localStorage
       }
 
       try {
@@ -885,6 +888,10 @@ export default function App() {
         setSavedPoints(normalized);
         if (!window.localStorage.getItem(namespacedKey)) {
           window.localStorage.setItem(namespacedKey, JSON.stringify(normalized));
+        }
+        // Re-sync local points to server if server was reachable but empty (post-deployment migration)
+        if (serverPoints !== null && normalized.length > 0) {
+          normalized.forEach(point => savePointToServer(point).catch(() => {}));
         }
       } catch {
         setSavedPoints([]);
@@ -1676,18 +1683,19 @@ export default function App() {
                 <p>Analysis complete.</p>
               )}
               {!isAnalysisPending && resultPoints.length > 1 ? (
-                <div>
-                  <p>"{result.analysis}"</p>
-                  {resultPoints.map((point, index) => (
-                    <p key={point.id || `analysis-${index}`}>
-                      <strong>{point.label}:</strong> "{point.analysis}"
-                    </p>
-                  ))}
+                <div className="analysis-multi">
+                  <p className="analysis-summary">"{result.analysis}"</p>
+                  <div className="analysis-clusters">
+                    {resultPoints.map((point, index) => (
+                      <div key={point.id || `analysis-${index}`} className="analysis-cluster">
+                        <span className="analysis-cluster-label">{point.label}</span>
+                        <p>"{point.analysis}"</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : !isAnalysisPending ? (
-                <p>
-                  "{result.analysis}"
-                </p>
+                <p>"{result.analysis}"</p>
               ) : null}
             </div>
             <div className="chat-followup">
