@@ -946,6 +946,152 @@
   }
 }
 
+/* User point tooltip */
+.user-point-tooltip {
+  border-color: rgba(249, 115, 22, 0.55);
+  background: rgba(255, 247, 237, 0.97);
+}
+
+.app-shell.dark .user-point-tooltip {
+  background: rgba(28, 10, 0, 0.96);
+  border-color: rgba(249, 115, 22, 0.7);
+}
+
+.user-point-tooltip .person-tooltip-name {
+  color: #c2410c;
+}
+
+.app-shell.dark .user-point-tooltip .person-tooltip-name {
+  color: #fb923c;
+}
+
+/* Axis breakdown panel */
+.axis-breakdown-panel {
+  min-width: 160px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(248, 250, 252, 0.75);
+  padding: 12px 14px;
+}
+
+.app-shell.dark .axis-breakdown-panel {
+  background: rgba(2, 6, 23, 0.72);
+  border-color: rgba(71, 85, 105, 0.6);
+}
+
+.axis-breakdown-panel h3 {
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.party-match-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 7px;
+}
+
+.party-match-name {
+  font-size: 0.74rem;
+  font-weight: 700;
+  width: 78px;
+  flex-shrink: 0;
+  color: #334155;
+}
+
+.app-shell.dark .party-match-name {
+  color: #cbd5e1;
+}
+
+.party-match-bar-wrap {
+  flex: 1;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.25);
+  overflow: hidden;
+}
+
+.party-match-bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.party-match-pct {
+  font-size: 0.72rem;
+  font-weight: 700;
+  width: 28px;
+  text-align: right;
+  color: #64748b;
+}
+
+.axis-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.axis-slider-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  width: 22px;
+  flex-shrink: 0;
+}
+
+.axis-slider-label:last-child {
+  text-align: right;
+}
+
+.axis-slider-track {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.3);
+  position: relative;
+}
+
+.axis-slider-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #f97316;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+/* Error banner quiz hint */
+.error-content {
+  flex: 1;
+}
+
+.error-content p {
+  margin: 0;
+}
+
+.error-quiz-hint {
+  margin-top: 8px !important;
+  font-size: 0.85rem;
+}
+
+.error-quiz-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-size: inherit;
+}
+
 @media (max-width: 768px) {
   .app-shell {
     padding: 16px;

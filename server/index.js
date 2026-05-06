@@ -187,7 +187,8 @@ app.post("/api/gemini-json", async (req, res) => {
       systemInstruction: { parts: [{ text: systemInstructionText }] },
       generationConfig: {
         responseMimeType: "application/json",
-        responseSchema
+        responseSchema,
+        temperature: 0.2
       }
     };
 

@@ -341,6 +341,22 @@ const generateFollowupQuestion = async (promptText, baseResult, options = {}) =>
   ...options,
 });
 
+const generateMultiPointFollowup = async (points, options = {}) => runGeminiJsonRequest({
+  promptText: `The user's beliefs produced ${points.length} distinct ideological clusters:\n${
+    points.map((p, i) => `${i + 1}. "${p.label}" (Econ: ${p.x.toFixed(1)}, Social: ${p.y.toFixed(1)}): ${p.analysis}`).join('\n\n')
+  }\n\nGenerate one neutral, thought-provoking question that invites the user to reflect on the tension between these positions.`,
+  systemInstructionText: "You help users understand internal ideological tensions. Generate a single reflective question with 2-3 answer choices that explores why the user holds these seemingly distinct positions. Do not be judgmental.",
+  responseSchema: {
+    type: "OBJECT",
+    properties: {
+      question: { type: "STRING" },
+      choices: { type: "ARRAY", items: { type: "STRING" }, minItems: 2, maxItems: 3 }
+    },
+    required: ["question", "choices"]
+  },
+  ...options,
+});
+
 const refineBeliefsFromFollowup = async ({ promptText, baseResult, question, answer, bypassLimit = false }) => runGeminiJsonRequest({
   promptText: `Original user input:\n${promptText}\n\nPrevious coordinates: x=${baseResult.x}, y=${baseResult.y}\nPrevious analysis: ${baseResult.analysis}\n\nFollow-up question: ${question}\nUser selected answer: ${answer}\n\nRefine the user's coordinates using the additional answer.`,
   systemInstructionText: "You refine political compass placement from one additional multiple-choice answer. Return updated coordinates and a short clarification explaining what changed.",
@@ -395,7 +411,8 @@ const OVERLAY_PRESETS = {
       { name: "Xi Jinping", flag: "🇨🇳", x: 2.5, y: 8.5, description: "State-led economy under high central party authority." },
       { name: "Donald Trump", flag: "🇺🇸", x: 4.5, y: 4.0, description: "Right-populist style with strong sovereignty and border emphasis." },
       { name: "Barack Obama", flag: "🇺🇸", x: -1.5, y: -1.5, description: "Liberal institutionalist with moderate center-left economics." },
-      { name: "Gavin Newsom", flag: "🇺🇸", x: -1.0, y: -2.2, description: "Progressive social agenda with center-left policy framework." },
+      { name: "Javier Milei", flag: "🇦🇷", x: 8.5, y: -3.0, description: "Anarcho-capitalist economics with libertarian anti-state positioning." },
+      { name: "Nicolás Maduro", flag: "🇻🇪", x: -6.0, y: 7.5, description: "State-socialist economy under authoritarian single-party governance." },
     ],
   },
   republican: {
@@ -404,6 +421,8 @@ const OVERLAY_PRESETS = {
       { name: "Donald Trump", x: 4.5, y: 4.0, description: "Right-populist mix of nationalism and conservative governance." },
       { name: "Marco Rubio", x: 4.0, y: 2.8, description: "Conservative economics and hawkish institutional Republican profile." },
       { name: "Nick Fuentes", x: 8.6, y: 9.0, description: "Placed far-authoritarian-right for explicit extremist rhetoric." },
+      { name: "Ron DeSantis", x: 6.0, y: 4.2, description: "Social-conservative governance with culture-war emphasis and anti-woke agenda." },
+      { name: "Mitt Romney", x: 4.2, y: 1.8, description: "Mainstream establishment conservative with moderate institutional posture." },
       { name: "Ben Shapiro", x: 7.0, y: 5.3, description: "Strong right-lib market orientation with socially conservative views." },
       { name: "Tucker Carlson", x: 6.2, y: 4.6, description: "National-conservative commentary with populist anti-elite framing." },
       { name: "George W. Bush", x: 5.2, y: 5.1, description: "Neoconservative governance with security-first federal posture." },
@@ -420,11 +439,68 @@ const OVERLAY_PRESETS = {
       { name: "Dean Withers", x: -2.8, y: -4.2, description: "Placed in libertarian-left for online progressive civil-liberties positioning." },
       { name: "John F. Kennedy", x: -0.8, y: 0.3, description: "Mid-century liberal anti-poverty agenda with moderate state posture." },
       { name: "Piers Morgan", x: 2.4, y: 1.9, description: "Centrist-right media voice with law-and-order leaning rhetoric." },
-      { name: "Gavin Newsom", x: -1.0, y: -2.2, description: "Progressive social platform with interventionist state policy." },
+      { name: "Bernie Sanders", x: -6.5, y: -1.5, description: "Democratic socialist platform with strong labor and anti-corporate positioning." },
+      { name: "AOC", x: -7.2, y: -2.8, description: "Progressive-left economics with civil liberties and green new deal focus." },
+      { name: "Hillary Clinton", x: -1.2, y: 1.5, description: "Center-left institutionalist with hawkish foreign policy and establishment framing." },
       { name: "Franklin D. Roosevelt", x: -4.2, y: 2.7, description: "Strong economic intervention and institutional federal expansion." },
     ],
   },
 };
+const calcPartyMatch = (x, y) => {
+  const parties = [
+    { name: "Democrat", cx: -2.5, cy: 1.0 },
+    { name: "Republican", cx: 5.5, cy: 3.5 },
+    { name: "Libertarian", cx: 4.0, cy: -5.0 },
+    { name: "Green", cx: -5.5, cy: -3.5 },
+  ];
+  const maxDist = Math.sqrt(800);
+  const scores = parties.map(p => ({
+    name: p.name,
+    score: Math.max(0, maxDist - Math.hypot(x - p.cx, y - p.cy))
+  }));
+  const total = scores.reduce((s, p) => s + p.score, 0);
+  return scores.map(s => ({
+    name: s.name,
+    pct: total > 0 ? Math.round((s.score / total) * 100) : 25
+  }));
+};
+
+const PARTY_COLORS = { Democrat: '#2563eb', Republican: '#dc2626', Libertarian: '#d97706', Green: '#16a34a' };
+
+const AxisBreakdownPanel = ({ x, y }) => {
+  const matches = calcPartyMatch(x, y);
+  const econPct = Math.round(((x + 10) / 20) * 100);
+  const socialPct = Math.round(((y + 10) / 20) * 100);
+  return (
+    <div className="axis-breakdown-panel">
+      <h3>Alignment</h3>
+      {matches.map(({ name, pct }) => (
+        <div key={name} className="party-match-row">
+          <span className="party-match-name">{name}</span>
+          <div className="party-match-bar-wrap">
+            <div className="party-match-bar" style={{ width: `${pct}%`, background: PARTY_COLORS[name] }} />
+          </div>
+          <span className="party-match-pct">{pct}%</span>
+        </div>
+      ))}
+      <div className="axis-slider-row">
+        <span className="axis-slider-label">Left</span>
+        <div className="axis-slider-track">
+          <div className="axis-slider-thumb" style={{ left: `calc(${econPct}% - 6px)` }} />
+        </div>
+        <span className="axis-slider-label">Right</span>
+      </div>
+      <div className="axis-slider-row">
+        <span className="axis-slider-label">Lib</span>
+        <div className="axis-slider-track">
+          <div className="axis-slider-thumb" style={{ left: `calc(${socialPct}% - 6px)` }} />
+        </div>
+        <span className="axis-slider-label">Auth</span>
+      </div>
+    </div>
+  );
+};
+
 const CANVAS_SIZE = 560;
 const getSavedPointsStorageKey = () => `politicalCompass.savedPoints.${getOrCreateStableClientId()}`;
 
@@ -433,6 +509,8 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
   const [hoveredReference, setHoveredReference] = useState(null);
   const [hoverPosition, setHoverPosition] = useState(null);
   const [hasDismissedCue, setHasDismissedCue] = useState(false);
+  const [hoveredUserPoint, setHoveredUserPoint] = useState(null);
+  const [hoveredUserPosition, setHoveredUserPosition] = useState(null);
   const isMobile = /Mobi|Android/i.test(navigator.userAgent);
 
   useEffect(() => {
@@ -530,9 +608,10 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
     userPoints.forEach((point, index) => {
       const pointX = ((point.x + 10) / 20) * width;
       const pointY = ((10 - point.y) / 20) * height;
-      const haloRadius = index === 0 ? 12 : 9;
-      const coreRadius = index === 0 ? 6 : 5;
-      const haloOpacity = index === 0 ? 0.3 : 0.22;
+      const isHoveredUser = hoveredUserPoint?.id === point.id;
+      const haloRadius = isHoveredUser ? 14 : (index === 0 ? 12 : 9);
+      const coreRadius = isHoveredUser ? 8 : (index === 0 ? 6 : 5);
+      const haloOpacity = isHoveredUser ? 0.5 : (index === 0 ? 0.3 : 0.22);
 
       ctx.beginPath();
       ctx.arc(pointX, pointY, haloRadius, 0, 2 * Math.PI);
@@ -541,13 +620,13 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
 
       ctx.beginPath();
       ctx.arc(pointX, pointY, coreRadius, 0, 2 * Math.PI);
-      ctx.fillStyle = '#f97316';
+      ctx.fillStyle = isHoveredUser ? '#ea580c' : '#f97316';
       ctx.fill();
       ctx.strokeStyle = '#fff';
       ctx.lineWidth = 2;
       ctx.stroke();
     });
-  }, [userPoints, isDarkMode, referencePoints, hoveredReference, overlayPreset]);
+  }, [userPoints, isDarkMode, referencePoints, hoveredReference, hoveredUserPoint, overlayPreset]);
 
   const handleMouseMove = (event) => {
     const canvas = canvasRef.current;
@@ -555,6 +634,26 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
     const rect = canvas.getBoundingClientRect();
     const xPos = ((event.clientX - rect.left) / rect.width) * CANVAS_SIZE;
     const yPos = ((event.clientY - rect.top) / rect.height) * CANVAS_SIZE;
+
+    if (userPoints.length > 1) {
+      let nearestUser = null;
+      let nearestUserDist = Infinity;
+      userPoints.forEach((point) => {
+        const pointX = ((point.x + 10) / 20) * CANVAS_SIZE;
+        const pointY = ((10 - point.y) / 20) * CANVAS_SIZE;
+        const dist = Math.hypot(pointX - xPos, pointY - yPos);
+        if (dist < nearestUserDist) { nearestUserDist = dist; nearestUser = point; }
+      });
+      if (nearestUser && nearestUserDist <= 14) {
+        setHoveredUserPoint(nearestUser);
+        setHoveredUserPosition({ x: xPos, y: yPos });
+        setHoveredReference(null);
+        setHoverPosition(null);
+        return;
+      }
+    }
+    setHoveredUserPoint(null);
+    setHoveredUserPosition(null);
 
     let nearest = null;
     let nearestDist = Infinity;
@@ -582,6 +681,8 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
   const handleMouseLeave = () => {
     setHoveredReference(null);
     setHoverPosition(null);
+    setHoveredUserPoint(null);
+    setHoveredUserPosition(null);
   };
 
   const handleTouchStart = (event) => {
@@ -593,6 +694,26 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
     const rect = canvas.getBoundingClientRect();
     const xPos = ((touch.clientX - rect.left) / rect.width) * CANVAS_SIZE;
     const yPos = ((touch.clientY - rect.top) / rect.height) * CANVAS_SIZE;
+
+    if (userPoints.length > 1) {
+      let nearestUser = null;
+      let nearestUserDist = Infinity;
+      userPoints.forEach((point) => {
+        const pointX = ((point.x + 10) / 20) * CANVAS_SIZE;
+        const pointY = ((10 - point.y) / 20) * CANVAS_SIZE;
+        const dist = Math.hypot(pointX - xPos, pointY - yPos);
+        if (dist < nearestUserDist) { nearestUserDist = dist; nearestUser = point; }
+      });
+      if (nearestUser && nearestUserDist <= 22) {
+        setHoveredUserPoint(nearestUser);
+        setHoveredUserPosition({ x: xPos, y: yPos });
+        setHoveredReference(null);
+        setHoverPosition(null);
+        return;
+      }
+    }
+    setHoveredUserPoint(null);
+    setHoveredUserPosition(null);
 
     let nearest = null;
     let nearestDist = Infinity;
@@ -634,6 +755,20 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
         <div className={`hover-cue ${hasDismissedCue ? 'hidden' : ''}`}>
           {isMobile ? 'Tap points for details' : 'Hover points for details'}
         </div>
+        {hoveredUserPoint && hoveredUserPosition && (
+          <div
+            className="person-tooltip user-point-tooltip"
+            style={{
+              left: `${Math.min((hoveredUserPosition.x / CANVAS_SIZE) * 100 + 3, 72)}%`,
+              top: `${Math.min((hoveredUserPosition.y / CANVAS_SIZE) * 100 + 3, 72)}%`,
+            }}
+          >
+            <div className="person-tooltip-name">{hoveredUserPoint.label}</div>
+            {hoveredUserPoint.analysis && (
+              <div className="person-tooltip-text">{hoveredUserPoint.analysis}</div>
+            )}
+          </div>
+        )}
         {hoveredReference && hoverPosition && (
           <div
             className="person-tooltip"
@@ -675,6 +810,7 @@ export default function App() {
   const [selectedFollowupChoice, setSelectedFollowupChoice] = useState("");
   const [isRefining, setIsRefining] = useState(false);
   const [refinementNote, setRefinementNote] = useState("");
+  const [isMultiPointFollowup, setIsMultiPointFollowup] = useState(false);
   const [savedPoints, setSavedPoints] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState("");
@@ -974,8 +1110,25 @@ export default function App() {
           setFollowupLoading(false);
         }
       } else {
-        setFollowupQuestion(null);
-        setFollowupLoading(false);
+        setIsMultiPointFollowup(true);
+        setFollowupLoading(true);
+        try {
+          const followup = await generateMultiPointFollowup(normalizedPoints, {
+            mode,
+            inputLength,
+            bypassLimit: isDebugBypassEnabled
+          });
+          const normalizedChoices = Array.isArray(followup.choices) ? followup.choices.slice(0, 3) : [];
+          if (followup.question && normalizedChoices.length >= 2) {
+            setFollowupQuestion({ question: followup.question, choices: normalizedChoices });
+          } else {
+            setFollowupQuestion(null);
+          }
+        } catch {
+          setFollowupQuestion(null);
+        } finally {
+          setFollowupLoading(false);
+        }
       }
     } catch (err) {
       setError(err.message);
@@ -999,6 +1152,7 @@ export default function App() {
     setRefinementNote("");
     setIsAnalysisPending(false);
     setHasGeminiQuizResult(false);
+    setIsMultiPointFollowup(false);
   };
 
   const enableDebugBypass = () => {
@@ -1066,6 +1220,12 @@ export default function App() {
   const handleFollowupChoice = async (choice) => {
     if (!followupQuestion || !result || !sourcePrompt || isRefining) return;
     setSelectedFollowupChoice(choice);
+
+    if (isMultiPointFollowup) {
+      setRefinementNote("Thanks for reflecting on this. Holding beliefs across multiple ideological spaces is more common than you'd think — political identity is rarely a clean fit.");
+      return;
+    }
+
     setIsRefining(true);
     setError(null);
     try {
@@ -1097,41 +1257,45 @@ export default function App() {
     if (!result) return;
     if (resultPoints.length === 0) return;
     const timestamp = Date.now();
-    const baseCount = savedPoints.length;
-    const groupedPoints = resultPoints.length > 1
+
+    const pointsToSave = resultPoints.length > 1
       ? resultPoints.map((point, index) => ({
-        id: point.id || `cluster-${index + 1}`,
-        label: point.label?.trim() || `Point ${index + 1}`,
-        x: point.x,
-        y: point.y,
-        analysis: point.analysis || "",
-      }))
-      : undefined;
+          id: `${timestamp}-${index}-${Math.random().toString(36).slice(2, 8)}`,
+          title: point.label?.trim() || `Point ${savedPoints.length + index + 1}`,
+          x: point.x,
+          y: point.y,
+          analysis: point.analysis || "",
+          createdAt: new Date(timestamp + index).toISOString(),
+          titlePending: false,
+          sourceBatchId: result.sourceBatchId || null,
+        }))
+      : [{
+          id: `${timestamp}-${Math.random().toString(36).slice(2, 8)}`,
+          title: result.title?.trim() || resultPoints[0].label?.trim() || `Point ${savedPoints.length + 1}`,
+          x: typeof result.x === "number" ? result.x : resultPoints[0].x,
+          y: typeof result.y === "number" ? result.y : resultPoints[0].y,
+          analysis: result.analysis || resultPoints[0].analysis || "",
+          createdAt: new Date().toISOString(),
+          titlePending: !result.fromGemini,
+          sourceBatchId: result.sourceBatchId || null,
+        }];
 
-    const savedPoint = {
-      id: `${timestamp}-${Math.random().toString(36).slice(2, 8)}`,
-      title: (result.title?.trim()
-        || (resultPoints.length > 1 ? "Mixed Views" : resultPoints[0].label?.trim())
-        || `Point ${baseCount + 1}`),
-      x: typeof result.x === "number" ? result.x : resultPoints[0].x,
-      y: typeof result.y === "number" ? result.y : resultPoints[0].y,
-      analysis: result.analysis || resultPoints[0].analysis || "",
-      createdAt: new Date().toISOString(),
-      titlePending: !result.fromGemini,
-      sourceBatchId: result.sourceBatchId || null,
-      groupedPoints,
-    };
+    setSavedPoints((prev) => [...pointsToSave, ...prev]);
 
-    setSavedPoints((prev) => [savedPoint, ...prev]);
-    try {
-      const savedFromServer = await savePointToServer(savedPoint);
-      setSavedPoints((prev) => {
-        const remaining = prev.filter((point) => point.id !== savedPoint.id);
-        return [savedFromServer, ...remaining];
-      });
-    } catch {
+    const results = await Promise.allSettled(pointsToSave.map(point => savePointToServer(point)));
+    const serverPoints = results.map((r, i) =>
+      r.status === 'fulfilled' ? (r.value || pointsToSave[i]) : pointsToSave[i]
+    );
+    const anyFailed = results.some(r => r.status === 'rejected');
+    setSavedPoints((prev) => {
+      const savedIds = new Set(pointsToSave.map(p => p.id));
+      const remaining = prev.filter(p => !savedIds.has(p.id));
+      return [...serverPoints, ...remaining];
+    });
+    if (anyFailed) {
       setError("Saved locally, but cloud sync failed. We'll try again next time.");
     }
+
     setIsSavedPanelOpen(true);
     setShowSaveToast(true);
     if (typeof window !== "undefined") {
@@ -1391,7 +1555,21 @@ export default function App() {
               {error && (
                 <div className="error-banner">
                   <AlertCircle size={20} className="error-icon" />
-                  <p>{error}</p>
+                  <div className="error-content">
+                    <p>{error}</p>
+                    {mode === 'text' && (
+                      <p className="error-quiz-hint">
+                        Having trouble connecting?{' '}
+                        <button
+                          type="button"
+                          className="error-quiz-btn"
+                          onClick={() => { setError(null); setMode('quiz'); }}
+                        >
+                          Try Quiz Mode for an instant result
+                        </button>
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -1432,6 +1610,7 @@ export default function App() {
             </div>
 
             <div className="compass-area">
+              <AxisBreakdownPanel x={result.x} y={result.y} />
               <CompassPlot
                 userPoints={resultPoints}
                 isDarkMode={isDarkMode}
@@ -1512,11 +1691,6 @@ export default function App() {
               ) : null}
             </div>
             <div className="chat-followup">
-              {resultPoints.length > 1 && (
-                <div className="chat-bubble assistant">
-                  Mixed beliefs detected, so multiple points were plotted. Follow-up refinement is disabled for multi-point results.
-                </div>
-              )}
               {followupLoading && (
                 <div className="chat-bubble assistant">
                   Preparing a follow-up question...
