@@ -51,6 +51,18 @@ const normalizeSavedPoint = (candidate) => {
   const y = Number(candidate.y);
   if (!title || !Number.isFinite(x) || !Number.isFinite(y) || !analysis) return null;
   if (x < -10 || x > 10 || y < -10 || y > 10) return null;
+  const groupedPoints = Array.isArray(candidate.groupedPoints)
+    ? candidate.groupedPoints.filter(g =>
+        g && Number.isFinite(Number(g.x)) && Number.isFinite(Number(g.y)) &&
+        typeof g.label === "string" && typeof g.analysis === "string"
+      ).slice(0, 4).map((g, i) => ({
+        id: typeof g.id === "string" && g.id.trim() ? g.id : `cluster-${i + 1}`,
+        label: g.label.slice(0, 60),
+        x: Math.max(-10, Math.min(10, Number(g.x))),
+        y: Math.max(-10, Math.min(10, Number(g.y))),
+        analysis: g.analysis.slice(0, 4000),
+      }))
+    : null;
   return {
     id: typeof candidate.id === "string" && candidate.id.trim() ? candidate.id : randomUUID(),
     title,
@@ -63,7 +75,8 @@ const normalizeSavedPoint = (candidate) => {
     titlePending: typeof candidate.titlePending === "boolean" ? candidate.titlePending : false,
     sourceBatchId: (typeof candidate.sourceBatchId === "string" || typeof candidate.sourceBatchId === "number")
       ? candidate.sourceBatchId
-      : null
+      : null,
+    ...(groupedPoints && groupedPoints.length > 0 ? { groupedPoints } : {}),
   };
 };
 
@@ -85,7 +98,7 @@ const fetchSavedPointsFromDb = async (clientId) => {
   try {
     const { data, error } = await supabase
       .from("saved_points")
-      .select("id, title, analysis, x, y, created_at, title_pending, source_batch_id")
+      .select("id, title, analysis, x, y, created_at, title_pending, source_batch_id, grouped_points")
       .eq("client_id", clientId)
       .order("created_at", { ascending: false })
       .limit(MAX_SAVED_POINTS_PER_CLIENT);
@@ -93,6 +106,7 @@ const fetchSavedPointsFromDb = async (clientId) => {
     return data.map(r => ({
       id: r.id, title: r.title, analysis: r.analysis, x: r.x, y: r.y,
       createdAt: r.created_at, titlePending: r.title_pending, sourceBatchId: r.source_batch_id,
+      ...(Array.isArray(r.grouped_points) && r.grouped_points.length > 0 ? { groupedPoints: r.grouped_points } : {}),
     }));
   } catch (e) { console.error("Supabase exception fetchSavedPoints:", e.message); return null; }
 };
@@ -104,6 +118,7 @@ const upsertSavedPointToDb = async (clientId, point) => {
       id: point.id, client_id: clientId, title: point.title, analysis: point.analysis,
       x: point.x, y: point.y, created_at: point.createdAt,
       title_pending: point.titlePending, source_batch_id: point.sourceBatchId || null,
+      grouped_points: Array.isArray(point.groupedPoints) ? point.groupedPoints : null,
     });
     if (error) { console.error("Supabase upsert saved_point:", error.message); return false; }
     return true;

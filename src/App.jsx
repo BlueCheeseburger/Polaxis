@@ -448,15 +448,15 @@ const OVERLAY_PRESETS = {
 };
 const calcPartyMatch = (x, y) => {
   const parties = [
-    { name: "Democrat", cx: -2.5, cy: 1.0 },
-    { name: "Republican", cx: 5.5, cy: 3.5 },
-    { name: "Libertarian", cx: 4.0, cy: -5.0 },
+    { name: "Democrat", cx: -2.5, cy: 0.5 },
+    { name: "Republican", cx: 5.0, cy: 3.5 },
+    { name: "Libertarian", cx: 6.0, cy: -5.0 },
     { name: "Green", cx: -5.5, cy: -3.5 },
   ];
-  const maxDist = Math.sqrt(800);
+  const scale = 4;
   const scores = parties.map(p => ({
     name: p.name,
-    score: Math.max(0, maxDist - Math.hypot(x - p.cx, y - p.cy))
+    score: Math.exp(-Math.hypot(x - p.cx, y - p.cy) / scale)
   }));
   const total = scores.reduce((s, p) => s + p.score, 0);
   return scores.map(s => ({
@@ -486,14 +486,14 @@ const AxisBreakdownPanel = ({ x, y }) => {
       <div className="axis-slider-row">
         <span className="axis-slider-label">Left</span>
         <div className="axis-slider-track">
-          <div className="axis-slider-thumb" style={{ left: `calc(${econPct}% - 6px)` }} />
+          <div className="axis-slider-thumb" style={{ left: `${econPct}%`, transform: `translate(-${econPct}%, -50%)` }} />
         </div>
         <span className="axis-slider-label">Right</span>
       </div>
       <div className="axis-slider-row">
         <span className="axis-slider-label">Lib</span>
         <div className="axis-slider-track">
-          <div className="axis-slider-thumb" style={{ left: `calc(${socialPct}% - 6px)` }} />
+          <div className="axis-slider-thumb" style={{ left: `${socialPct}%`, transform: `translate(-${socialPct}%, -50%)` }} />
         </div>
         <span className="axis-slider-label">Auth</span>
       </div>
@@ -1264,42 +1264,40 @@ export default function App() {
     if (!result) return;
     if (resultPoints.length === 0) return;
     const timestamp = Date.now();
+    const baseCount = savedPoints.length;
 
-    const pointsToSave = resultPoints.length > 1
+    const groupedPoints = resultPoints.length > 1
       ? resultPoints.map((point, index) => ({
-          id: `${timestamp}-${index}-${Math.random().toString(36).slice(2, 8)}`,
-          title: point.label?.trim() || `Point ${savedPoints.length + index + 1}`,
+          id: point.id || `cluster-${index + 1}`,
+          label: point.label?.trim() || `Point ${index + 1}`,
           x: point.x,
           y: point.y,
           analysis: point.analysis || "",
-          createdAt: new Date(timestamp + index).toISOString(),
-          titlePending: false,
-          sourceBatchId: result.sourceBatchId || null,
         }))
-      : [{
-          id: `${timestamp}-${Math.random().toString(36).slice(2, 8)}`,
-          title: result.title?.trim() || resultPoints[0].label?.trim() || `Point ${savedPoints.length + 1}`,
-          x: typeof result.x === "number" ? result.x : resultPoints[0].x,
-          y: typeof result.y === "number" ? result.y : resultPoints[0].y,
-          analysis: result.analysis || resultPoints[0].analysis || "",
-          createdAt: new Date().toISOString(),
-          titlePending: !result.fromGemini,
-          sourceBatchId: result.sourceBatchId || null,
-        }];
+      : undefined;
 
-    setSavedPoints((prev) => [...pointsToSave, ...prev]);
+    const savedPoint = {
+      id: `${timestamp}-${Math.random().toString(36).slice(2, 8)}`,
+      title: (result.title?.trim()
+        || (resultPoints.length > 1 ? "Mixed Views" : resultPoints[0].label?.trim())
+        || `Point ${baseCount + 1}`),
+      x: typeof result.x === "number" ? result.x : resultPoints[0].x,
+      y: typeof result.y === "number" ? result.y : resultPoints[0].y,
+      analysis: result.analysis || resultPoints[0].analysis || "",
+      createdAt: new Date().toISOString(),
+      titlePending: !result.fromGemini,
+      sourceBatchId: result.sourceBatchId || null,
+      groupedPoints,
+    };
 
-    const results = await Promise.allSettled(pointsToSave.map(point => savePointToServer(point)));
-    const serverPoints = results.map((r, i) =>
-      r.status === 'fulfilled' ? (r.value || pointsToSave[i]) : pointsToSave[i]
-    );
-    const anyFailed = results.some(r => r.status === 'rejected');
-    setSavedPoints((prev) => {
-      const savedIds = new Set(pointsToSave.map(p => p.id));
-      const remaining = prev.filter(p => !savedIds.has(p.id));
-      return [...serverPoints, ...remaining];
-    });
-    if (anyFailed) {
+    setSavedPoints((prev) => [savedPoint, ...prev]);
+    try {
+      const savedFromServer = await savePointToServer(savedPoint);
+      setSavedPoints((prev) => {
+        const remaining = prev.filter((point) => point.id !== savedPoint.id);
+        return [savedFromServer, ...remaining];
+      });
+    } catch {
       setError("Saved locally, but cloud sync failed. We'll try again next time.");
     }
 
