@@ -1647,7 +1647,7 @@ export default function App() {
                       className={`filter-option ${overlayPreset === 'republican' ? 'active' : ''}`}
                       onClick={() => setOverlayPreset('republican')}
                     >
-                      <Flag size={15} />
+                      <img src="/images/republican.png" alt="Republican" className="filter-party-icon" />
                       Republican
                     </button>
                     <button
@@ -1655,7 +1655,7 @@ export default function App() {
                       className={`filter-option ${overlayPreset === 'democratic' ? 'active' : ''}`}
                       onClick={() => setOverlayPreset('democratic')}
                     >
-                      <Landmark size={15} />
+                      <img src="/images/democrat.png" alt="Democratic" className="filter-party-icon" />
                       Democratic
                     </button>
                   </div>
