@@ -520,6 +520,25 @@ const AxisBreakdownPanel = ({ x, y }) => {
 const CANVAS_SIZE = 560;
 const getSavedPointsStorageKey = () => `politicalCompass.savedPoints.${getOrCreateStableClientId()}`;
 
+const getTooltipStyle = (x, y, canvasSize) => {
+  const xPct = (x / canvasSize) * 100;
+  const yPct = (y / canvasSize) * 100;
+  const style = {};
+  // Flip horizontally if point is in right 55% of canvas
+  if (xPct > 55) {
+    style.right = `${(100 - xPct) + 2}%`;
+  } else {
+    style.left = `${xPct + 3}%`;
+  }
+  // Flip vertically if point is in bottom 55% of canvas
+  if (yPct > 55) {
+    style.bottom = `${(100 - yPct) + 2}%`;
+  } else {
+    style.top = `${yPct + 3}%`;
+  }
+  return style;
+};
+
 const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset }) => {
   const canvasRef = useRef(null);
   const [hoveredReference, setHoveredReference] = useState(null);
@@ -774,10 +793,7 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
         {hoveredUserPoint && hoveredUserPosition && (
           <div
             className="person-tooltip user-point-tooltip"
-            style={{
-              left: `${Math.min((hoveredUserPosition.x / CANVAS_SIZE) * 100 + 3, 72)}%`,
-              top: `${Math.min((hoveredUserPosition.y / CANVAS_SIZE) * 100 + 3, 72)}%`,
-            }}
+            style={getTooltipStyle(hoveredUserPosition.x, hoveredUserPosition.y, CANVAS_SIZE)}
           >
             <div className="person-tooltip-name">{hoveredUserPoint.label}</div>
             {hoveredUserPoint.analysis && (
@@ -788,10 +804,7 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
         {hoveredReference && hoverPosition && (
           <div
             className="person-tooltip"
-            style={{
-              left: `${Math.min((hoverPosition.x / CANVAS_SIZE) * 100 + 3, 72)}%`,
-              top: `${Math.min((hoverPosition.y / CANVAS_SIZE) * 100 + 3, 72)}%`,
-            }}
+            style={getTooltipStyle(hoverPosition.x, hoverPosition.y, CANVAS_SIZE)}
           >
             <div className="person-tooltip-name">
               {overlayPreset === 'global' && hoveredReference.flag ? `${hoveredReference.flag} ` : ''}
@@ -856,6 +869,7 @@ export default function App() {
   const debugHoldTimerRef = useRef(null);
   const ignoreNextDebugClickRef = useRef(false);
   const hintIdleTimerRef = useRef(null);
+  const savedMenuWrapRef = useRef(null);
 
   const isMobile = /Mobi|Android/i.test(navigator.userAgent);
 
@@ -866,6 +880,27 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
+
+  useEffect(() => {
+    if (!isSavedPanelOpen) return undefined;
+    const handlePointerDown = (event) => {
+      if (savedMenuWrapRef.current && !savedMenuWrapRef.current.contains(event.target)) {
+        if (editingId) return;
+        setIsSavedPanelOpen(false);
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setIsSavedPanelOpen(false);
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isSavedPanelOpen, editingId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1464,20 +1499,10 @@ export default function App() {
 
   if (activeShareId) {
     return (
-      <div className={`app-shell ${isDarkMode ? 'dark' : ''}`}>
-        <div className="top-controls">
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="theme-toggle"
-            aria-label="Toggle theme"
-          >
-            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-        </div>
+      <div className="app-shell share-view-mode">
         <ShareView
           shareId={activeShareId}
           apiBase={API_BASE}
-          isDarkMode={isDarkMode}
           onTakeQuiz={exitShareView}
         />
       </div>
@@ -1501,7 +1526,7 @@ export default function App() {
         >
           <Bug size={20} />
         </button>
-        <div className="saved-menu-wrap">
+        <div className="saved-menu-wrap" ref={savedMenuWrapRef}>
           <button
             onClick={() => setIsSavedPanelOpen((prev) => !prev)}
             className={`theme-toggle saved-toggle ${isSavedPanelOpen ? 'active' : ''}`}
@@ -1707,6 +1732,15 @@ export default function App() {
           <section className="result-panel">
             <div className="result-header">
               <h2>Your Political Coordinates</h2>
+              <button
+                type="button"
+                className="share-trigger-btn"
+                onClick={handleShareCurrent}
+                title="Share this result"
+              >
+                <Share2 size={16} />
+                Share
+              </button>
             </div>
 
             <div className="compass-area">
@@ -1717,15 +1751,6 @@ export default function App() {
                 referencePoints={OVERLAY_PRESETS[overlayPreset].points}
                 overlayPreset={overlayPreset}
               />
-              <button
-                type="button"
-                className="share-trigger-btn"
-                onClick={handleShareCurrent}
-                title="Share this result"
-              >
-                <Share2 size={16} />
-                Share
-              </button>
               <div className="overlay-filter">
                 <button
                   type="button"
