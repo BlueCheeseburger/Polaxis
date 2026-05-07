@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Share2, Copy, Check, Download, X, Link2, Image as ImageIcon } from 'lucide-react';
 
 const SHARE_IMAGE_W = 1080;
-const SHARE_IMAGE_H = 1350;
+const SHARE_IMAGE_H = 1500;
 const PARTY_COLORS = { Democrat: '#2563eb', Republican: '#dc2626', Libertarian: '#d97706', Green: '#16a34a' };
 
 export const computePartyMatch = (x, y) => {
@@ -65,11 +65,18 @@ const drawShareImage = (canvas, { archetype, x, y, points, partyMatch, appUrl })
   drawAxisSlider(ctx, 100, axisY, SHARE_IMAGE_W - 200, 'LEFT', 'RIGHT', ((x + 10) / 20));
   drawAxisSlider(ctx, 100, axisY + 70, SHARE_IMAGE_W - 200, 'LIB', 'AUTH', ((y + 10) / 20));
 
-  // Footer URL
+  // Footer URL — clearly separated from sliders, with a thin divider above
+  const urlY = SHARE_IMAGE_H - 60;
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(SHARE_IMAGE_W * 0.3, urlY - 38);
+  ctx.lineTo(SHARE_IMAGE_W * 0.7, urlY - 38);
+  ctx.stroke();
   ctx.fillStyle = '#64748b';
-  ctx.font = '28px sans-serif';
+  ctx.font = '26px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(appUrl, SHARE_IMAGE_W / 2, SHARE_IMAGE_H - 40);
+  ctx.fillText(appUrl, SHARE_IMAGE_W / 2, urlY);
 };
 
 const drawCompass = (ctx, ox, oy, size, points) => {
@@ -385,7 +392,7 @@ export const ShareTriggerButton = ({ onClick, label = 'Share', size = 16, classN
   </button>
 );
 
-export const ShareView = ({ shareId, apiBase, onTakeQuiz, isDarkMode }) => {
+export const ShareView = ({ shareId, apiBase, onTakeQuiz }) => {
   const canvasRef = useRef(null);
   const [share, setShare] = useState(null);
   const [error, setError] = useState(null);
@@ -412,13 +419,17 @@ export const ShareView = ({ shareId, apiBase, onTakeQuiz, isDarkMode }) => {
     return () => { cancelled = true; };
   }, [apiBase, shareId]);
 
+  const sharePoints = useMemo(() => {
+    if (!share) return [];
+    return Array.isArray(share.groupedPoints) && share.groupedPoints.length > 0
+      ? share.groupedPoints
+      : [{ id: 'cluster-1', label: share.archetype || 'You', x: share.x, y: share.y, analysis: share.analysis || '' }];
+  }, [share]);
+
   useEffect(() => {
     if (!share) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const points = Array.isArray(share.groupedPoints) && share.groupedPoints.length > 0
-      ? share.groupedPoints
-      : [{ id: 'cluster-1', label: share.archetype || 'You', x: share.x, y: share.y }];
     const partyMatch = Array.isArray(share.partyMatch) && share.partyMatch.length > 0
       ? share.partyMatch
       : computePartyMatch(share.x, share.y);
@@ -427,14 +438,14 @@ export const ShareView = ({ shareId, apiBase, onTakeQuiz, isDarkMode }) => {
       archetype: share.archetype || 'The Political Compass',
       x: share.x,
       y: share.y,
-      points,
+      points: sharePoints,
       partyMatch,
       appUrl,
     });
-  }, [share]);
+  }, [share, sharePoints]);
 
   return (
-    <div className={`share-view-shell ${isDarkMode ? 'dark' : ''}`}>
+    <div className="share-view-shell">
       <div className="share-view-card">
         {loading && <p className="share-status">Loading share…</p>}
         {error && (
@@ -453,6 +464,23 @@ export const ShareView = ({ shareId, apiBase, onTakeQuiz, isDarkMode }) => {
             <div className="share-view-canvas-wrap">
               <canvas ref={canvasRef} className="share-view-canvas" />
             </div>
+            {sharePoints.length > 1 && (
+              <div className="share-view-points">
+                <h3 className="share-view-points-title">Belief Clusters</h3>
+                <div className="share-view-points-grid">
+                  {sharePoints.map((p, i) => (
+                    <div className="share-view-point-card" key={p.id || i}>
+                      <div className="share-view-point-head">
+                        <span className="share-view-point-dot" />
+                        <strong>{p.label || `Point ${i + 1}`}</strong>
+                        <span className="share-view-point-coords">({p.x.toFixed(1)}, {p.y.toFixed(1)})</span>
+                      </div>
+                      {p.analysis && <p className="share-view-point-analysis">{p.analysis}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="share-view-cta">
               <p>Curious where you'd land?</p>
               <button type="button" className="share-cta-btn" onClick={onTakeQuiz}>Analyze My Beliefs</button>
