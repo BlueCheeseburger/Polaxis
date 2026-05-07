@@ -690,6 +690,14 @@
   width: 28px;
   height: 28px;
   object-fit: contain;
+  flex-shrink: 0;
+}
+
+.filter-party-icon {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .overlay-republican .party-badge,
