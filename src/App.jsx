@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Compass, FileText, CheckSquare, Loader2, AlertCircle, Send, RotateCcw, Moon, Sun, Bug, SlidersHorizontal, Globe2, Landmark, Flag, BookmarkPlus, Pencil, Trash2, Check, X, Bookmark } from 'lucide-react';
+import { Compass, FileText, CheckSquare, AlertCircle, Send, RotateCcw, Moon, Sun, Bug, SlidersHorizontal, Globe2, Landmark, Flag, BookmarkPlus, Pencil, Trash2, Check, X, Bookmark } from 'lucide-react';
+import PulsingCrosshairs from './PulsingCrosshairs';
 import './App.css';
 
 /** Production: set VITE_API_BASE_URL on Vercel (e.g. https://your-api.onrender.com). Local dev: omit so /api is proxied to the backend. */
@@ -1595,7 +1596,7 @@ export default function App() {
 
         {loading && (
           <div className="loading-state">
-            <Loader2 size={48} className="spinner" />
+            <PulsingCrosshairs size={64} label="Analyzing your beliefs" />
             <p>Analyzing your beliefs...</p>
           </div>
         )}
@@ -1604,14 +1605,6 @@ export default function App() {
           <section className="result-panel">
             <div className="result-header">
               <h2>Your Political Coordinates</h2>
-              <div className="score-pills">
-                {resultPoints.map((point, index) => (
-                  <span key={point.id || `score-${index}`} className="score-pill">
-                    {resultPoints.length > 1 ? `${point.label}: ` : ''}
-                    E {point.x.toFixed(2)} | S {point.y.toFixed(2)}
-                  </span>
-                ))}
-              </div>
             </div>
 
             <div className="compass-area">
@@ -1673,7 +1666,7 @@ export default function App() {
               <h3>Analysis</h3>
               {isAnalysisPending ? (
                 <div className="chat-bubble assistant">
-                  <Loader2 size={16} className="spinner" />
+                  <PulsingCrosshairs size={18} className="inline" label="Analyzing quiz results" />
                   Analyzing your quiz results...
                 </div>
               ) : null}
@@ -1699,6 +1692,7 @@ export default function App() {
             <div className="chat-followup">
               {followupLoading && (
                 <div className="chat-bubble assistant">
+                  <PulsingCrosshairs size={18} className="inline" label="Preparing follow-up" />
                   Preparing a follow-up question...
                 </div>
               )}
@@ -1727,6 +1721,7 @@ export default function App() {
               )}
               {isRefining && (
                 <div className="chat-bubble assistant">
+                  <PulsingCrosshairs size={18} className="inline" label="Refining placement" />
                   Refining your placement...
                 </div>
               )}
