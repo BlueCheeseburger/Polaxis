@@ -16,10 +16,13 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const DAILY_CLIENT_LIMIT = 5;
 const DAILY_IP_LIMIT = 25;
+const DAILY_SHARE_CLIENT_LIMIT = 20;
 const MAX_SAVED_POINTS_PER_CLIENT = 100;
 const dailyClientUsage = new Map();
 const dailyIpUsage = new Map();
+const dailyShareUsage = new Map();
 const savedPointsByClient = new Map();
+const sharesById = new Map();
 const supabase = (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
   : null;
@@ -146,6 +149,98 @@ const deleteSavedPointFromDb = async (clientId, pointId) => {
   } catch (e) { console.error("Supabase exception deleteSavedPoint:", e.message); return false; }
 };
 
+// --- Share helpers ---
+const SHARE_ID_ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789";
+const generateShareId = () => {
+  let id = "";
+  for (let i = 0; i < 10; i += 1) {
+    id += SHARE_ID_ALPHABET[Math.floor(Math.random() * SHARE_ID_ALPHABET.length)];
+  }
+  return id;
+};
+
+const normalizeSharePayload = (candidate) => {
+  if (!candidate || typeof candidate !== "object") return null;
+  const x = Number(candidate.x);
+  const y = Number(candidate.y);
+  if (!Number.isFinite(x) || !Number.isFinite(y) || x < -10 || x > 10 || y < -10 || y > 10) return null;
+  const archetype = typeof candidate.archetype === "string" ? candidate.archetype.trim().slice(0, 60) : "";
+  const title = typeof candidate.title === "string" ? candidate.title.trim().slice(0, 80) : "";
+  const analysis = typeof candidate.analysis === "string" ? candidate.analysis.trim().slice(0, 4000) : "";
+  const groupedPoints = Array.isArray(candidate.groupedPoints)
+    ? candidate.groupedPoints.filter((g) => (
+      g && Number.isFinite(Number(g.x)) && Number.isFinite(Number(g.y)) &&
+      typeof g.label === "string" && typeof g.analysis === "string"
+    )).slice(0, 4).map((g, i) => ({
+      id: typeof g.id === "string" && g.id.trim() ? g.id : `cluster-${i + 1}`,
+      label: g.label.slice(0, 60),
+      x: clampCompassValue(Number(g.x)),
+      y: clampCompassValue(Number(g.y)),
+      analysis: g.analysis.slice(0, 4000),
+    }))
+    : null;
+  const partyMatch = Array.isArray(candidate.partyMatch)
+    ? candidate.partyMatch.filter((p) => (
+      p && typeof p.name === "string" && Number.isFinite(Number(p.pct))
+    )).slice(0, 6).map((p) => ({
+      name: p.name.slice(0, 40),
+      pct: Math.max(0, Math.min(100, Math.round(Number(p.pct)))),
+    }))
+    : null;
+  return {
+    x: clampCompassValue(x),
+    y: clampCompassValue(y),
+    archetype,
+    title,
+    analysis,
+    groupedPoints,
+    partyMatch,
+  };
+};
+
+const insertShareToDb = async (record) => {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from("shares").insert({
+      id: record.id,
+      client_id: record.client_id,
+      archetype: record.archetype || null,
+      title: record.title || null,
+      analysis: record.analysis || null,
+      x: record.x,
+      y: record.y,
+      grouped_points: Array.isArray(record.groupedPoints) ? record.groupedPoints : null,
+      party_match: Array.isArray(record.partyMatch) ? record.partyMatch : null,
+    });
+    if (error) { console.error("Supabase insert share:", error.message); return false; }
+    return true;
+  } catch (e) { console.error("Supabase exception insertShare:", e.message); return false; }
+};
+
+const fetchShareFromDb = async (shareId) => {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from("shares")
+      .select("id, archetype, title, analysis, x, y, grouped_points, party_match, created_at")
+      .eq("id", shareId)
+      .maybeSingle();
+    if (error) { console.error("Supabase fetch share:", error.message); return null; }
+    if (!data) return null;
+    return {
+      id: data.id,
+      archetype: data.archetype || "",
+      title: data.title || "",
+      analysis: data.analysis || "",
+      x: data.x,
+      y: data.y,
+      groupedPoints: Array.isArray(data.grouped_points) ? data.grouped_points : null,
+      partyMatch: Array.isArray(data.party_match) ? data.party_match : null,
+      createdAt: data.created_at,
+    };
+  } catch (e) { console.error("Supabase exception fetchShare:", e.message); return null; }
+};
+
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, message: "Backend is running" });
 });
@@ -195,6 +290,56 @@ app.delete("/api/saved-points/:pointId", async (req, res) => {
   const nextPoints = points.filter((point) => point.id !== req.params.pointId);
   savedPointsByClient.set(clientId, nextPoints);
   return res.json({ points: nextPoints });
+});
+
+app.post("/api/shares", async (req, res) => {
+  const clientId = getClientIdFromRequest(req);
+  if (!clientId) return res.status(400).json({ error: "Missing X-Client-Id header" });
+
+  const dateKey = getDateKey();
+  const limitKey = `${dateKey}:${clientId}`;
+  const limitResult = incrementOrRejectDailyLimit({
+    store: dailyShareUsage,
+    key: limitKey,
+    limit: DAILY_SHARE_CLIENT_LIMIT,
+  });
+  if (limitResult.blocked) {
+    return res.status(429).json({ error: "Daily share limit reached. Try again tomorrow." });
+  }
+
+  const normalized = normalizeSharePayload(req.body?.share);
+  if (!normalized) return res.status(400).json({ error: "Invalid share payload" });
+
+  const shareId = generateShareId();
+  const record = { id: shareId, client_id: clientId, ...normalized };
+  await insertShareToDb(record);
+  sharesById.set(shareId, { ...record, createdAt: new Date().toISOString() });
+  return res.status(201).json({ id: shareId });
+});
+
+app.get("/api/shares/:shareId", async (req, res) => {
+  const shareId = typeof req.params.shareId === "string" ? req.params.shareId.trim() : "";
+  if (!shareId || shareId.length > 32) return res.status(400).json({ error: "Invalid share id" });
+
+  const cached = sharesById.get(shareId);
+  if (cached) {
+    return res.json({ share: {
+      id: cached.id,
+      archetype: cached.archetype,
+      title: cached.title,
+      analysis: cached.analysis,
+      x: cached.x,
+      y: cached.y,
+      groupedPoints: cached.groupedPoints,
+      partyMatch: cached.partyMatch,
+      createdAt: cached.createdAt,
+    } });
+  }
+
+  const fromDb = await fetchShareFromDb(shareId);
+  if (!fromDb) return res.status(404).json({ error: "Share not found" });
+  sharesById.set(shareId, fromDb);
+  return res.json({ share: fromDb });
 });
 
 app.post("/api/gemini-json", async (req, res) => {

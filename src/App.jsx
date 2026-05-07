@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Compass, FileText, CheckSquare, AlertCircle, Send, RotateCcw, Moon, Sun, Bug, SlidersHorizontal, Globe2, Landmark, Flag, BookmarkPlus, Pencil, Trash2, Check, X, Bookmark } from 'lucide-react';
+import { Compass, FileText, CheckSquare, AlertCircle, Send, RotateCcw, Moon, Sun, Bug, SlidersHorizontal, Globe2, Landmark, Flag, BookmarkPlus, Pencil, Trash2, Check, X, Bookmark, Share2 } from 'lucide-react';
 import PulsingCrosshairs from './PulsingCrosshairs';
+import { ShareModal, ShareView } from './ShareFeature';
 import './App.css';
 
 /** Production: set VITE_API_BASE_URL on Vercel (e.g. https://your-api.onrender.com). Local dev: omit so /api is proxied to the backend. */
@@ -188,13 +189,14 @@ const runGeminiJsonRequest = async ({
 
 const evaluateBeliefs = async (promptText, options = {}) => runGeminiJsonRequest({
   promptText,
-  systemInstructionText: "You are an objective political science model. Assess political beliefs and place them on the standard 2D political compass. X-axis (Economic): -10 (Far Left) to 10 (Far Right). Y-axis (Social/Government): 10 (Authoritarian) to -10 (Libertarian). Writing style: use second person ('you') for first-person inputs, third person for inputs about others. Keep each analysis to 1-2 punchy sentences (max 35 words). No jargon — write for a general audience. If the input contains clearly conflicting clusters that cannot be represented by a single point, include a points array (2-4 points). Each point needs x, y, analysis, and a short label (1-4 words). Set top-level x/y to the midpoint and top-level analysis to a one-sentence summary of the tension. If there is not enough political-belief data, set hasSufficientData to false with a brief insufficiencyReason. Follow the JSON schema exactly.",
+  systemInstructionText: "You are an objective political science model. Assess political beliefs and place them on the standard 2D political compass. X-axis (Economic): -10 (Far Left) to 10 (Far Right). Y-axis (Social/Government): 10 (Authoritarian) to -10 (Libertarian). Writing style: use second person ('you') for first-person inputs, third person for inputs about others. Keep each analysis to 1-2 punchy sentences (max 35 words). No jargon — write for a general audience. If the input contains clearly conflicting clusters that cannot be represented by a single point, include a points array (2-4 points). Each point needs x, y, analysis, and a short label (1-4 words). Set top-level x/y to the midpoint and top-level analysis to a one-sentence summary of the tension. Always provide an archetype: a punchy 2-3 word political identity name in 'The X' format (e.g., 'The Futurist', 'The Traditionalist', 'The Anarchist Idealist', 'The Pragmatic Centrist'). Make it specific to the placement — neutral and non-judgmental, but distinctive. If there is not enough political-belief data, set hasSufficientData to false with a brief insufficiencyReason. Follow the JSON schema exactly.",
   responseSchema: {
     type: "OBJECT",
     properties: {
       x: { type: "NUMBER", description: "Economic score from -10 to 10" },
       y: { type: "NUMBER", description: "Social score from 10 (Authoritarian) to -10 (Libertarian)" },
       title: { type: "STRING", description: "A concise 1-3 word point title. Prefer proper names when clear." },
+      archetype: { type: "STRING", description: "A 2-3 word political archetype name in 'The X' format (e.g., 'The Futurist'). Distinct, neutral, and specific to the placement." },
       analysis: { type: "STRING", description: "A brief analysis of the subject's political alignment." },
       points: {
         type: "ARRAY",
@@ -216,7 +218,7 @@ const evaluateBeliefs = async (promptText, options = {}) => runGeminiJsonRequest
       isPoliticalInput: { type: "BOOLEAN", description: "True when the input is actually about politics or ideology. False when irrelevant (e.g., cooking, sports with no political content)." },
       insufficiencyReason: { type: "STRING", description: "Short explanation when there is not enough data to plot reliably." }
     },
-    required: ["x", "y", "title", "analysis", "hasSufficientData", "isPoliticalInput", "insufficiencyReason"]
+    required: ["x", "y", "title", "archetype", "analysis", "hasSufficientData", "isPoliticalInput", "insufficiencyReason"]
   },
   ...options,
 });
@@ -256,6 +258,18 @@ const normalizePlottedPoints = (evalResult) => {
   }];
 };
 
+const deriveFallbackArchetype = (x, y) => {
+  if (x <= -3 && y >= 3) return "The Revolutionary";
+  if (x >= 3 && y >= 3) return "The Traditionalist";
+  if (x <= -3 && y <= -3) return "The Free Spirit";
+  if (x >= 3 && y <= -3) return "The Libertarian";
+  if (x <= -3) return "The Reformer";
+  if (x >= 3) return "The Capitalist";
+  if (y >= 3) return "The Patriot";
+  if (y <= -3) return "The Individualist";
+  return "The Pragmatist";
+};
+
 const evaluateQuizDeterministically = (quizAnswers) => {
   const scoreValues = QUIZ_QUESTIONS.map((_, index) => QUIZ_SCORE_MAP[quizAnswers[index]] ?? 0);
   const rawX = scoreValues.reduce((sum, score, index) => sum + (score * QUIZ_AXIS_WEIGHTS[index].x), 0);
@@ -273,6 +287,7 @@ const evaluateQuizDeterministically = (quizAnswers) => {
     x,
     y,
     title: "Quiz Estimate",
+    archetype: deriveFallbackArchetype(x, y),
     analysis: `Instant quiz estimate: your answers currently read as ${econLabel} and ${socialLabel}. Gemini details are loading in the background.`,
     points: [{
       id: "cluster-1",
@@ -827,6 +842,16 @@ export default function App() {
   const [isHintFading, setIsHintFading] = useState(false);
   const [isTextInputFocused, setIsTextInputFocused] = useState(false);
   const [isHintIdleReady, setIsHintIdleReady] = useState(true);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareModalSource, setShareModalSource] = useState(null);
+  const [activeShareId, setActiveShareId] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    const queryId = params.get('share');
+    if (queryId && /^[a-zA-Z0-9_-]{4,32}$/.test(queryId)) return queryId;
+    const pathMatch = window.location.pathname.match(/^\/share\/([a-zA-Z0-9_-]{4,32})\/?$/);
+    return pathMatch ? pathMatch[1] : null;
+  });
   const submitRequestRef = useRef(0);
   const debugHoldTimerRef = useRef(null);
   const ignoreNextDebugClickRef = useRef(false);
@@ -1385,6 +1410,80 @@ export default function App() {
     }
   };
 
+  const handleShareCurrent = () => {
+    if (!result) return;
+    const groupedPoints = resultPoints.length > 0
+      ? resultPoints.map((point, index) => ({
+        id: point.id || `cluster-${index + 1}`,
+        label: point.label || `Point ${index + 1}`,
+        x: point.x,
+        y: point.y,
+        analysis: point.analysis || '',
+      }))
+      : null;
+    setShareModalSource({
+      x: result.x,
+      y: result.y,
+      title: result.title || '',
+      archetype: result.archetype || '',
+      analysis: result.analysis || '',
+      groupedPoints,
+      points: groupedPoints || [{ id: 'cluster-1', label: result.title || 'You', x: result.x, y: result.y, analysis: result.analysis || '' }],
+    });
+    setShareModalOpen(true);
+  };
+
+  const handleShareSavedPoint = (point) => {
+    const groupedPoints = Array.isArray(point.groupedPoints) && point.groupedPoints.length > 0
+      ? point.groupedPoints.map((g, i) => ({
+        id: g.id || `cluster-${i + 1}`,
+        label: g.label || `Point ${i + 1}`,
+        x: g.x,
+        y: g.y,
+        analysis: g.analysis || '',
+      }))
+      : null;
+    setShareModalSource({
+      x: point.x,
+      y: point.y,
+      title: point.title || '',
+      archetype: '',
+      analysis: point.analysis || '',
+      groupedPoints,
+      points: groupedPoints || [{ id: 'cluster-1', label: point.title || 'Point', x: point.x, y: point.y, analysis: point.analysis || '' }],
+    });
+    setShareModalOpen(true);
+  };
+
+  const exitShareView = () => {
+    if (typeof window !== 'undefined' && window.history?.replaceState) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    setActiveShareId(null);
+  };
+
+  if (activeShareId) {
+    return (
+      <div className={`app-shell ${isDarkMode ? 'dark' : ''}`}>
+        <div className="top-controls">
+          <button
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="theme-toggle"
+            aria-label="Toggle theme"
+          >
+            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+        </div>
+        <ShareView
+          shareId={activeShareId}
+          apiBase={API_BASE}
+          isDarkMode={isDarkMode}
+          onTakeQuiz={exitShareView}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={`app-shell ${isDarkMode ? 'dark' : ''} ${getOverlayThemeClass()}`}>
       {showBypassToast && <div className="bypass-toast">API bypass enabled</div>}
@@ -1451,6 +1550,9 @@ export default function App() {
                       <div className="saved-point-actions">
                         <button type="button" className="saved-point-btn" onClick={() => handleLoadSavedPoint(point)}>
                           Load
+                        </button>
+                        <button type="button" className="saved-point-btn icon" onClick={() => handleShareSavedPoint(point)} title="Share point">
+                          <Share2 size={14} />
                         </button>
                         {editingId === point.id ? (
                           <>
@@ -1615,6 +1717,15 @@ export default function App() {
                 referencePoints={OVERLAY_PRESETS[overlayPreset].points}
                 overlayPreset={overlayPreset}
               />
+              <button
+                type="button"
+                className="share-trigger-btn"
+                onClick={handleShareCurrent}
+                title="Share this result"
+              >
+                <Share2 size={16} />
+                Share
+              </button>
               <div className="overlay-filter">
                 <button
                   type="button"
@@ -1760,6 +1871,14 @@ export default function App() {
           </section>
         )}
       </div>
+      <ShareModal
+        open={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        result={shareModalSource}
+        points={shareModalSource?.points || []}
+        apiBase={API_BASE}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 }

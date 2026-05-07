@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/Downloads/political-compass/.claude/sync-priorities.sh\" 2>&1"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | grep -iE '(note|priority|compass|todo)' > /dev/null 2>&1 && echo '[Claude Edit] 🔵 Updating priorities - Apple Note will be synced on session end' || true"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.prompt // empty' 2>/dev/null | grep -iE '(add priority|remove priority|sync note)' > /dev/null && echo '[Claude Monitor] 🎯 Priority sync detected - will update Apple Note' || true"
+          }
+        ]
+      }
+    ]
+  }
+}
