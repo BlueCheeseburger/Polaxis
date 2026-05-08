@@ -189,7 +189,7 @@ const runGeminiJsonRequest = async ({
 
 const evaluateBeliefs = async (promptText, options = {}) => runGeminiJsonRequest({
   promptText,
-  systemInstructionText: "You are an objective political science model. Assess political beliefs and place them on the standard 2D political compass. X-axis (Economic): -10 (Far Left) to 10 (Far Right). Y-axis (Social/Government): 10 (Authoritarian) to -10 (Libertarian). Writing style: use second person ('you') for first-person inputs, third person for inputs about others. Keep each analysis to 1-2 punchy sentences (max 35 words). No jargon — write for a general audience. If the input contains clearly conflicting clusters that cannot be represented by a single point, include a points array (2-4 points). Each point needs x, y, analysis, and a short label (1-4 words). Set top-level x/y to the midpoint and top-level analysis to a one-sentence summary of the tension. Always provide an archetype: a punchy 2-3 word political identity name in 'The X' format (e.g., 'The Futurist', 'The Traditionalist', 'The Anarchist Idealist', 'The Pragmatic Centrist'). Make it specific to the placement — neutral and non-judgmental, but distinctive. If there is not enough political-belief data, set hasSufficientData to false with a brief insufficiencyReason. Always set confidence (1–5) based on how precisely the input pins down political coordinates: 5 = multiple specific policies stated clearly; 4 = several clear stances; 3 = general leanings with some specifics; 2 = vague or limited input; 1 = barely enough to plot. Set confidenceReason to one plain-English sentence explaining the score (e.g. 'You mentioned several specific policies, so your placement is fairly precise.'). Follow the JSON schema exactly.",
+  systemInstructionText: "You are an objective political science model. Assess political beliefs and place them on the standard 2D political compass. X-axis (Economic): -10 (Far Left) to 10 (Far Right). Y-axis (Social/Government): 10 (Authoritarian) to -10 (Libertarian). Writing style: use second person ('you') for first-person inputs, third person for inputs about others. Keep each analysis to 1-2 punchy sentences (max 35 words). No jargon — write for a general audience. If the input contains clearly conflicting clusters that cannot be represented by a single point, include a points array (2-4 points). Each point needs x, y, analysis, and a short label (1-4 words). Set top-level x/y to the midpoint and top-level analysis to a one-sentence summary of the tension. Always provide an archetype: a punchy 2-3 word political identity name in 'The X' format (e.g., 'The Futurist', 'The Traditionalist', 'The Anarchist Idealist', 'The Pragmatic Centrist', 'The Reformer', 'The Localist'). Make it specific to the placement, distinctive, and POSITIVE or NEUTRAL in tone — it should feel like an identity the user would be happy to claim. STRICTLY FORBIDDEN words: contradictory, confused, conflicted, inconsistent, incoherent, naive, hypocritical, paradoxical, muddled, scattered, indecisive. For mixed or multi-cluster placements, use neutral framings like 'The Pluralist', 'The Synthesist', 'The Bridge-Builder', 'The Eclectic', 'The Independent' — never imply the user's views are flawed or self-contradicting. If there is not enough political-belief data, set hasSufficientData to false with a brief insufficiencyReason. Always set confidence (1–5) based on how precisely the input pins down political coordinates: 5 = multiple specific policies stated clearly; 4 = several clear stances; 3 = general leanings with some specifics; 2 = vague or limited input; 1 = barely enough to plot. Set confidenceReason to one plain-English sentence explaining the score (e.g. 'You mentioned several specific policies, so your placement is fairly precise.'). Follow the JSON schema exactly.",
   responseSchema: {
     type: "OBJECT",
     properties: {
@@ -2093,10 +2093,6 @@ export default function App() {
                 <p>"{refinementNote}"</p>
               </div>
             )}
-            <p className="reference-note">
-              Faint reference dots are approximate and currently set to the {OVERLAY_PRESETS[overlayPreset].label} overlay.
-            </p>
-
             {!isDebugPoint && !isAnalysisPending && !isRefineMode && (() => {
               const totalQuestions = REFINEMENT_CLUSTERS.reduce((sum, c) => sum + c.questions.length, 0);
               return (
@@ -2114,20 +2110,27 @@ export default function App() {
                           {Math.abs(refineDelta.dy) < 0.05 ? 'no change socially' : `${Math.abs(refineDelta.dy).toFixed(1)} ${refineDelta.dy < 0 ? 'libertarian' : 'authoritarian'}`}
                         </strong>.
                       </p>
-                      <button type="button" onClick={handleStartRefinement} className="secondary-btn">
+                      <button type="button" onClick={handleStartRefinement} className="refine-btn refine-btn-secondary">
+                        <SlidersHorizontal size={16} />
                         Refine again
                       </button>
                     </div>
                   ) : (
-                    <button type="button" onClick={handleStartRefinement} className="primary-btn refine-btn">
-                      <SlidersHorizontal size={18} />
-                      Refine my placement
-                      <span className="refine-btn-sub">{totalQuestions} optional questions, skip any cluster</span>
+                    <button type="button" onClick={handleStartRefinement} className="refine-btn">
+                      <span className="refine-btn-icon"><SlidersHorizontal size={20} /></span>
+                      <span className="refine-btn-content">
+                        <span className="refine-btn-title">Refine my placement</span>
+                        <span className="refine-btn-sub">{totalQuestions} optional questions · skip any cluster · sharpen your dot</span>
+                      </span>
                     </button>
                   )}
                 </div>
               );
             })()}
+
+            <p className="reference-note">
+              Faint reference dots are approximate and currently set to the {OVERLAY_PRESETS[overlayPreset].label} overlay.
+            </p>
 
             {isRefineMode && (() => {
               const cluster = REFINEMENT_CLUSTERS[activeRefineClusterIndex];
@@ -2169,7 +2172,7 @@ export default function App() {
                               <button
                                 key={opt}
                                 type="button"
-                                className={`quiz-option ${selected === opt ? 'selected' : ''}`}
+                                className={`option-chip ${selected === opt ? 'selected' : ''}`}
                                 onClick={() => handleRefineAnswer(cluster.id, qIdx, opt)}
                               >
                                 {opt}
@@ -2201,13 +2204,13 @@ export default function App() {
                       <button
                         type="button"
                         onClick={handleApplyRefinement}
-                        className="primary-btn"
+                        className="refine-action-btn"
                         disabled={totalAnswered === 0}
                       >
                         Apply refinement
                       </button>
                     ) : (
-                      <button type="button" onClick={handleNextRefineCluster} className="primary-btn">
+                      <button type="button" onClick={handleNextRefineCluster} className="refine-action-btn">
                         Next cluster
                       </button>
                     )}

@@ -2323,21 +2323,85 @@
 
 /* Refinement UI */
 .refine-prompt {
-  margin: 18px 0 8px;
+  margin: 18px 0 14px;
 }
 
 .refine-btn {
-  display: inline-flex;
-  flex-direction: column;
+  width: 100%;
+  display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 14px 22px;
+  gap: 14px;
+  padding: 16px 20px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 0 8px 22px rgba(249, 115, 22, 0.32);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  animation: refine-btn-pulse 2.6s ease-in-out infinite;
+}
+
+.refine-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(249, 115, 22, 0.5);
+  animation-play-state: paused;
+}
+
+.refine-btn:active {
+  transform: scale(0.98);
+}
+
+.refine-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
+}
+
+.refine-btn-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.refine-btn-title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .refine-btn-sub {
-  font-size: 0.78rem;
-  font-weight: 400;
-  opacity: 0.85;
+  font-size: 0.8rem;
+  font-weight: 500;
+  opacity: 0.92;
+  line-height: 1.3;
+}
+
+.refine-btn-secondary {
+  display: inline-flex;
+  width: auto;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 10px;
+  animation: none;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+}
+
+@keyframes refine-btn-pulse {
+  0%, 100% {
+    box-shadow: 0 8px 22px rgba(249, 115, 22, 0.32), 0 0 0 0 rgba(249, 115, 22, 0.45);
+  }
+  50% {
+    box-shadow: 0 8px 22px rgba(249, 115, 22, 0.4), 0 0 0 10px rgba(249, 115, 22, 0);
+  }
 }
 
 .refine-delta-card {
@@ -2496,21 +2560,52 @@
   min-width: 100px;
 }
 
+.refine-action-btn {
+  flex: 1 1 auto;
+  min-width: 120px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(249, 115, 22, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.refine-action-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(249, 115, 22, 0.45);
+}
+
+.refine-action-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.refine-action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .refine-apply-now {
   width: 100%;
   margin-top: 10px;
-  padding: 8px;
+  padding: 10px;
   background: transparent;
   border: 1px dashed rgba(249, 115, 22, 0.5);
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   color: #ea580c;
   font-size: 0.85rem;
-  font-weight: 500;
+  font-weight: 600;
+  transition: background 0.15s ease;
 }
 
 .refine-apply-now:hover {
-  background: rgba(249, 115, 22, 0.08);
+  background: rgba(249, 115, 22, 0.1);
 }
 
 .app-shell.dark .refine-apply-now {
