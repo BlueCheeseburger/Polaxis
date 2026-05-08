@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Compass, FileText, CheckSquare, AlertCircle, Send, RotateCcw, Moon, Sun, Bug, SlidersHorizontal, Globe2, Landmark, Flag, BookmarkPlus, Pencil, Trash2, Check, X, Bookmark, Share2 } from 'lucide-react';
 import PulsingCrosshairs from './PulsingCrosshairs';
-import { ShareModal, ShareView } from './ShareFeature';
+import { ShareModal, computePartyMatch } from './ShareFeature';
 import './App.css';
 
 /** Production: set VITE_API_BASE_URL on Vercel (e.g. https://your-api.onrender.com). Local dev: omit so /api is proxied to the backend. */
@@ -973,7 +973,9 @@ export default function App() {
   const [isHintIdleReady, setIsHintIdleReady] = useState(true);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareModalSource, setShareModalSource] = useState(null);
-  const [activeShareId, setActiveShareId] = useState(() => {
+  const [currentShareId, setCurrentShareId] = useState(null);
+  const [isIncomingShare, setIsIncomingShare] = useState(false);
+  const [activeShareId] = useState(() => {
     if (typeof window === 'undefined') return null;
     const params = new URLSearchParams(window.location.search);
     const queryId = params.get('share');
@@ -1017,6 +1019,83 @@ export default function App() {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isSavedPanelOpen, editingId]);
+
+  // Load incoming share from URL into the app on mount
+  useEffect(() => {
+    if (!activeShareId) return;
+    const load = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/shares/${encodeURIComponent(activeShareId)}`);
+        if (!res.ok) return;
+        const { share } = await res.json();
+        if (!share) return;
+        const pts = Array.isArray(share.groupedPoints) && share.groupedPoints.length > 0
+          ? share.groupedPoints.map((p, i) => ({ ...p, id: p.id || `cluster-${i + 1}` }))
+          : [{ id: 'cluster-1', label: share.archetype || 'Result', x: share.x, y: share.y, analysis: share.analysis || '' }];
+        setResult({
+          x: share.x,
+          y: share.y,
+          archetype: share.archetype || '',
+          title: share.title || share.archetype || 'Shared Result',
+          analysis: share.analysis || '',
+          points: pts,
+          hasSufficientData: true,
+          isPoliticalInput: true,
+          insufficiencyReason: '',
+          fromShare: true,
+        });
+        setCurrentShareId(activeShareId);
+        setIsIncomingShare(true);
+        window.history.replaceState({}, '', `/share/${activeShareId}`);
+      } catch {
+        // silently fail — show empty app
+      }
+    };
+    load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-create a share after every real result and update the URL
+  useEffect(() => {
+    if (!result || result.fromShare || !result.fromGemini) return;
+    let cancelled = false;
+    const autoShare = async () => {
+      try {
+        const clientId = getOrCreateStableClientId();
+        const pts = normalizePlottedPoints(result);
+        const groupedPoints = pts.length > 1 ? pts.map((p, i) => ({
+          id: p.id || `cluster-${i + 1}`,
+          label: p.label || `Point ${i + 1}`,
+          x: p.x, y: p.y, analysis: p.analysis || '',
+        })) : null;
+        const partyMatch = computePartyMatch(result.x, result.y);
+        const res = await fetch(`${API_BASE}/api/shares`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Client-Id': clientId },
+          body: JSON.stringify({ share: {
+            x: result.x,
+            y: result.y,
+            archetype: result.archetype || '',
+            title: result.title || '',
+            analysis: result.analysis || '',
+            groupedPoints,
+            partyMatch,
+          }}),
+        });
+        if (!res.ok || cancelled) return;
+        const { id } = await res.json();
+        if (id && !cancelled) {
+          setCurrentShareId(id);
+          setIsIncomingShare(false);
+          window.history.replaceState({}, '', `/share/${id}`);
+        }
+      } catch {
+        // silently fail — share URL stays blank, manual share still works
+      }
+    };
+    autoShare();
+    return () => { cancelled = true; };
+  }, [result]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1331,6 +1410,11 @@ export default function App() {
     setRefineDelta(null);
     setRefineBaseline(null);
     setActiveRefineClusterIndex(0);
+    setCurrentShareId(null);
+    setIsIncomingShare(false);
+    if (typeof window !== 'undefined' && window.history?.replaceState) {
+      window.history.replaceState({}, '', '/');
+    }
   };
 
   const enableDebugBypass = () => {
@@ -1633,6 +1717,7 @@ export default function App() {
       analysis: result.analysis || '',
       groupedPoints,
       points: groupedPoints || [{ id: 'cluster-1', label: result.title || 'You', x: result.x, y: result.y, analysis: result.analysis || '' }],
+      existingShareId: currentShareId,
     });
     setShareModalOpen(true);
   };
@@ -1659,28 +1744,15 @@ export default function App() {
     setShareModalOpen(true);
   };
 
-  const exitShareView = () => {
-    if (typeof window !== 'undefined' && window.history?.replaceState) {
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-    setActiveShareId(null);
-  };
-
-  if (activeShareId) {
-    return (
-      <div className="app-shell share-view-mode">
-        <ShareView
-          shareId={activeShareId}
-          apiBase={API_BASE}
-          onTakeQuiz={exitShareView}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className={`app-shell ${isDarkMode ? 'dark' : ''} ${getOverlayThemeClass()}`}>
       {isDebugPoint && <div className="debug-badge">Debug mode</div>}
+      {isIncomingShare && result && (
+        <div className="incoming-share-banner">
+          Viewing a shared result — enter your own beliefs below to compare
+        </div>
+      )}
       {showBypassToast && <div className="bypass-toast">API bypass enabled</div>}
       {showSaveToast && <div className="save-toast">Point saved</div>}
       {showSavedHintCue && <div className="saved-hint-cue">Saved points live in the top-right bookmark.</div>}

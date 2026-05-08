@@ -59,6 +59,29 @@
   color: #fca5a5;
 }
 
+.incoming-share-banner {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  background: rgba(238, 242, 255, 0.97);
+  color: #3730a3;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.14);
+  white-space: nowrap;
+}
+
+.app-shell.dark .incoming-share-banner {
+  border-color: rgba(99, 102, 241, 0.5);
+  background: rgba(30, 27, 75, 0.92);
+  color: #a5b4fc;
+}
+
 .bypass-toast {
   position: fixed;
   top: 22px;

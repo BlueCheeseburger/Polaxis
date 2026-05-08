@@ -214,6 +214,7 @@ export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode 
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
   const requestedRef = useRef(false);
+  const existingShareId = result?.existingShareId || null;
 
   const x = typeof result?.x === 'number' ? result.x : 0;
   const y = typeof result?.y === 'number' ? result.y : 0;
@@ -228,7 +229,7 @@ export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode 
     ? `${window.location.origin}/share/${encodeURIComponent(shareId)}`
     : '';
 
-  // Reset state on open/close
+  // Reset state on open/close; pre-populate if an existing share ID is available
   useEffect(() => {
     if (!open) {
       setShareId(null);
@@ -237,8 +238,11 @@ export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode 
       setCopied(false);
       setActiveTab('link');
       requestedRef.current = false;
+    } else if (existingShareId) {
+      setShareId(existingShareId);
+      requestedRef.current = true;
     }
-  }, [open]);
+  }, [open, existingShareId]);
 
   const buildSharePayload = useCallback(() => ({
     x,
