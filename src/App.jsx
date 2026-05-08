@@ -29,26 +29,26 @@ const QUIZ_SCORE_MAP = {
   "Strongly Agree": 2,
 };
 const QUIZ_AXIS_WEIGHTS = [
-  { x: -1.35, y: 0.7 },
-  { x: 1.25, y: 0.45 },
-  { x: -1.45, y: 0.2 },
-  { x: 1.5, y: 0.5 },
-  { x: -0.2, y: -1.35 },
-  { x: 0.15, y: 1.45 },
-  { x: 0.85, y: -0.45 },
-  { x: 0.35, y: 1.25 },
-  { x: 1.05, y: 0.95 },
-  { x: -0.35, y: -1.4 },
-  { x: -0.55, y: -0.35 },
-  { x: 0.65, y: 0.45 },
-  { x: -0.85, y: -0.65 },
-  { x: 0.55, y: 0.45 },
-  { x: 0.9, y: 0.85 },
-  { x: -0.65, y: -0.5 },
-  { x: -1.05, y: 0.15 },
-  { x: -0.25, y: -1.05 },
-  { x: 0.25, y: 1.15 },
-  { x: -0.2, y: -0.45 },
+  { x: -1.4, y: 0.3 },
+  { x: 1.4, y: 0.2 },
+  { x: 1.2, y: 0.1 },
+  { x: -1.3, y: 0.3 },
+  { x: -0.8, y: 0.4 },
+  { x: -1.2, y: 0.2 },
+  { x: 1.1, y: 0.0 },
+  { x: -1.0, y: -0.2 },
+  { x: 0.1, y: -1.4 },
+  { x: 0.2, y: 1.4 },
+  { x: 0.4, y: 1.2 },
+  { x: 0.7, y: 1.1 },
+  { x: -0.2, y: -1.0 },
+  { x: 0.8, y: 1.2 },
+  { x: -0.3, y: 1.1 },
+  { x: 0.0, y: -1.2 },
+  { x: -1.0, y: 0.3 },
+  { x: -0.2, y: -1.0 },
+  { x: 0.6, y: 1.3 },
+  { x: 0.1, y: -1.2 },
 ];
 
 // Exponential backoff retry logic for API calls
@@ -304,6 +304,29 @@ const evaluateQuizDeterministically = (quizAnswers) => {
   };
 };
 
+const computeRefinementAdjustment = (refinementAnswers) => {
+  let rawX = 0;
+  let rawY = 0;
+  let answeredCount = 0;
+  REFINEMENT_CLUSTERS.forEach((cluster) => {
+    cluster.questions.forEach((q, qIndex) => {
+      const key = `${cluster.id}-${qIndex}`;
+      const answer = refinementAnswers[key];
+      if (answer === undefined || answer === null) return;
+      const score = QUIZ_SCORE_MAP[answer] ?? 0;
+      rawX += score * q.weight.x;
+      rawY += score * q.weight.y;
+      answeredCount += 1;
+    });
+  });
+  if (answeredCount === 0) return { dx: 0, dy: 0, answeredCount: 0 };
+  // Refinement is a corrective nudge, not a full rescore. Scale conservatively.
+  const scale = 6;
+  const dx = rawX / scale;
+  const dy = rawY / scale;
+  return { dx, dy, answeredCount };
+};
+
 const applyAiTitlesToPendingSaves = (existingSavedPoints, sourceBatchId, aiPoints) => {
   if (!sourceBatchId || !Array.isArray(aiPoints) || aiPoints.length === 0) return existingSavedPoints;
   const pendingCandidates = existingSavedPoints.filter((point) => point.titlePending && point.sourceBatchId === sourceBatchId);
@@ -391,26 +414,94 @@ const refineBeliefsFromFollowup = async ({ promptText, baseResult, question, ans
 });
 
 const QUIZ_QUESTIONS = [
-  "The government should heavily regulate corporations to protect the environment and workers.",
-  "Lower taxes generally stimulate economic growth better than government spending.",
-  "Healthcare should be provided free at the point of use by the state.",
-  "A truly free market requires minimal to no government intervention.",
-  "Victimless crimes like recreational drug use should be completely legalized.",
-  "The state must promote traditional values to maintain social cohesion.",
-  "Individuals have an absolute right to own firearms for self-defense.",
-  "Government surveillance is justified if it prevents terrorism and severe crime.",
-  "Immigration should be heavily restricted to protect national security and economy.",
-  "Consenting adults should be free to engage in any lifestyle without state interference.",
-  "I generally support center-left parties that prioritize social welfare and labor protections.",
-  "I generally support center-right parties that prioritize tax cuts, business growth, and law-and-order policies.",
-  "Green or climate-focused parties represent my values better than traditional major parties.",
-  "Populist anti-establishment movements are better at representing ordinary people than mainstream parties.",
-  "I prefer politicians who prioritize national identity and border enforcement over global cooperation.",
-  "I prefer politicians who prioritize international alliances, global institutions, and multilateral agreements.",
-  "Trade unions should have significantly more influence in politics and economic policy.",
-  "Cultural progressivism (LGBTQ+ rights, diversity policies, secularism) should be a core government priority.",
-  "Cultural conservatism (religious values, traditional family norms, national heritage) should be a core government priority.",
-  "In current politics, I trust technocratic experts more than charismatic outsider leaders."
+  "The government should own and operate essential industries like energy, water, and rail.",
+  "Profits from successful businesses belong to their owners — redistribution discourages investment.",
+  "A universal basic income would reduce the incentive to work and ultimately harm the economy.",
+  "Healthcare is a public good that should be funded and delivered by the state.",
+  "Import tariffs that protect domestic workers are worth the higher prices they cause consumers.",
+  "Taxing the wealthy at significantly higher rates than average earners is fair and necessary.",
+  "Large corporations, despite their flaws, create more economic value for society than they extract.",
+  "Worker-owned cooperatives are a healthier economic model than shareholder-owned businesses.",
+  "Recreational drug use is a personal choice the government has no right to criminalize.",
+  "Security agencies should be permitted to monitor private communications to prevent serious crimes.",
+  "Religion and religious values should play a role in public institutions and government policy.",
+  "Immigration levels should be significantly reduced to protect national identity and social cohesion.",
+  "The death penalty is never an acceptable form of punishment, regardless of the crime.",
+  "A country's military spending should be substantially increased to ensure national security.",
+  "Speech that is deeply harmful to vulnerable groups should be legally restricted.",
+  "Terminally ill adults should have the legal right to choose medically assisted death.",
+  "Environmental protections are worth imposing on businesses even when they raise costs and reduce profits.",
+  "Local communities should govern themselves more — decision-making power should be decentralized.",
+  "Police forces need more resources and authority to effectively maintain law and order.",
+  "Freedom of expression must protect the right to say things others find offensive or hateful."
+];
+
+const REFINEMENT_CLUSTERS = [
+  {
+    id: "economic",
+    label: "Economic Detail",
+    description: "Wealth, taxes, labor, property",
+    questions: [
+      { text: "Land value increases driven by public infrastructure should be taxed more heavily than income from work.", weight: { x: -1.1, y: 0.1 } },
+      { text: "Large inheritances that entrench generational wealth should be heavily taxed.", weight: { x: -1.2, y: 0.2 } },
+      { text: "Central banks should be under democratic government control, not operate independently.", weight: { x: -0.8, y: 0.6 } },
+      { text: "Gig economy companies should be required to treat platform workers as full employees with benefits.", weight: { x: -0.9, y: 0.3 } },
+      { text: "Pharmaceutical patent protections should be reduced to allow affordable generic alternatives.", weight: { x: -0.7, y: 0.0 } },
+      { text: "A cap on executive pay relative to a company's lowest-paid worker is reasonable policy.", weight: { x: -1.3, y: 0.3 } },
+      { text: "Buying housing purely as investment should be restricted to curb speculative price increases.", weight: { x: -1.1, y: 0.2 } },
+      { text: "Governments should invest heavily in public infrastructure even when it means running budget deficits.", weight: { x: -0.9, y: 0.4 } },
+    ],
+  },
+  {
+    id: "cultural",
+    label: "Social & Cultural",
+    description: "Identity, expression, values",
+    questions: [
+      { text: "Sex work between consenting adults should be fully decriminalized.", weight: { x: 0.1, y: -1.3 } },
+      { text: "Schools must teach established scientific consensus even when it conflicts with parents' religious beliefs.", weight: { x: -0.3, y: 0.6 } },
+      { text: "Controversial art and media should be protected from government censorship even when publicly funded.", weight: { x: -0.1, y: -1.0 } },
+      { text: "Immigrants should be expected to culturally integrate — learning the language and adopting civic norms.", weight: { x: 0.4, y: 1.0 } },
+      { text: "Gender identity should be legally recognized independently of biological sex.", weight: { x: -0.3, y: -1.1 } },
+      { text: "Pornography should be more tightly regulated or restricted by governments.", weight: { x: 0.2, y: 1.1 } },
+      { text: "Affirmative action in hiring and university admissions is necessary to address systemic inequality.", weight: { x: -0.8, y: 0.2 } },
+    ],
+  },
+  {
+    id: "justice",
+    label: "Criminal Justice",
+    description: "Policing, prisons, sentencing",
+    questions: [
+      { text: "Prisons should focus primarily on rehabilitation rather than punishment.", weight: { x: -0.6, y: -0.7 } },
+      { text: "Mandatory minimum sentences remove necessary judicial discretion and should be abolished.", weight: { x: -0.2, y: -1.0 } },
+      { text: "Drug addiction should be treated as a public health issue, not a criminal one.", weight: { x: -0.1, y: -1.2 } },
+      { text: "Private, for-profit prisons are acceptable if they reduce costs to taxpayers.", weight: { x: 1.1, y: 0.2 } },
+      { text: "Stop-and-search policing powers are a justified tool for reducing crime in high-risk areas.", weight: { x: 0.4, y: 1.2 } },
+    ],
+  },
+  {
+    id: "foreign",
+    label: "Foreign Policy",
+    description: "Military, diplomacy, sovereignty",
+    questions: [
+      { text: "Countries should prioritize international law and multilateral institutions over national self-interest.", weight: { x: -0.5, y: -0.4 } },
+      { text: "Military intervention in other countries is sometimes necessary to prevent humanitarian crises.", weight: { x: 0.6, y: 0.9 } },
+      { text: "Wealthy nations' foreign aid budgets should be significantly increased.", weight: { x: -0.8, y: 0.0 } },
+      { text: "National sovereignty should take precedence over international agreements when they conflict.", weight: { x: 0.8, y: 0.8 } },
+      { text: "Economic sanctions are an effective and ethical alternative to military force against hostile states.", weight: { x: 0.1, y: 0.3 } },
+    ],
+  },
+  {
+    id: "environment",
+    label: "Environment & Tech",
+    description: "Climate, AI, regulation",
+    questions: [
+      { text: "Governments should ban or heavily restrict technologies that pose existential risks, even if it slows innovation.", weight: { x: -0.4, y: 1.0 } },
+      { text: "Carbon taxes are more efficient than direct environmental regulation and should replace it.", weight: { x: 0.7, y: 0.2 } },
+      { text: "AI development should be governed by strict international regulation rather than left to market forces.", weight: { x: -0.7, y: 0.8 } },
+      { text: "Nuclear power should be central to any serious plan to reduce carbon emissions.", weight: { x: 0.5, y: 0.4 } },
+      { text: "Tech giants that control essential digital infrastructure should be broken up or nationalized.", weight: { x: -1.1, y: 0.3 } },
+    ],
+  },
 ];
 
 const OPTIONS = ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"];
@@ -859,6 +950,11 @@ export default function App() {
   const [isRefining, setIsRefining] = useState(false);
   const [refinementNote, setRefinementNote] = useState("");
   const [isMultiPointFollowup, setIsMultiPointFollowup] = useState(false);
+  const [isRefineMode, setIsRefineMode] = useState(false);
+  const [refineAnswers, setRefineAnswers] = useState({});
+  const [refineDelta, setRefineDelta] = useState(null);
+  const [refineBaseline, setRefineBaseline] = useState(null);
+  const [activeRefineClusterIndex, setActiveRefineClusterIndex] = useState(0);
   const [savedPoints, setSavedPoints] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState("");
@@ -1090,6 +1186,11 @@ export default function App() {
     setRefinementNote("");
     setIsAnalysisPending(false);
     setHasGeminiQuizResult(false);
+    setIsRefineMode(false);
+    setRefineAnswers({});
+    setRefineDelta(null);
+    setRefineBaseline(null);
+    setActiveRefineClusterIndex(0);
 
     try {
       let promptText = "";
@@ -1111,7 +1212,6 @@ export default function App() {
         setLoading(false);
         setIsAnalysisPending(true);
         setHasGeminiQuizResult(false);
-        setFollowupLoading(true);
 
         try {
           const evalResult = await evaluateBeliefs(promptText, {
@@ -1132,22 +1232,6 @@ export default function App() {
           }));
           setSavedPoints((prev) => applyAiTitlesToPendingSaves(prev, requestId, normalizedPoints));
           setHasGeminiQuizResult(true);
-          try {
-            const followup = await generateFollowupQuestion(promptText, evalResult, {
-              mode,
-              inputLength,
-              bypassLimit: isDebugBypassEnabled
-            });
-            if (submitRequestRef.current !== requestId) return;
-            const normalizedChoices = Array.isArray(followup.choices) ? followup.choices.slice(0, 5) : [];
-            if (followup.question && normalizedChoices.length >= 2) {
-              setFollowupQuestion({ question: followup.question, choices: normalizedChoices });
-            }
-          } catch {
-            if (submitRequestRef.current === requestId) {
-              setFollowupQuestion(null);
-            }
-          }
         } catch (err) {
           if (submitRequestRef.current === requestId) {
             setError(`Gemini analysis unavailable right now. Showing instant quiz estimate only. ${err.message}`);
@@ -1242,6 +1326,11 @@ export default function App() {
     setIsAnalysisPending(false);
     setHasGeminiQuizResult(false);
     setIsMultiPointFollowup(false);
+    setIsRefineMode(false);
+    setRefineAnswers({});
+    setRefineDelta(null);
+    setRefineBaseline(null);
+    setActiveRefineClusterIndex(0);
   };
 
   const enableDebugBypass = () => {
@@ -1339,6 +1428,60 @@ export default function App() {
     } finally {
       setIsRefining(false);
     }
+  };
+
+  const handleStartRefinement = () => {
+    if (!result) return;
+    setRefineBaseline({ x: result.x, y: result.y });
+    setRefineAnswers({});
+    setRefineDelta(null);
+    setActiveRefineClusterIndex(0);
+    setIsRefineMode(true);
+  };
+
+  const handleCancelRefinement = () => {
+    setIsRefineMode(false);
+    if (refineBaseline) {
+      setResult((prev) => prev ? { ...prev, x: refineBaseline.x, y: refineBaseline.y } : prev);
+    }
+    setRefineAnswers({});
+    setRefineDelta(null);
+    setRefineBaseline(null);
+    setActiveRefineClusterIndex(0);
+  };
+
+  const handleRefineAnswer = (clusterId, qIndex, answer) => {
+    setRefineAnswers((prev) => ({ ...prev, [`${clusterId}-${qIndex}`]: answer }));
+  };
+
+  const handleSkipRefineCluster = () => {
+    setActiveRefineClusterIndex((prev) => Math.min(prev + 1, REFINEMENT_CLUSTERS.length - 1));
+  };
+
+  const handleNextRefineCluster = () => {
+    setActiveRefineClusterIndex((prev) => Math.min(prev + 1, REFINEMENT_CLUSTERS.length - 1));
+  };
+
+  const handlePrevRefineCluster = () => {
+    setActiveRefineClusterIndex((prev) => Math.max(prev - 1, 0));
+  };
+
+  const handleApplyRefinement = () => {
+    if (!result || !refineBaseline) return;
+    const { dx, dy, answeredCount } = computeRefinementAdjustment(refineAnswers);
+    if (answeredCount === 0) {
+      setIsRefineMode(false);
+      return;
+    }
+    const nextX = clampCompassValue(refineBaseline.x + dx);
+    const nextY = clampCompassValue(refineBaseline.y + dy);
+    setResult((prev) => prev ? { ...prev, x: nextX, y: nextY } : prev);
+    setRefineDelta({
+      dx: nextX - refineBaseline.x,
+      dy: nextY - refineBaseline.y,
+      answeredCount,
+    });
+    setIsRefineMode(false);
   };
 
   const getOverlayThemeClass = () => {
@@ -1953,6 +2096,134 @@ export default function App() {
             <p className="reference-note">
               Faint reference dots are approximate and currently set to the {OVERLAY_PRESETS[overlayPreset].label} overlay.
             </p>
+
+            {!isDebugPoint && !isAnalysisPending && !isRefineMode && (() => {
+              const totalQuestions = REFINEMENT_CLUSTERS.reduce((sum, c) => sum + c.questions.length, 0);
+              return (
+                <div className="refine-prompt">
+                  {refineDelta ? (
+                    <div className="refine-delta-card">
+                      <h3>Placement refined</h3>
+                      <p>
+                        Based on {refineDelta.answeredCount} additional {refineDelta.answeredCount === 1 ? 'answer' : 'answers'}, your placement shifted{' '}
+                        <strong>
+                          {Math.abs(refineDelta.dx) < 0.05 ? 'no change economically' : `${Math.abs(refineDelta.dx).toFixed(1)} ${refineDelta.dx < 0 ? 'left' : 'right'} economically`}
+                        </strong>
+                        {' '}and{' '}
+                        <strong>
+                          {Math.abs(refineDelta.dy) < 0.05 ? 'no change socially' : `${Math.abs(refineDelta.dy).toFixed(1)} ${refineDelta.dy < 0 ? 'libertarian' : 'authoritarian'}`}
+                        </strong>.
+                      </p>
+                      <button type="button" onClick={handleStartRefinement} className="secondary-btn">
+                        Refine again
+                      </button>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={handleStartRefinement} className="primary-btn refine-btn">
+                      <SlidersHorizontal size={18} />
+                      Refine my placement
+                      <span className="refine-btn-sub">{totalQuestions} optional questions, skip any cluster</span>
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+
+            {isRefineMode && (() => {
+              const cluster = REFINEMENT_CLUSTERS[activeRefineClusterIndex];
+              const isLastCluster = activeRefineClusterIndex === REFINEMENT_CLUSTERS.length - 1;
+              const totalAnswered = Object.keys(refineAnswers).length;
+              return (
+                <div className="refine-panel">
+                  <div className="refine-panel-header">
+                    <div>
+                      <h3>Refine your placement</h3>
+                      <p className="refine-panel-sub">Cluster {activeRefineClusterIndex + 1} of {REFINEMENT_CLUSTERS.length} · {totalAnswered} answered</p>
+                    </div>
+                    <button type="button" onClick={handleCancelRefinement} className="refine-cancel">
+                      <X size={16} /> Cancel
+                    </button>
+                  </div>
+                  <div className="refine-cluster-tabs">
+                    {REFINEMENT_CLUSTERS.map((c, idx) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className={`refine-cluster-tab ${idx === activeRefineClusterIndex ? 'active' : ''}`}
+                        onClick={() => setActiveRefineClusterIndex(idx)}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="refine-cluster-body">
+                    <p className="refine-cluster-desc">{cluster.description}</p>
+                    {cluster.questions.map((q, qIdx) => {
+                      const key = `${cluster.id}-${qIdx}`;
+                      const selected = refineAnswers[key];
+                      return (
+                        <div key={key} className="refine-question">
+                          <p className="quiz-question">{q.text}</p>
+                          <div className="quiz-options">
+                            {OPTIONS.map((opt) => (
+                              <button
+                                key={opt}
+                                type="button"
+                                className={`quiz-option ${selected === opt ? 'selected' : ''}`}
+                                onClick={() => handleRefineAnswer(cluster.id, qIdx, opt)}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="refine-panel-footer">
+                    <button
+                      type="button"
+                      onClick={handlePrevRefineCluster}
+                      disabled={activeRefineClusterIndex === 0}
+                      className="secondary-btn"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSkipRefineCluster}
+                      disabled={isLastCluster}
+                      className="secondary-btn"
+                    >
+                      Skip cluster
+                    </button>
+                    {isLastCluster ? (
+                      <button
+                        type="button"
+                        onClick={handleApplyRefinement}
+                        className="primary-btn"
+                        disabled={totalAnswered === 0}
+                      >
+                        Apply refinement
+                      </button>
+                    ) : (
+                      <button type="button" onClick={handleNextRefineCluster} className="primary-btn">
+                        Next cluster
+                      </button>
+                    )}
+                  </div>
+                  {totalAnswered > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleApplyRefinement}
+                      className="refine-apply-now"
+                    >
+                      Apply now ({totalAnswered} answered)
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
 
             <div className="result-actions">
               <button
