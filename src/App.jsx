@@ -2165,8 +2165,40 @@ export default function App() {
                 <p>"{refinementNote}"</p>
               </div>
             )}
-            {!isDebugPoint && !isAnalysisPending && !isRefineMode && (() => {
+            {!isDebugPoint && !isAnalysisPending && !isRefineMode && !(mode === 'text' && (followupLoading || followupQuestion)) && (() => {
               const totalQuestions = REFINEMENT_CLUSTERS.reduce((sum, c) => sum + c.questions.length, 0);
+              // Text mode: subtle button matching overlay style
+              if (mode === 'text') {
+                return (
+                  <div className="refine-prompt refine-prompt-row">
+                    {refineDelta ? (
+                      <div className="refine-delta-card">
+                        <h3>Placement refined</h3>
+                        <p>
+                          Based on {refineDelta.answeredCount} additional {refineDelta.answeredCount === 1 ? 'answer' : 'answers'}, your placement shifted{' '}
+                          <strong>
+                            {Math.abs(refineDelta.dx) < 0.05 ? 'no change economically' : `${Math.abs(refineDelta.dx).toFixed(1)} ${refineDelta.dx < 0 ? 'left' : 'right'} economically`}
+                          </strong>
+                          {' '}and{' '}
+                          <strong>
+                            {Math.abs(refineDelta.dy) < 0.05 ? 'no change socially' : `${Math.abs(refineDelta.dy).toFixed(1)} ${refineDelta.dy < 0 ? 'libertarian' : 'authoritarian'}`}
+                          </strong>.
+                        </p>
+                        <button type="button" onClick={handleStartRefinement} className="refine-btn-subtle">
+                          <SlidersHorizontal size={14} />
+                          Refine again
+                        </button>
+                      </div>
+                    ) : (
+                      <button type="button" onClick={handleStartRefinement} className="refine-btn-subtle">
+                        <SlidersHorizontal size={14} />
+                        Refine placement
+                      </button>
+                    )}
+                  </div>
+                );
+              }
+              // Quiz mode: keep the full attention-grabbing button
               return (
                 <div className="refine-prompt">
                   {refineDelta ? (

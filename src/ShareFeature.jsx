@@ -53,20 +53,43 @@ const THEME = {
   },
 };
 
+// Helper: draw a rounded rectangle path
+const roundRect = (ctx, x, y, w, h, r) => {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+};
+
 const drawShareImage = (canvas, { archetype, x, y, points, partyMatch, appUrl, dark = false }) => {
   const ctx = canvas.getContext('2d');
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.width = SHARE_IMAGE_W * dpr;
   canvas.height = SHARE_IMAGE_H * dpr;
-  // Let CSS control display size — do NOT set inline width/height styles here
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const c = dark ? THEME.dark : THEME.light;
 
-  // Background gradient
-  const bg = ctx.createLinearGradient(0, 0, 0, SHARE_IMAGE_H);
-  bg.addColorStop(0, c.bg[0]);
-  bg.addColorStop(1, c.bg[1]);
+  // Background — radial gradient like the app
+  const bg = dark
+    ? ctx.createRadialGradient(SHARE_IMAGE_W * 0.2, 0, 0, SHARE_IMAGE_W * 0.5, SHARE_IMAGE_H * 0.5, SHARE_IMAGE_W)
+    : ctx.createRadialGradient(SHARE_IMAGE_W * 0.2, 0, 0, SHARE_IMAGE_W * 0.5, SHARE_IMAGE_H * 0.5, SHARE_IMAGE_W);
+  if (dark) {
+    bg.addColorStop(0, '#1e1b4b');
+    bg.addColorStop(0.4, '#020617');
+    bg.addColorStop(1, '#0f172a');
+  } else {
+    bg.addColorStop(0, '#e0e7ff');
+    bg.addColorStop(0.4, '#f8fafc');
+    bg.addColorStop(1, '#eef2ff');
+  }
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, SHARE_IMAGE_W, SHARE_IMAGE_H);
 
@@ -80,29 +103,59 @@ const drawShareImage = (canvas, { archetype, x, y, points, partyMatch, appUrl, d
   ctx.font = '32px sans-serif';
   ctx.fillText(`Economic ${x.toFixed(1)}  ·  Social ${y.toFixed(1)}`, SHARE_IMAGE_W / 2, 185);
 
-  // Compass — 720x720 centered horizontally
+  // Compass card — rounded card background
   const compassSize = 720;
+  const cardPad = 32;
+  const cardX = (SHARE_IMAGE_W - compassSize) / 2 - cardPad;
+  const cardY = 220;
+  const cardW = compassSize + cardPad * 2;
+  const cardH = compassSize + cardPad * 2;
+  ctx.save();
+  roundRect(ctx, cardX, cardY, cardW, cardH, 32);
+  ctx.fillStyle = dark ? 'rgba(15,23,42,0.72)' : 'rgba(255,255,255,0.72)';
+  ctx.fill();
+  ctx.strokeStyle = dark ? 'rgba(71,85,105,0.6)' : 'rgba(148,163,184,0.35)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+
   const compassX = (SHARE_IMAGE_W - compassSize) / 2;
-  const compassY = 230;
+  const compassY = cardY + cardPad;
   drawCompass(ctx, compassX, compassY, compassSize, points, c);
 
-  // Party bars
-  const barsY = compassY + compassSize + 60;
-  drawPartyBars(ctx, 100, barsY, SHARE_IMAGE_W - 200, partyMatch, c);
-
-  // Axis sliders
-  const axisY = barsY + (partyMatch.length * 56) + 50;
-  drawAxisSlider(ctx, 100, axisY, SHARE_IMAGE_W - 200, 'LEFT', 'RIGHT', ((x + 10) / 20), c);
-  drawAxisSlider(ctx, 100, axisY + 70, SHARE_IMAGE_W - 200, 'LIB', 'AUTH', ((y + 10) / 20), c);
-
-  // Footer URL — clearly separated from sliders
-  const urlY = SHARE_IMAGE_H - 60;
-  ctx.strokeStyle = c.divider;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(SHARE_IMAGE_W * 0.3, urlY - 38);
-  ctx.lineTo(SHARE_IMAGE_W * 0.7, urlY - 38);
+  // Party bars card
+  const barsCardX = cardX;
+  const barsCardY = cardY + cardH + 28;
+  const barsCardW = cardW;
+  const barsCardH = partyMatch.length * 60 + 48;
+  ctx.save();
+  roundRect(ctx, barsCardX, barsCardY, barsCardW, barsCardH, 24);
+  ctx.fillStyle = dark ? 'rgba(15,23,42,0.72)' : 'rgba(255,255,255,0.72)';
+  ctx.fill();
+  ctx.strokeStyle = dark ? 'rgba(71,85,105,0.6)' : 'rgba(148,163,184,0.35)';
+  ctx.lineWidth = 2;
   ctx.stroke();
+  ctx.restore();
+  drawPartyBars(ctx, barsCardX + 36, barsCardY + 24, barsCardW - 72, partyMatch, c);
+
+  // Axis sliders card
+  const slidersCardX = cardX;
+  const slidersCardY = barsCardY + barsCardH + 28;
+  const slidersCardW = cardW;
+  const slidersCardH = 128;
+  ctx.save();
+  roundRect(ctx, slidersCardX, slidersCardY, slidersCardW, slidersCardH, 24);
+  ctx.fillStyle = dark ? 'rgba(15,23,42,0.72)' : 'rgba(255,255,255,0.72)';
+  ctx.fill();
+  ctx.strokeStyle = dark ? 'rgba(71,85,105,0.6)' : 'rgba(148,163,184,0.35)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+  drawAxisSlider(ctx, slidersCardX + 36, slidersCardY + 20, slidersCardW - 72, 'LEFT', 'RIGHT', ((x + 10) / 20), c);
+  drawAxisSlider(ctx, slidersCardX + 36, slidersCardY + 72, slidersCardW - 72, 'LIB', 'AUTH', ((y + 10) / 20), c);
+
+  // Footer URL
+  const urlY = SHARE_IMAGE_H - 56;
   ctx.fillStyle = c.url;
   ctx.font = '26px sans-serif';
   ctx.textAlign = 'center';
@@ -112,6 +165,12 @@ const drawShareImage = (canvas, { archetype, x, y, points, partyMatch, appUrl, d
 const drawCompass = (ctx, ox, oy, size, points, c) => {
   const centerX = ox + size / 2;
   const centerY = oy + size / 2;
+  const r = 16; // corner radius for quadrants
+
+  // Clip to rounded compass boundary
+  ctx.save();
+  roundRect(ctx, ox, oy, size, size, r);
+  ctx.clip();
 
   // Quadrants
   const [q1, q2, q3, q4] = c.q;
@@ -120,39 +179,53 @@ const drawCompass = (ctx, ox, oy, size, points, c) => {
   ctx.fillStyle = q3; ctx.fillRect(ox, centerY, size / 2, size / 2);
   ctx.fillStyle = q4; ctx.fillRect(centerX, centerY, size / 2, size / 2);
 
-  // Border
-  ctx.strokeStyle = c.border;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(ox, oy, size, size);
-
   // Axes
   ctx.strokeStyle = c.axis;
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.5;
   ctx.beginPath();
   ctx.moveTo(ox, centerY); ctx.lineTo(ox + size, centerY);
   ctx.moveTo(centerX, oy); ctx.lineTo(centerX, oy + size);
   ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  ctx.restore();
+
+  // Border (drawn outside clip so it sits on top)
+  ctx.save();
+  roundRect(ctx, ox, oy, size, size, r);
+  ctx.strokeStyle = c.border;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
 
   // Axis labels
   ctx.fillStyle = c.label;
-  ctx.font = 'bold 18px sans-serif';
+  ctx.font = 'bold 20px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('AUTHORITARIAN', centerX, oy + 24);
-  ctx.fillText('LIBERTARIAN', centerX, oy + size - 12);
+  ctx.globalAlpha = 0.7;
+  ctx.fillText('AUTHORITARIAN', centerX, oy + 26);
+  ctx.fillText('LIBERTARIAN', centerX, oy + size - 10);
   ctx.textAlign = 'left';
-  ctx.fillText('LEFT', ox + 12, centerY - 10);
+  ctx.fillText('LEFT', ox + 14, centerY - 10);
   ctx.textAlign = 'right';
-  ctx.fillText('RIGHT', ox + size - 12, centerY - 10);
+  ctx.fillText('RIGHT', ox + size - 14, centerY - 10);
+  ctx.globalAlpha = 1;
 
   // User points
   points.forEach((point, index) => {
     const px = ox + ((point.x + 10) / 20) * size;
     const py = oy + ((10 - point.y) / 20) * size;
-    const haloR = index === 0 ? 22 : 16;
-    const coreR = index === 0 ? 12 : 9;
+    const haloR = index === 0 ? 26 : 18;
+    const coreR = index === 0 ? 14 : 10;
+    // outer glow
+    ctx.beginPath();
+    ctx.arc(px, py, haloR + 8, 0, 2 * Math.PI);
+    ctx.fillStyle = 'rgba(249,115,22,0.14)';
+    ctx.fill();
     ctx.beginPath();
     ctx.arc(px, py, haloR, 0, 2 * Math.PI);
-    ctx.fillStyle = 'rgba(249,115,22,0.32)';
+    ctx.fillStyle = 'rgba(249,115,22,0.35)';
     ctx.fill();
     ctx.beginPath();
     ctx.arc(px, py, coreR, 0, 2 * Math.PI);
@@ -165,22 +238,30 @@ const drawCompass = (ctx, ox, oy, size, points, c) => {
 };
 
 const drawPartyBars = (ctx, ox, oy, width, partyMatch, c) => {
-  const rowH = 56;
+  const rowH = 60;
   ctx.font = 'bold 28px sans-serif';
   partyMatch.forEach((row, i) => {
     const y = oy + i * rowH;
     ctx.fillStyle = c.barText;
     ctx.textAlign = 'left';
-    ctx.fillText(row.name, ox, y + 28);
-    const barX = ox + 240;
-    const barW = width - 240 - 90;
+    ctx.fillText(row.name, ox, y + 30);
+    const barX = ox + 250;
+    const barW = width - 250 - 90;
+    const barH = 20;
+    const barY = y + 12;
+    const br = barH / 2;
+    // track
+    roundRect(ctx, barX, barY, barW, barH, br);
     ctx.fillStyle = c.barBg;
-    ctx.fillRect(barX, y + 12, barW, 22);
+    ctx.fill();
+    // fill
+    const fillW = Math.max(barH, barW * (row.pct / 100));
+    roundRect(ctx, barX, barY, fillW, barH, br);
     ctx.fillStyle = PARTY_COLORS[row.name] || '#64748b';
-    ctx.fillRect(barX, y + 12, barW * (row.pct / 100), 22);
+    ctx.fill();
     ctx.fillStyle = c.barText;
     ctx.textAlign = 'right';
-    ctx.fillText(`${row.pct}%`, ox + width, y + 28);
+    ctx.fillText(`${row.pct}%`, ox + width, y + 30);
   });
 };
 
@@ -193,8 +274,9 @@ const drawAxisSlider = (ctx, ox, oy, width, leftLabel, rightLabel, fraction, c) 
   ctx.fillText(rightLabel, ox + width, oy + 24);
   const trackX = ox + 90;
   const trackW = width - 180;
+  roundRect(ctx, trackX, oy + 14, trackW, 10, 5);
   ctx.fillStyle = c.barBg;
-  ctx.fillRect(trackX, oy + 14, trackW, 10);
+  ctx.fill();
   const thumbX = trackX + trackW * Math.max(0, Math.min(1, fraction));
   ctx.beginPath();
   ctx.arc(thumbX, oy + 19, 14, 0, 2 * Math.PI);
