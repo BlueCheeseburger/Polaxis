@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { Share2, Copy, Check, Download, X, Link2, Image as ImageIcon } from 'lucide-react';
+import { Share2, Copy, Check, Download, X, Link2, Image as ImageIcon, Sun, Moon } from 'lucide-react';
 
 const SHARE_IMAGE_W = 1080;
 const SHARE_IMAGE_H = 1500;
@@ -24,29 +24,59 @@ export const computePartyMatch = (x, y) => {
   }));
 };
 
-const drawShareImage = (canvas, { archetype, x, y, points, partyMatch, appUrl }) => {
+const THEME = {
+  light: {
+    bg: ['#f8fafc', '#e2e8f0'],
+    heading: '#0f172a',
+    sub: '#475569',
+    label: '#1e293b',
+    border: '#cbd5e1',
+    axis: '#475569',
+    url: '#64748b',
+    divider: 'rgba(148,163,184,0.4)',
+    barBg: '#e2e8f0',
+    barText: '#1e293b',
+    q: ['rgba(239,68,68,0.18)','rgba(59,130,246,0.18)','rgba(34,197,94,0.18)','rgba(168,85,247,0.18)'],
+  },
+  dark: {
+    bg: ['#0f172a', '#020617'],
+    heading: '#f8fafc',
+    sub: '#94a3b8',
+    label: '#e2e8f0',
+    border: '#334155',
+    axis: '#64748b',
+    url: '#475569',
+    divider: 'rgba(71,85,105,0.5)',
+    barBg: '#1e293b',
+    barText: '#e2e8f0',
+    q: ['rgba(239,68,68,0.13)','rgba(59,130,246,0.13)','rgba(34,197,94,0.13)','rgba(168,85,247,0.13)'],
+  },
+};
+
+const drawShareImage = (canvas, { archetype, x, y, points, partyMatch, appUrl, dark = false }) => {
   const ctx = canvas.getContext('2d');
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.width = SHARE_IMAGE_W * dpr;
   canvas.height = SHARE_IMAGE_H * dpr;
-  canvas.style.width = `${SHARE_IMAGE_W}px`;
-  canvas.style.height = `${SHARE_IMAGE_H}px`;
+  // Let CSS control display size — do NOT set inline width/height styles here
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const c = dark ? THEME.dark : THEME.light;
 
   // Background gradient
   const bg = ctx.createLinearGradient(0, 0, 0, SHARE_IMAGE_H);
-  bg.addColorStop(0, '#f8fafc');
-  bg.addColorStop(1, '#e2e8f0');
+  bg.addColorStop(0, c.bg[0]);
+  bg.addColorStop(1, c.bg[1]);
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, SHARE_IMAGE_W, SHARE_IMAGE_H);
 
   // Header — Archetype name
-  ctx.fillStyle = '#0f172a';
+  ctx.fillStyle = c.heading;
   ctx.font = 'bold 78px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(archetype || 'The Political Compass', SHARE_IMAGE_W / 2, 130);
 
-  ctx.fillStyle = '#475569';
+  ctx.fillStyle = c.sub;
   ctx.font = '32px sans-serif';
   ctx.fillText(`Economic ${x.toFixed(1)}  ·  Social ${y.toFixed(1)}`, SHARE_IMAGE_W / 2, 185);
 
@@ -54,62 +84,57 @@ const drawShareImage = (canvas, { archetype, x, y, points, partyMatch, appUrl })
   const compassSize = 720;
   const compassX = (SHARE_IMAGE_W - compassSize) / 2;
   const compassY = 230;
-  drawCompass(ctx, compassX, compassY, compassSize, points);
+  drawCompass(ctx, compassX, compassY, compassSize, points, c);
 
   // Party bars
   const barsY = compassY + compassSize + 60;
-  drawPartyBars(ctx, 100, barsY, SHARE_IMAGE_W - 200, partyMatch);
+  drawPartyBars(ctx, 100, barsY, SHARE_IMAGE_W - 200, partyMatch, c);
 
   // Axis sliders
   const axisY = barsY + (partyMatch.length * 56) + 50;
-  drawAxisSlider(ctx, 100, axisY, SHARE_IMAGE_W - 200, 'LEFT', 'RIGHT', ((x + 10) / 20));
-  drawAxisSlider(ctx, 100, axisY + 70, SHARE_IMAGE_W - 200, 'LIB', 'AUTH', ((y + 10) / 20));
+  drawAxisSlider(ctx, 100, axisY, SHARE_IMAGE_W - 200, 'LEFT', 'RIGHT', ((x + 10) / 20), c);
+  drawAxisSlider(ctx, 100, axisY + 70, SHARE_IMAGE_W - 200, 'LIB', 'AUTH', ((y + 10) / 20), c);
 
-  // Footer URL — clearly separated from sliders, with a thin divider above
+  // Footer URL — clearly separated from sliders
   const urlY = SHARE_IMAGE_H - 60;
-  ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+  ctx.strokeStyle = c.divider;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(SHARE_IMAGE_W * 0.3, urlY - 38);
   ctx.lineTo(SHARE_IMAGE_W * 0.7, urlY - 38);
   ctx.stroke();
-  ctx.fillStyle = '#64748b';
+  ctx.fillStyle = c.url;
   ctx.font = '26px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(appUrl, SHARE_IMAGE_W / 2, urlY);
 };
 
-const drawCompass = (ctx, ox, oy, size, points) => {
+const drawCompass = (ctx, ox, oy, size, points, c) => {
   const centerX = ox + size / 2;
   const centerY = oy + size / 2;
 
   // Quadrants
-  ctx.fillStyle = 'rgba(239, 68, 68, 0.18)';
-  ctx.fillRect(ox, oy, size / 2, size / 2);
-  ctx.fillStyle = 'rgba(59, 130, 246, 0.18)';
-  ctx.fillRect(centerX, oy, size / 2, size / 2);
-  ctx.fillStyle = 'rgba(34, 197, 94, 0.18)';
-  ctx.fillRect(ox, centerY, size / 2, size / 2);
-  ctx.fillStyle = 'rgba(168, 85, 247, 0.18)';
-  ctx.fillRect(centerX, centerY, size / 2, size / 2);
+  const [q1, q2, q3, q4] = c.q;
+  ctx.fillStyle = q1; ctx.fillRect(ox, oy, size / 2, size / 2);
+  ctx.fillStyle = q2; ctx.fillRect(centerX, oy, size / 2, size / 2);
+  ctx.fillStyle = q3; ctx.fillRect(ox, centerY, size / 2, size / 2);
+  ctx.fillStyle = q4; ctx.fillRect(centerX, centerY, size / 2, size / 2);
 
   // Border
-  ctx.strokeStyle = '#cbd5e1';
+  ctx.strokeStyle = c.border;
   ctx.lineWidth = 2;
   ctx.strokeRect(ox, oy, size, size);
 
   // Axes
-  ctx.strokeStyle = '#475569';
+  ctx.strokeStyle = c.axis;
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(ox, centerY);
-  ctx.lineTo(ox + size, centerY);
-  ctx.moveTo(centerX, oy);
-  ctx.lineTo(centerX, oy + size);
+  ctx.moveTo(ox, centerY); ctx.lineTo(ox + size, centerY);
+  ctx.moveTo(centerX, oy); ctx.lineTo(centerX, oy + size);
   ctx.stroke();
 
   // Axis labels
-  ctx.fillStyle = '#1e293b';
+  ctx.fillStyle = c.label;
   ctx.font = 'bold 18px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('AUTHORITARIAN', centerX, oy + 24);
@@ -127,7 +152,7 @@ const drawCompass = (ctx, ox, oy, size, points) => {
     const coreR = index === 0 ? 12 : 9;
     ctx.beginPath();
     ctx.arc(px, py, haloR, 0, 2 * Math.PI);
-    ctx.fillStyle = 'rgba(249, 115, 22, 0.32)';
+    ctx.fillStyle = 'rgba(249,115,22,0.32)';
     ctx.fill();
     ctx.beginPath();
     ctx.arc(px, py, coreR, 0, 2 * Math.PI);
@@ -139,39 +164,36 @@ const drawCompass = (ctx, ox, oy, size, points) => {
   });
 };
 
-const drawPartyBars = (ctx, ox, oy, width, partyMatch) => {
+const drawPartyBars = (ctx, ox, oy, width, partyMatch, c) => {
   const rowH = 56;
   ctx.font = 'bold 28px sans-serif';
   partyMatch.forEach((row, i) => {
     const y = oy + i * rowH;
-    ctx.fillStyle = '#1e293b';
+    ctx.fillStyle = c.barText;
     ctx.textAlign = 'left';
     ctx.fillText(row.name, ox, y + 28);
-
     const barX = ox + 240;
     const barW = width - 240 - 90;
-    ctx.fillStyle = '#e2e8f0';
+    ctx.fillStyle = c.barBg;
     ctx.fillRect(barX, y + 12, barW, 22);
     ctx.fillStyle = PARTY_COLORS[row.name] || '#64748b';
     ctx.fillRect(barX, y + 12, barW * (row.pct / 100), 22);
-
-    ctx.fillStyle = '#1e293b';
+    ctx.fillStyle = c.barText;
     ctx.textAlign = 'right';
     ctx.fillText(`${row.pct}%`, ox + width, y + 28);
   });
 };
 
-const drawAxisSlider = (ctx, ox, oy, width, leftLabel, rightLabel, fraction) => {
+const drawAxisSlider = (ctx, ox, oy, width, leftLabel, rightLabel, fraction, c) => {
   ctx.font = 'bold 24px sans-serif';
-  ctx.fillStyle = '#475569';
+  ctx.fillStyle = c.axis;
   ctx.textAlign = 'left';
   ctx.fillText(leftLabel, ox, oy + 24);
   ctx.textAlign = 'right';
   ctx.fillText(rightLabel, ox + width, oy + 24);
-
   const trackX = ox + 90;
   const trackW = width - 180;
-  ctx.fillStyle = '#e2e8f0';
+  ctx.fillStyle = c.barBg;
   ctx.fillRect(trackX, oy + 14, trackW, 10);
   const thumbX = trackX + trackW * Math.max(0, Math.min(1, fraction));
   ctx.beginPath();
@@ -272,13 +294,13 @@ export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode 
     }
   }, [open, activeTab, shareId, creating, shareError, requestShare]);
 
-  // Render preview canvas (smaller than export)
+  // Render preview canvas — re-run when tab switches to 'image'
   useEffect(() => {
-    if (!open) return;
+    if (!open || activeTab !== 'image') return;
     const canvas = previewCanvasRef.current;
     if (!canvas) return;
-    drawShareImage(canvas, { archetype, x, y, points: safePoints, partyMatch, appUrl });
-  }, [open, archetype, x, y, safePoints, partyMatch, appUrl]);
+    drawShareImage(canvas, { archetype, x, y, points: safePoints, partyMatch, appUrl, dark: isDarkMode });
+  }, [open, activeTab, archetype, x, y, safePoints, partyMatch, appUrl, isDarkMode]);
 
   if (!open) return null;
 
@@ -295,7 +317,7 @@ export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode 
 
   const handleDownload = () => {
     const canvas = exportCanvasRef.current || document.createElement('canvas');
-    drawShareImage(canvas, { archetype, x, y, points: safePoints, partyMatch, appUrl });
+    drawShareImage(canvas, { archetype, x, y, points: safePoints, partyMatch, appUrl, dark: isDarkMode });
     canvas.toBlob((blob) => {
       if (!blob) return;
       const url = URL.createObjectURL(blob);
@@ -397,6 +419,7 @@ export const ShareView = ({ shareId, apiBase, onTakeQuiz }) => {
   const [share, setShare] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -441,12 +464,23 @@ export const ShareView = ({ shareId, apiBase, onTakeQuiz }) => {
       points: sharePoints,
       partyMatch,
       appUrl,
+      dark: isDark,
     });
-  }, [share, sharePoints]);
+  }, [share, sharePoints, isDark]);
 
   return (
-    <div className="share-view-shell">
+    <div className={`share-view-shell${isDark ? ' dark' : ''}`}>
       <div className="share-view-card">
+        <div className="share-view-topbar">
+          <button
+            type="button"
+            className="share-view-theme-toggle"
+            onClick={() => setIsDark(d => !d)}
+            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+        </div>
         {loading && <p className="share-status">Loading share…</p>}
         {error && (
           <div className="share-error">
