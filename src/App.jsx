@@ -1283,7 +1283,11 @@ export default function App() {
       return;
     }
     if (event?.altKey) {
-      enableDebugBypass();
+      if (isDebugBypassEnabled) {
+        setIsDebugBypassEnabled(false);
+      } else {
+        enableDebugBypass();
+      }
       return;
     }
     showDebugPoint();
