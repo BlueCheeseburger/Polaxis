@@ -189,7 +189,7 @@ const runGeminiJsonRequest = async ({
 
 const evaluateBeliefs = async (promptText, options = {}) => runGeminiJsonRequest({
   promptText,
-  systemInstructionText: "You are an objective political science model. Assess political beliefs and place them on the standard 2D political compass. X-axis (Economic): -10 (Far Left) to 10 (Far Right). Y-axis (Social/Government): 10 (Authoritarian) to -10 (Libertarian). Writing style: use second person ('you') for first-person inputs, third person for inputs about others. Keep each analysis to 1-2 punchy sentences (max 35 words). No jargon — write for a general audience. If the input contains clearly conflicting clusters that cannot be represented by a single point, include a points array (2-4 points). Each point needs x, y, analysis, and a short label (1-4 words). Set top-level x/y to the midpoint and top-level analysis to a one-sentence summary of the tension. Always provide an archetype: a punchy 2-3 word political identity name in 'The X' format (e.g., 'The Futurist', 'The Traditionalist', 'The Anarchist Idealist', 'The Pragmatic Centrist'). Make it specific to the placement — neutral and non-judgmental, but distinctive. If there is not enough political-belief data, set hasSufficientData to false with a brief insufficiencyReason. Follow the JSON schema exactly.",
+  systemInstructionText: "You are an objective political science model. Assess political beliefs and place them on the standard 2D political compass. X-axis (Economic): -10 (Far Left) to 10 (Far Right). Y-axis (Social/Government): 10 (Authoritarian) to -10 (Libertarian). Writing style: use second person ('you') for first-person inputs, third person for inputs about others. Keep each analysis to 1-2 punchy sentences (max 35 words). No jargon — write for a general audience. If the input contains clearly conflicting clusters that cannot be represented by a single point, include a points array (2-4 points). Each point needs x, y, analysis, and a short label (1-4 words). Set top-level x/y to the midpoint and top-level analysis to a one-sentence summary of the tension. Always provide an archetype: a punchy 2-3 word political identity name in 'The X' format (e.g., 'The Futurist', 'The Traditionalist', 'The Anarchist Idealist', 'The Pragmatic Centrist'). Make it specific to the placement — neutral and non-judgmental, but distinctive. If there is not enough political-belief data, set hasSufficientData to false with a brief insufficiencyReason. Always set confidence (1–5) based on how precisely the input pins down political coordinates: 5 = multiple specific policies stated clearly; 4 = several clear stances; 3 = general leanings with some specifics; 2 = vague or limited input; 1 = barely enough to plot. Set confidenceReason to one plain-English sentence explaining the score (e.g. 'You mentioned several specific policies, so your placement is fairly precise.'). Follow the JSON schema exactly.",
   responseSchema: {
     type: "OBJECT",
     properties: {
@@ -198,6 +198,8 @@ const evaluateBeliefs = async (promptText, options = {}) => runGeminiJsonRequest
       title: { type: "STRING", description: "A concise 1-3 word point title. Prefer proper names when clear." },
       archetype: { type: "STRING", description: "A 2-3 word political archetype name in 'The X' format (e.g., 'The Futurist'). Distinct, neutral, and specific to the placement." },
       analysis: { type: "STRING", description: "A brief analysis of the subject's political alignment." },
+      confidence: { type: "INTEGER", description: "How precisely the input pins down coordinates, from 1 (barely enough to plot) to 5 (many specific policies stated clearly)." },
+      confidenceReason: { type: "STRING", description: "One plain-English sentence explaining the confidence score." },
       points: {
         type: "ARRAY",
         description: "Optional multi-point output for mixed beliefs; each point is a distinct ideological cluster.",
@@ -218,7 +220,7 @@ const evaluateBeliefs = async (promptText, options = {}) => runGeminiJsonRequest
       isPoliticalInput: { type: "BOOLEAN", description: "True when the input is actually about politics or ideology. False when irrelevant (e.g., cooking, sports with no political content)." },
       insufficiencyReason: { type: "STRING", description: "Short explanation when there is not enough data to plot reliably." }
     },
-    required: ["x", "y", "title", "archetype", "analysis", "hasSufficientData", "isPoliticalInput", "insufficiencyReason"]
+    required: ["x", "y", "title", "archetype", "analysis", "confidence", "confidenceReason", "hasSufficientData", "isPoliticalInput", "insufficiencyReason"]
   },
   ...options,
 });
@@ -462,6 +464,23 @@ const OVERLAY_PRESETS = {
     ],
   },
 };
+const calcClosestPolitician = (x, y) => {
+  const allPoints = Object.values(OVERLAY_PRESETS).flatMap(preset => preset.points);
+  const seen = new Set();
+  const unique = allPoints.filter(p => {
+    if (seen.has(p.name)) return false;
+    seen.add(p.name);
+    return true;
+  });
+  let closest = null;
+  let minDist = Infinity;
+  for (const p of unique) {
+    const d = Math.hypot(x - p.x, y - p.y);
+    if (d < minDist) { minDist = d; closest = p; }
+  }
+  return closest;
+};
+
 const calcPartyMatch = (x, y) => {
   const parties = [
     { name: "Democrat", cx: -2.5, cy: 0.5 },
@@ -846,6 +865,7 @@ export default function App() {
   const [isSavedPanelOpen, setIsSavedPanelOpen] = useState(false);
   const [hasHydratedSavedPoints, setHasHydratedSavedPoints] = useState(false);
   const [isDebugBypassEnabled, setIsDebugBypassEnabled] = useState(false);
+  const [isDebugPoint, setIsDebugPoint] = useState(false);
   const [showBypassToast, setShowBypassToast] = useState(false);
   const [isAnalysisPending, setIsAnalysisPending] = useState(false);
   const [hasGeminiQuizResult, setHasGeminiQuizResult] = useState(false);
@@ -1064,6 +1084,7 @@ export default function App() {
     setLoading(mode === 'text');
     setError(null);
     setResult(null);
+    setIsDebugPoint(false);
     setFollowupQuestion(null);
     setSelectedFollowupChoice("");
     setRefinementNote("");
@@ -1235,16 +1256,17 @@ export default function App() {
     setError(null);
     setLoading(false);
     setOverlayPreset('global');
+    setIsDebugPoint(true);
     setResult({
       x: 0,
       y: 0,
-      analysis: "Debug mode: centered test point for quick compass checks without calling Gemini.",
+      analysis: "",
       points: [{
         id: "cluster-1",
         label: "Primary",
         x: 0,
         y: 0,
-        analysis: "Debug mode: centered test point for quick compass checks without calling Gemini.",
+        analysis: "",
       }],
       fromGemini: false,
       sourceBatchId: `debug-${Date.now()}`,
@@ -1511,6 +1533,7 @@ export default function App() {
 
   return (
     <div className={`app-shell ${isDarkMode ? 'dark' : ''} ${getOverlayThemeClass()}`}>
+      {isDebugPoint && <div className="debug-badge">Debug mode</div>}
       {showBypassToast && <div className="bypass-toast">API bypass enabled</div>}
       {showSaveToast && <div className="save-toast">Point saved</div>}
       {showSavedHintCue && <div className="saved-hint-cue">Saved points live in the top-right bookmark.</div>}
@@ -1731,7 +1754,54 @@ export default function App() {
         {result && !loading && (
           <section className="result-panel">
             <div className="result-header">
-              <h2>Your Political Coordinates</h2>
+              <h2>
+                Your Political Coordinates
+                <div className="info-trigger">
+                  <button
+                    type="button"
+                    className="info-icon-btn"
+                    title="How this works"
+                  >
+                    ⓘ
+                  </button>
+                  <div className="info-panel">
+                    <div className="info-panel-section">
+                      <p className="info-panel-label">HOW THIS WORKS</p>
+                      <p className="info-panel-body">
+                        Your input is sent to Google's Gemini AI, which maps your stated beliefs onto a two-axis compass.
+                        The horizontal axis measures economic views (left = more collective/state, right = more market/individual).
+                        The vertical axis measures social views (up = more authority/order, down = more personal freedom).
+                        This is a best-fit interpretation — not a diagnosis. Political beliefs are complex; this is a simplified model.
+                      </p>
+                    </div>
+                    {result.fromGemini && typeof result.confidence === 'number' && (
+                      <div className="info-panel-section">
+                        <p className="info-panel-label">PLACEMENT CONFIDENCE</p>
+                        <div className="info-panel-confidence">
+                          <div className="confidence-pips">
+                            {[1, 2, 3, 4, 5].map((pip) => (
+                              <span
+                                key={pip}
+                                className={`confidence-pip ${pip <= result.confidence ? 'filled' : ''}`}
+                              />
+                            ))}
+                          </div>
+                          <span className="confidence-score">{result.confidence}/5</span>
+                        </div>
+                        {result.confidenceReason && (
+                          <p className="info-panel-body">{result.confidenceReason}</p>
+                        )}
+                      </div>
+                    )}
+                    {!result.fromGemini && (
+                      <div className="info-panel-section">
+                        <p className="info-panel-label">PLACEMENT CONFIDENCE</p>
+                        <p className="info-panel-body info-panel-muted">Confidence score unavailable for instant quiz estimates.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </h2>
               <button
                 type="button"
                 className="share-trigger-btn"
@@ -1809,7 +1879,7 @@ export default function App() {
               {!isAnalysisPending && hasGeminiQuizResult && mode === 'quiz' && (
                 <p>Analysis complete.</p>
               )}
-              {!isAnalysisPending && resultPoints.length > 1 ? (
+              {!isDebugPoint && !isAnalysisPending && resultPoints.length > 1 ? (
                 <div className="analysis-multi">
                   <p className="analysis-summary">"{result.analysis}"</p>
                   <div className="analysis-clusters">
@@ -1821,9 +1891,17 @@ export default function App() {
                     ))}
                   </div>
                 </div>
-              ) : !isAnalysisPending ? (
+              ) : !isDebugPoint && !isAnalysisPending ? (
                 <p>"{result.analysis}"</p>
               ) : null}
+              {!isDebugPoint && !isAnalysisPending && (() => {
+                const closest = calcClosestPolitician(result.x, result.y);
+                return closest ? (
+                  <p className="closest-politician">
+                    You're closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>.
+                  </p>
+                ) : null;
+              })()}
             </div>
             <div className="chat-followup">
               {followupLoading && (
