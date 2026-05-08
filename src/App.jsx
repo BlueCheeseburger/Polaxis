@@ -364,8 +364,8 @@ const applyAiTitlesToPendingSaves = (existingSavedPoints, sourceBatchId, aiPoint
 };
 
 const generateFollowupQuestion = async (promptText, baseResult, options = {}) => runGeminiJsonRequest({
-  promptText: `Original user input:\n${promptText}\n\nCurrent coordinates: x=${baseResult.x}, y=${baseResult.y}\nCurrent analysis: ${baseResult.analysis}\n\nAsk one concise follow-up question that best disambiguates placement. Provide 2 to 5 multiple-choice options.`,
-  systemInstructionText: "You are refining a political compass placement. Ask exactly one follow-up multiple-choice question to reduce uncertainty in ideological placement. The question must be neutral, concise, and the options mutually distinct.",
+  promptText: `Original user input:\n${promptText}\n\nCurrent coordinates: x=${baseResult.x}, y=${baseResult.y}\nCurrent analysis: ${baseResult.analysis}\n\nAsk one short follow-up question that best disambiguates placement. Provide 2 to 4 answer choices. Each choice must be plain, simple, and under 10 words — no full sentences, no clauses. Write choices like a person would actually say them (e.g. "The state should lead", "Leave it to markets", "Depends on the issue").`,
+  systemInstructionText: "You are refining a political compass placement. Ask exactly one short, plain follow-up question. Choices must be brief — under 10 words each, written simply and naturally. No formal phrasing, no full sentences with subordinate clauses. Make them feel like real human answers, not academic statements.",
   responseSchema: {
     type: "OBJECT",
     properties: {
@@ -1592,7 +1592,8 @@ export default function App() {
 
     const savedPoint = {
       id: `${timestamp}-${Math.random().toString(36).slice(2, 8)}`,
-      title: (result.title?.trim()
+      title: (result.archetype?.trim()
+        || result.title?.trim()
         || (resultPoints.length > 1 ? "Mixed Views" : resultPoints[0].label?.trim())
         || `Point ${baseCount + 1}`),
       x: typeof result.x === "number" ? result.x : resultPoints[0].x,
@@ -2165,33 +2166,20 @@ export default function App() {
                 <p>"{refinementNote}"</p>
               </div>
             )}
-            {!isDebugPoint && !isAnalysisPending && !isRefineMode && !(mode === 'text' && (followupLoading || followupQuestion)) && (() => {
+            {!isDebugPoint && !isAnalysisPending && !isRefineMode && (() => {
               const totalQuestions = REFINEMENT_CLUSTERS.reduce((sum, c) => sum + c.questions.length, 0);
-              // Text mode: subtle button matching overlay style
+              // Text mode: normal secondary button, same size as Save Point / Try Again
               if (mode === 'text') {
                 return (
-                  <div className="refine-prompt refine-prompt-row">
+                  <div className="result-actions">
                     {refineDelta ? (
-                      <div className="refine-delta-card">
-                        <h3>Placement refined</h3>
-                        <p>
-                          Based on {refineDelta.answeredCount} additional {refineDelta.answeredCount === 1 ? 'answer' : 'answers'}, your placement shifted{' '}
-                          <strong>
-                            {Math.abs(refineDelta.dx) < 0.05 ? 'no change economically' : `${Math.abs(refineDelta.dx).toFixed(1)} ${refineDelta.dx < 0 ? 'left' : 'right'} economically`}
-                          </strong>
-                          {' '}and{' '}
-                          <strong>
-                            {Math.abs(refineDelta.dy) < 0.05 ? 'no change socially' : `${Math.abs(refineDelta.dy).toFixed(1)} ${refineDelta.dy < 0 ? 'libertarian' : 'authoritarian'}`}
-                          </strong>.
-                        </p>
-                        <button type="button" onClick={handleStartRefinement} className="refine-btn-subtle">
-                          <SlidersHorizontal size={14} />
-                          Refine again
-                        </button>
-                      </div>
+                      <button type="button" onClick={handleStartRefinement} className="secondary-btn">
+                        <SlidersHorizontal size={18} />
+                        Refine again
+                      </button>
                     ) : (
-                      <button type="button" onClick={handleStartRefinement} className="refine-btn-subtle">
-                        <SlidersHorizontal size={14} />
+                      <button type="button" onClick={handleStartRefinement} className="secondary-btn">
+                        <SlidersHorizontal size={18} />
                         Refine placement
                       </button>
                     )}
