@@ -73,8 +73,36 @@
   background: rgba(238, 242, 255, 0.97);
   color: #3730a3;
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.14);
-  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(92vw, 760px);
 }
+
+.incoming-share-banner > span {
+  white-space: normal;
+  line-height: 1.35;
+}
+
+.incoming-share-cta {
+  border: none;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: #4f46e5;
+  color: #fff;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.incoming-share-cta:hover { background: #4338ca; }
+
+.app-shell.dark .incoming-share-cta {
+  background: #6366f1;
+}
+.app-shell.dark .incoming-share-cta:hover { background: #818cf8; }
 
 .app-shell.dark .incoming-share-banner {
   border-color: rgba(99, 102, 241, 0.5);
@@ -2870,3 +2898,60 @@
   font-size: 0.75rem;
   color: #94a3b8;
 }
+
+/* Comparison diff card */
+.comparison-diff-card {
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.app-shell.dark .comparison-diff-card {
+  background: rgba(15, 23, 42, 0.7);
+  border-color: rgba(71, 85, 105, 0.6);
+}
+.comparison-diff-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.comparison-diff-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.comparison-diff-count {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+.comparison-diff-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+}
+.comparison-diff-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.comparison-diff-dot.primary { background: #f97316; box-shadow: 0 0 0 2px rgba(249,115,22,0.25); }
+.comparison-diff-dot.friend { background: #ffffff; border: 1px solid #94a3b8; }
+.comparison-diff-coords {
+  font-variant-numeric: tabular-nums;
+  color: #64748b;
+  font-size: 0.78rem;
+}
+.comparison-diff-delta {
+  font-size: 0.78rem;
+  color: #475569;
+  margin-left: auto;
+}
+.app-shell.dark .comparison-diff-coords,
+.app-shell.dark .comparison-diff-delta { color: #94a3b8; }

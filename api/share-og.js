@@ -57,8 +57,10 @@ a{color:#fb923c}
 };
 
 export default async function handler(req, res) {
-  const rawId = (req.query?.id || '').toString();
-  const shareId = rawId.trim();
+  const rawId = (req.query?.id || '').toString().trim();
+  // Accept "{id}" or "{id}-{archetype-slug}" — the id is the prefix before
+  // the first hyphen.
+  const shareId = rawId.includes('-') ? rawId.split('-')[0] : rawId;
   if (!/^[a-zA-Z0-9_-]{4,32}$/.test(shareId)) {
     res.statusCode = 400;
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');

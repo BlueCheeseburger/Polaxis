@@ -23,6 +23,8 @@ const dailyIpUsage = new Map();
 const dailyShareUsage = new Map();
 const savedPointsByClient = new Map();
 const sharesById = new Map();
+const comparisonsById = new Map();
+const MAX_COMPARISON_PARTICIPANTS = 6;
 const supabase = (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
   : null;
@@ -159,6 +161,17 @@ const generateShareId = () => {
   return id;
 };
 
+const slugifyArchetype = (value) => {
+  if (typeof value !== "string") return "";
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+};
+
 const normalizeSharePayload = (candidate) => {
   if (!candidate || typeof candidate !== "object") return null;
   const x = Number(candidate.x);
@@ -205,6 +218,7 @@ const insertShareToDb = async (record) => {
       id: record.id,
       client_id: record.client_id,
       archetype: record.archetype || null,
+      archetype_slug: record.archetype_slug || null,
       title: record.title || null,
       analysis: record.analysis || null,
       x: record.x,
@@ -222,7 +236,7 @@ const fetchShareFromDb = async (shareId) => {
   try {
     const { data, error } = await supabase
       .from("shares")
-      .select("id, archetype, title, analysis, x, y, grouped_points, party_match, created_at")
+      .select("id, archetype, archetype_slug, title, analysis, x, y, grouped_points, party_match, created_at")
       .eq("id", shareId)
       .maybeSingle();
     if (error) { console.error("Supabase fetch share:", error.message); return null; }
@@ -230,6 +244,7 @@ const fetchShareFromDb = async (shareId) => {
     return {
       id: data.id,
       archetype: data.archetype || "",
+      archetype_slug: data.archetype_slug || slugifyArchetype(data.archetype || ""),
       title: data.title || "",
       analysis: data.analysis || "",
       x: data.x,
@@ -239,6 +254,78 @@ const fetchShareFromDb = async (shareId) => {
       createdAt: data.created_at,
     };
   } catch (e) { console.error("Supabase exception fetchShare:", e.message); return null; }
+};
+
+// --- Comparison helpers ---
+const normalizeParticipant = (candidate, role) => {
+  if (!candidate || typeof candidate !== "object") return null;
+  const x = Number(candidate.x);
+  const y = Number(candidate.y);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  const archetype = typeof candidate.archetype === "string" ? candidate.archetype.trim().slice(0, 60) : "";
+  const analysis = typeof candidate.analysis === "string" ? candidate.analysis.trim().slice(0, 4000) : "";
+  const groupedPoints = Array.isArray(candidate.groupedPoints)
+    ? candidate.groupedPoints.filter((g) => (
+        g && Number.isFinite(Number(g.x)) && Number.isFinite(Number(g.y)) &&
+        typeof g.label === "string"
+      )).slice(0, 4).map((g, i) => ({
+        id: typeof g.id === "string" && g.id.trim() ? g.id : `cluster-${i + 1}`,
+        label: g.label.slice(0, 60),
+        x: clampCompassValue(Number(g.x)),
+        y: clampCompassValue(Number(g.y)),
+        analysis: typeof g.analysis === "string" ? g.analysis.slice(0, 4000) : "",
+      }))
+    : null;
+  return {
+    role: role === "primary" ? "primary" : "friend",
+    client_id_hash: typeof candidate.client_id_hash === "string" ? candidate.client_id_hash.slice(0, 128) : "",
+    ip_hash: typeof candidate.ip_hash === "string" ? candidate.ip_hash.slice(0, 128) : "",
+    archetype,
+    analysis,
+    x: clampCompassValue(x),
+    y: clampCompassValue(y),
+    grouped_points: groupedPoints,
+    joined_at: new Date().toISOString(),
+  };
+};
+
+const insertComparisonToDb = async (record) => {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from("comparisons").insert({
+      id: record.id,
+      primary_share_id: record.primary_share_id,
+      archetype_slug: record.archetype_slug || null,
+      participants: record.participants,
+      max_participants: record.max_participants,
+    });
+    if (error) { console.error("Supabase insert comparison:", error.message); return false; }
+    return true;
+  } catch (e) { console.error("Supabase exception insertComparison:", e.message); return false; }
+};
+
+const fetchComparisonFromDb = async (comparisonId) => {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from("comparisons")
+      .select("id, primary_share_id, archetype_slug, participants, max_participants, created_at, updated_at")
+      .eq("id", comparisonId)
+      .maybeSingle();
+    if (error) { console.error("Supabase fetch comparison:", error.message); return null; }
+    return data || null;
+  } catch (e) { console.error("Supabase exception fetchComparison:", e.message); return null; }
+};
+
+const updateComparisonParticipantsInDb = async (comparisonId, participants) => {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from("comparisons")
+      .update({ participants, updated_at: new Date().toISOString() })
+      .eq("id", comparisonId);
+    if (error) { console.error("Supabase update comparison:", error.message); return false; }
+    return true;
+  } catch (e) { console.error("Supabase exception updateComparison:", e.message); return false; }
 };
 
 app.get("/api/health", (_req, res) => {
@@ -311,14 +398,17 @@ app.post("/api/shares", async (req, res) => {
   if (!normalized) return res.status(400).json({ error: "Invalid share payload" });
 
   const shareId = generateShareId();
-  const record = { id: shareId, client_id: clientId, ...normalized };
+  const archetypeSlug = slugifyArchetype(normalized.archetype);
+  const record = { id: shareId, client_id: clientId, archetype_slug: archetypeSlug, ...normalized };
   await insertShareToDb(record);
   sharesById.set(shareId, { ...record, createdAt: new Date().toISOString() });
-  return res.status(201).json({ id: shareId });
+  return res.status(201).json({ id: shareId, archetype_slug: archetypeSlug, slug: archetypeSlug ? `${shareId}-${archetypeSlug}` : shareId });
 });
 
 app.get("/api/shares/:shareId", async (req, res) => {
-  const shareId = typeof req.params.shareId === "string" ? req.params.shareId.trim() : "";
+  const raw = typeof req.params.shareId === "string" ? req.params.shareId.trim() : "";
+  // Accept "{id}" or "{id}-{archetype-slug}"; the prefix before the first dash is always the id.
+  const shareId = raw.includes("-") ? raw.split("-")[0] : raw;
   if (!shareId || shareId.length > 32) return res.status(400).json({ error: "Invalid share id" });
 
   const cached = sharesById.get(shareId);
@@ -326,6 +416,7 @@ app.get("/api/shares/:shareId", async (req, res) => {
     return res.json({ share: {
       id: cached.id,
       archetype: cached.archetype,
+      archetype_slug: cached.archetype_slug || slugifyArchetype(cached.archetype || ""),
       title: cached.title,
       analysis: cached.analysis,
       x: cached.x,
@@ -340,6 +431,149 @@ app.get("/api/shares/:shareId", async (req, res) => {
   if (!fromDb) return res.status(404).json({ error: "Share not found" });
   sharesById.set(shareId, fromDb);
   return res.json({ share: fromDb });
+});
+
+// Create a comparison from an existing share. Idempotent-ish: if one already
+// exists for this primary share, we return it.
+app.post("/api/comparisons", async (req, res) => {
+  const clientId = getClientIdFromRequest(req);
+  if (!clientId) return res.status(400).json({ error: "Missing X-Client-Id header" });
+  const primaryShareId = typeof req.body?.primary_share_id === "string" ? req.body.primary_share_id.trim() : "";
+  if (!primaryShareId) return res.status(400).json({ error: "Missing primary_share_id" });
+
+  // Look up the underlying share to seed the primary participant.
+  let share = sharesById.get(primaryShareId) || await fetchShareFromDb(primaryShareId);
+  if (!share) return res.status(404).json({ error: "Primary share not found" });
+
+  const ipHash = sha256(getClientIp(req));
+  const clientIdHash = sha256(clientId);
+  const primaryParticipant = {
+    role: "primary",
+    client_id_hash: clientIdHash,
+    ip_hash: ipHash,
+    archetype: share.archetype || "",
+    analysis: share.analysis || "",
+    x: clampCompassValue(Number(share.x) || 0),
+    y: clampCompassValue(Number(share.y) || 0),
+    grouped_points: Array.isArray(share.groupedPoints) ? share.groupedPoints : null,
+    joined_at: new Date().toISOString(),
+  };
+
+  const comparisonId = generateShareId();
+  const record = {
+    id: comparisonId,
+    primary_share_id: primaryShareId,
+    archetype_slug: share.archetype_slug || slugifyArchetype(share.archetype || ""),
+    participants: [primaryParticipant],
+    max_participants: MAX_COMPARISON_PARTICIPANTS,
+  };
+  await insertComparisonToDb(record);
+  comparisonsById.set(comparisonId, { ...record, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+  return res.status(201).json({
+    id: comparisonId,
+    archetype_slug: record.archetype_slug,
+    slug: record.archetype_slug ? `${comparisonId}-${record.archetype_slug}` : comparisonId,
+    comparison: record,
+  });
+});
+
+app.get("/api/comparisons/:comparisonId", async (req, res) => {
+  const raw = typeof req.params.comparisonId === "string" ? req.params.comparisonId.trim() : "";
+  const comparisonId = raw.includes("-") ? raw.split("-")[0] : raw;
+  if (!comparisonId || comparisonId.length > 32) return res.status(400).json({ error: "Invalid comparison id" });
+
+  let comparison = comparisonsById.get(comparisonId);
+  if (!comparison) {
+    comparison = await fetchComparisonFromDb(comparisonId);
+    if (!comparison) return res.status(404).json({ error: "Comparison not found" });
+    comparisonsById.set(comparisonId, comparison);
+  }
+
+  // Compute device-state for the requesting client so the frontend can decide
+  // whether to show "Compare your point" or "Refine my point" only.
+  const clientId = getClientIdFromRequest(req);
+  const ipHash = sha256(getClientIp(req));
+  const clientIdHash = clientId ? sha256(clientId) : "";
+  const participants = Array.isArray(comparison.participants) ? comparison.participants : [];
+  const myParticipantIndex = participants.findIndex((p) => (
+    (clientIdHash && p.client_id_hash === clientIdHash) ||
+    (ipHash && p.ip_hash === ipHash)
+  ));
+  return res.json({
+    comparison: {
+      id: comparison.id,
+      primary_share_id: comparison.primary_share_id,
+      archetype_slug: comparison.archetype_slug,
+      participants,
+      max_participants: comparison.max_participants || MAX_COMPARISON_PARTICIPANTS,
+      created_at: comparison.created_at,
+      updated_at: comparison.updated_at,
+    },
+    viewer: {
+      already_in_comparison: myParticipantIndex >= 0,
+      participant_index: myParticipantIndex,
+      can_join: myParticipantIndex < 0 && participants.length < (comparison.max_participants || MAX_COMPARISON_PARTICIPANTS),
+    },
+  });
+});
+
+// Add a friend to an existing comparison. If the requesting device/IP is
+// already in the participant list, this becomes an update (refinement) of
+// their existing entry rather than a new participant.
+app.post("/api/comparisons/:comparisonId/join", async (req, res) => {
+  const clientId = getClientIdFromRequest(req);
+  if (!clientId) return res.status(400).json({ error: "Missing X-Client-Id header" });
+
+  const raw = typeof req.params.comparisonId === "string" ? req.params.comparisonId.trim() : "";
+  const comparisonId = raw.includes("-") ? raw.split("-")[0] : raw;
+  if (!comparisonId) return res.status(400).json({ error: "Invalid comparison id" });
+
+  let comparison = comparisonsById.get(comparisonId);
+  if (!comparison) {
+    comparison = await fetchComparisonFromDb(comparisonId);
+    if (!comparison) return res.status(404).json({ error: "Comparison not found" });
+  }
+
+  const ipHash = sha256(getClientIp(req));
+  const clientIdHash = sha256(clientId);
+
+  const incoming = normalizeParticipant({
+    ...req.body?.participant,
+    client_id_hash: clientIdHash,
+    ip_hash: ipHash,
+  }, "friend");
+  if (!incoming) return res.status(400).json({ error: "Invalid participant payload" });
+
+  const participants = Array.isArray(comparison.participants) ? [...comparison.participants] : [];
+  const existingIdx = participants.findIndex((p) => (
+    p.client_id_hash === clientIdHash || p.ip_hash === ipHash
+  ));
+
+  if (existingIdx >= 0) {
+    // Refinement: same device/IP can only update their own point.
+    const existing = participants[existingIdx];
+    participants[existingIdx] = {
+      ...existing,
+      x: incoming.x,
+      y: incoming.y,
+      grouped_points: incoming.grouped_points,
+      // Preserve role and original archetype unless this is a refinement
+      // that legitimately produces a new analysis blurb.
+      analysis: incoming.analysis || existing.analysis,
+      joined_at: existing.joined_at, // keep original join time
+      refined_at: new Date().toISOString(),
+    };
+  } else {
+    if (participants.length >= (comparison.max_participants || MAX_COMPARISON_PARTICIPANTS)) {
+      return res.status(409).json({ error: "Comparison is full" });
+    }
+    participants.push(incoming);
+  }
+
+  await updateComparisonParticipantsInDb(comparisonId, participants);
+  const updated = { ...comparison, participants, updated_at: new Date().toISOString() };
+  comparisonsById.set(comparisonId, updated);
+  return res.json({ comparison: updated, refined: existingIdx >= 0 });
 });
 
 app.post("/api/gemini-json", async (req, res) => {

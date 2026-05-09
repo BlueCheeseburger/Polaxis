@@ -189,7 +189,7 @@ const runGeminiJsonRequest = async ({
 
 const evaluateBeliefs = async (promptText, options = {}) => runGeminiJsonRequest({
   promptText,
-  systemInstructionText: "You are an objective political science model. Assess political beliefs and place them on the standard 2D political compass. X-axis (Economic): -10 (Far Left) to 10 (Far Right). Y-axis (Social/Government): 10 (Authoritarian) to -10 (Libertarian). Writing style: use second person ('you') for first-person inputs, third person for inputs about others. Keep each analysis to 1-2 punchy sentences (max 35 words). No jargon — write for a general audience. If the input contains clearly conflicting clusters that cannot be represented by a single point, include a points array (2-4 points). Each point needs x, y, analysis, and a short label (1-4 words). Set top-level x/y to the midpoint and top-level analysis to a one-sentence summary of the tension. Always provide an archetype: a punchy 2-3 word political identity name in 'The X' format (e.g., 'The Futurist', 'The Traditionalist', 'The Anarchist Idealist', 'The Pragmatic Centrist', 'The Reformer', 'The Localist'). Make it specific to the placement, distinctive, and POSITIVE or NEUTRAL in tone — it should feel like an identity the user would be happy to claim. STRICTLY FORBIDDEN words: contradictory, confused, conflicted, inconsistent, incoherent, naive, hypocritical, paradoxical, muddled, scattered, indecisive. For mixed or multi-cluster placements, use neutral framings like 'The Pluralist', 'The Synthesist', 'The Bridge-Builder', 'The Eclectic', 'The Independent' — never imply the user's views are flawed or self-contradicting. If there is not enough political-belief data, set hasSufficientData to false with a brief insufficiencyReason. Always set confidence (1–5) based on how precisely the input pins down political coordinates: 5 = multiple specific policies stated clearly; 4 = several clear stances; 3 = general leanings with some specifics; 2 = vague or limited input; 1 = barely enough to plot. Set confidenceReason to one plain-English sentence explaining the score (e.g. 'You mentioned several specific policies, so your placement is fairly precise.'). Follow the JSON schema exactly.",
+  systemInstructionText: "You are an objective political science model. Assess political beliefs and place them on the standard 2D political compass. X-axis (Economic): -10 (Far Left) to 10 (Far Right). Y-axis (Social/Government): 10 (Authoritarian) to -10 (Libertarian). Writing style: use second person ('you') for first-person inputs, third person for inputs about others. Keep each analysis to 1-2 punchy sentences (max 35 words). No jargon — write for a general audience. If the input contains clearly conflicting clusters that cannot be represented by a single point, include a points array (2-4 points). Each point needs x, y, analysis, and a short label (1-4 words). Set top-level x/y to the midpoint and top-level analysis to a one-sentence summary of the tension. Always provide an archetype: a punchy 2-3 word political identity name in 'The X' format (e.g., 'The Futurist', 'The Traditionalist', 'The Anarchist Idealist', 'The Pragmatic Centrist', 'The Reformer', 'The Localist'). Make it specific to the placement, distinctive, and POSITIVE or NEUTRAL in tone — it should feel like an identity the user would be happy to claim. STRICTLY FORBIDDEN words: contradictory, confused, conflicted, inconsistent, incoherent, naive, hypocritical, paradoxical, muddled, scattered, indecisive. For mixed or multi-cluster placements, use neutral framings like 'The Pluralist', 'The Synthesist', 'The Bridge-Builder', 'The Eclectic', 'The Independent' — never imply the user's views are flawed or self-contradicting. The archetype string must be plain ASCII letters and spaces only — no quotes, em-dashes, accents, emojis, slashes, parentheses, or other punctuation (a single hyphen is allowed, e.g. 'The Bridge-Builder'). Keep it URL-safe. If there is not enough political-belief data, set hasSufficientData to false with a brief insufficiencyReason. Always set confidence (1–5) based on how precisely the input pins down political coordinates: 5 = multiple specific policies stated clearly; 4 = several clear stances; 3 = general leanings with some specifics; 2 = vague or limited input; 1 = barely enough to plot. Set confidenceReason to one plain-English sentence explaining the score (e.g. 'You mentioned several specific policies, so your placement is fairly precise.'). Follow the JSON schema exactly.",
   responseSchema: {
     type: "OBJECT",
     properties: {
@@ -593,6 +593,48 @@ const calcPartyMatch = (x, y) => {
 
 const PARTY_COLORS = { Democrat: '#2563eb', Republican: '#dc2626', Libertarian: '#d97706', Green: '#16a34a' };
 
+const ComparisonDiffCard = ({ participants }) => {
+  if (!Array.isArray(participants) || participants.length < 2) return null;
+  const primary = participants.find(p => p.role === 'primary') || participants[0];
+  const friends = participants.filter(p => p !== primary);
+  const fmt = (n) => (Math.round(n * 10) / 10).toFixed(1);
+  const econLabel = (delta) => {
+    if (Math.abs(delta) < 0.5) return 'aligned';
+    return delta > 0 ? `${fmt(delta)} more right` : `${fmt(-delta)} more left`;
+  };
+  const socialLabel = (delta) => {
+    if (Math.abs(delta) < 0.5) return 'aligned';
+    return delta > 0 ? `${fmt(delta)} more authoritarian` : `${fmt(-delta)} more libertarian`;
+  };
+  return (
+    <div className="comparison-diff-card">
+      <div className="comparison-diff-head">
+        <h3>Comparison</h3>
+        <span className="comparison-diff-count">{participants.length} of 6</span>
+      </div>
+      <div className="comparison-diff-row">
+        <span className="comparison-diff-dot primary" />
+        <strong>{primary.archetype || 'Primary'}</strong>
+        <span className="comparison-diff-coords">{fmt(primary.x)} / {fmt(primary.y)}</span>
+      </div>
+      {friends.map((p, idx) => {
+        const dx = p.x - primary.x;
+        const dy = p.y - primary.y;
+        return (
+          <div className="comparison-diff-row" key={`friend-${idx}`}>
+            <span className="comparison-diff-dot friend" />
+            <strong>{p.archetype || `Friend ${idx + 1}`}</strong>
+            <span className="comparison-diff-coords">{fmt(p.x)} / {fmt(p.y)}</span>
+            <span className="comparison-diff-delta">
+              {econLabel(dx)} · {socialLabel(dy)}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 const AxisBreakdownPanel = ({ x, y }) => {
   const matches = calcPartyMatch(x, y);
   const econPct = Math.round(((x + 10) / 20) * 100);
@@ -779,20 +821,36 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
       const pointX = ((point.x + 10) / 20) * width;
       const pointY = ((10 - point.y) / 20) * height;
       const isHoveredUser = hoveredUserPoint?.id === point.id;
-      const haloRadius = isHoveredUser ? 14 : (index === 0 ? 12 : 9);
-      const coreRadius = isHoveredUser ? 8 : (index === 0 ? 6 : 5);
-      const haloOpacity = isHoveredUser ? 0.5 : (index === 0 ? 0.3 : 0.22);
+      // In comparison mode, every user gets the same point size — only color
+      // distinguishes primary vs friend. Outside of comparison mode, the
+      // first point is the user and gets a slightly larger weight.
+      const isFriend = point.role === 'friend';
+      const isComparison = !!point.role;
+      const haloRadius = isHoveredUser ? 14 : (isComparison ? 11 : (index === 0 ? 12 : 9));
+      const coreRadius = isHoveredUser ? 8 : (isComparison ? 6 : (index === 0 ? 6 : 5));
+      const haloOpacity = isHoveredUser ? 0.5 : (index === 0 && !isFriend ? 0.3 : 0.22);
+
+      // Primary = orange, friend = white. Halo color matches.
+      const coreColor = isFriend
+        ? (isHoveredUser ? '#f1f5f9' : '#ffffff')
+        : (isHoveredUser ? '#ea580c' : '#f97316');
+      const haloColor = isFriend
+        ? `rgba(255, 255, 255, ${haloOpacity})`
+        : `rgba(249, 115, 22, ${haloOpacity})`;
+      const strokeColor = isFriend
+        ? (isDarkMode ? '#0f172a' : '#1e293b')
+        : '#fff';
 
       ctx.beginPath();
       ctx.arc(pointX, pointY, haloRadius, 0, 2 * Math.PI);
-      ctx.fillStyle = `rgba(249, 115, 22, ${haloOpacity})`;
+      ctx.fillStyle = haloColor;
       ctx.fill();
 
       ctx.beginPath();
       ctx.arc(pointX, pointY, coreRadius, 0, 2 * Math.PI);
-      ctx.fillStyle = isHoveredUser ? '#ea580c' : '#f97316';
+      ctx.fillStyle = coreColor;
       ctx.fill();
-      ctx.strokeStyle = '#fff';
+      ctx.strokeStyle = strokeColor;
       ctx.lineWidth = 2;
       ctx.stroke();
     });
@@ -1009,14 +1067,37 @@ export default function App() {
   const [shareModalSource, setShareModalSource] = useState(null);
   const [currentShareId, setCurrentShareId] = useState(null);
   const [isIncomingShare, setIsIncomingShare] = useState(false);
+  // Accepts either "{id}" or "{id}-{archetype-slug}". The id is the prefix
+  // before the first hyphen.
+  const extractIdFromSlug = (raw) => {
+    if (!raw) return null;
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    const head = trimmed.split('-')[0];
+    return /^[a-zA-Z0-9]{4,16}$/.test(head) ? head : null;
+  };
   const [activeShareId] = useState(() => {
     if (typeof window === 'undefined') return null;
     const params = new URLSearchParams(window.location.search);
     const queryId = params.get('share');
-    if (queryId && /^[a-zA-Z0-9_-]{4,32}$/.test(queryId)) return queryId;
-    const pathMatch = window.location.pathname.match(/^\/share\/([a-zA-Z0-9_-]{4,32})\/?$/);
-    return pathMatch ? pathMatch[1] : null;
+    if (queryId) {
+      const id = extractIdFromSlug(queryId);
+      if (id) return id;
+    }
+    const pathMatch = window.location.pathname.match(/^\/share\/([a-zA-Z0-9_-]{4,80})\/?$/);
+    return pathMatch ? extractIdFromSlug(pathMatch[1]) : null;
   });
+  // setActiveComparisonId is reserved for future client-side navigation between
+  // comparisons without a full reload; today the CTA does window.location.href.
+  // eslint-disable-next-line no-unused-vars
+  const [activeComparisonId, setActiveComparisonId] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const pathMatch = window.location.pathname.match(/^\/compare\/([a-zA-Z0-9_-]{4,80})\/?$/);
+    return pathMatch ? extractIdFromSlug(pathMatch[1]) : null;
+  });
+  const [comparison, setComparison] = useState(null);
+  const [comparisonViewer, setComparisonViewer] = useState(null);
+  const [isJoiningComparison, setIsJoiningComparison] = useState(false);
   const submitRequestRef = useRef(0);
   const debugHoldTimerRef = useRef(null);
   const ignoreNextDebugClickRef = useRef(false);
@@ -1080,7 +1161,8 @@ export default function App() {
         });
         setCurrentShareId(activeShareId);
         setIsIncomingShare(true);
-        window.history.replaceState({}, '', `/share/${activeShareId}`);
+        const slugTail = share.archetype_slug ? `${activeShareId}-${share.archetype_slug}` : activeShareId;
+        window.history.replaceState({}, '', `/share/${slugTail}`);
       } catch {
         // silently fail — show empty app
       }
@@ -1089,9 +1171,118 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Load incoming comparison: hydrate the result with the primary user's data
+  // so the canvas shows their point + any existing friends, then prompt the
+  // viewer to add their own point.
+  useEffect(() => {
+    if (!activeComparisonId) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const clientId = getOrCreateStableClientId();
+        const res = await fetch(`${API_BASE}/api/comparisons/${encodeURIComponent(activeComparisonId)}`, {
+          headers: { 'X-Client-Id': clientId },
+        });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const comp = data?.comparison;
+        if (!comp || cancelled) return;
+        const primary = (comp.participants || []).find(p => p.role === 'primary') || comp.participants?.[0];
+        if (!primary) return;
+        // Build the resultPoints array from all participants. The first point
+        // is the primary user (orange); subsequent participants are friends
+        // (white). Each point carries a `role` and `participantIndex` so the
+        // canvas knows how to color it.
+        const points = (comp.participants || []).map((p, idx) => ({
+          id: `participant-${idx}`,
+          label: p.archetype || (idx === 0 ? 'Primary' : `Friend ${idx}`),
+          x: p.x, y: p.y,
+          analysis: p.analysis || '',
+          role: p.role,
+          participantIndex: idx,
+        }));
+        setResult({
+          x: primary.x,
+          y: primary.y,
+          archetype: primary.archetype || '',
+          title: primary.archetype || 'Comparison',
+          analysis: primary.analysis || '',
+          points,
+          hasSufficientData: true,
+          isPoliticalInput: true,
+          insufficiencyReason: '',
+          fromComparison: true,
+        });
+        setComparison(comp);
+        setComparisonViewer(data?.viewer || null);
+        setIsIncomingShare(true);
+        const slugTail = comp.archetype_slug ? `${comp.id}-${comp.archetype_slug}` : comp.id;
+        window.history.replaceState({}, '', `/compare/${slugTail}`);
+      } catch {
+        // silent
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // If we're inside a comparison and the friend just produced a fresh Gemini
+  // result, post it to the comparison instead of creating a brand-new share.
+  useEffect(() => {
+    if (!activeComparisonId || !result || !result.fromGemini || result.fromComparison) return;
+    let cancelled = false;
+    const join = async () => {
+      try {
+        setIsJoiningComparison(true);
+        const clientId = getOrCreateStableClientId();
+        const pts = normalizePlottedPoints(result);
+        const groupedPoints = pts.length > 1 ? pts.map((p, i) => ({
+          id: p.id || `cluster-${i + 1}`,
+          label: p.label || `Point ${i + 1}`,
+          x: p.x, y: p.y, analysis: p.analysis || '',
+        })) : null;
+        const res = await fetch(`${API_BASE}/api/comparisons/${encodeURIComponent(activeComparisonId)}/join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Client-Id': clientId },
+          body: JSON.stringify({ participant: {
+            x: result.x, y: result.y,
+            archetype: result.archetype || '',
+            analysis: result.analysis || '',
+            groupedPoints,
+          } }),
+        });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const comp = data?.comparison;
+        if (!comp || cancelled) return;
+        // Hydrate result with all participants so the canvas re-renders
+        // with everyone plotted.
+        const allPoints = (comp.participants || []).map((p, idx) => ({
+          id: `participant-${idx}`,
+          label: p.archetype || (idx === 0 ? 'Primary' : `Friend ${idx}`),
+          x: p.x, y: p.y,
+          analysis: p.analysis || '',
+          role: p.role,
+          participantIndex: idx,
+        }));
+        setResult(prev => prev ? { ...prev, points: allPoints, fromComparison: true } : prev);
+        setComparison(comp);
+      } catch {
+        // silent
+      } finally {
+        if (!cancelled) setIsJoiningComparison(false);
+      }
+    };
+    join();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result?.fromGemini, result?.x, result?.y]);
+
   // Auto-create a share after every real result and update the URL
   useEffect(() => {
     if (!result || result.fromShare || !result.fromGemini) return;
+    if (activeComparisonId) return; // comparison flow handles its own URL
     let cancelled = false;
     const autoShare = async () => {
       try {
@@ -1117,11 +1308,13 @@ export default function App() {
           }}),
         });
         if (!res.ok || cancelled) return;
-        const { id } = await res.json();
+        const data = await res.json();
+        const id = data?.id;
+        const slug = data?.slug || id;
         if (id && !cancelled) {
           setCurrentShareId(id);
           setIsIncomingShare(false);
-          window.history.replaceState({}, '', `/share/${id}`);
+          window.history.replaceState({}, '', `/share/${slug}`);
         }
       } catch {
         // silently fail — share URL stays blank, manual share still works
@@ -1733,6 +1926,46 @@ export default function App() {
     }
   };
 
+  // Friend clicked "Compare your point" while viewing an incoming share.
+  // Promote the share into a comparison and reload at /compare/{slug}, where
+  // the comparison loader hydrates the canvas with the primary point.
+  const handleStartComparison = async () => {
+    if (!currentShareId) return;
+    try {
+      const clientId = getOrCreateStableClientId();
+      const res = await fetch(`${API_BASE}/api/comparisons`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Client-Id': clientId },
+        body: JSON.stringify({ primary_share_id: currentShareId }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const slug = data?.slug || data?.id;
+      if (slug) window.location.href = `/compare/${slug}`;
+    } catch {
+      // silent
+    }
+  };
+
+  // Friend clicked "Share with another friend" while viewing a comparison.
+  // The current /compare/{slug} URL is already shareable; this just opens the
+  // share modal so they can copy/save/etc.
+  const handleShareComparison = () => {
+    if (!comparison) return;
+    setShareModalSource({
+      x: result?.x || 0,
+      y: result?.y || 0,
+      title: result?.title || '',
+      archetype: result?.archetype || '',
+      analysis: result?.analysis || '',
+      points: result?.points || [],
+      // Tell ShareModal to skip auto-creating a /share record and use this
+      // pre-existing comparison link instead.
+      existingComparisonUrl: `${window.location.origin}/compare/${comparison.archetype_slug ? `${comparison.id}-${comparison.archetype_slug}` : comparison.id}`,
+    });
+    setShareModalOpen(true);
+  };
+
   const handleShareCurrent = () => {
     if (!result) return;
     const groupedPoints = resultPoints.length > 0
@@ -1845,9 +2078,30 @@ export default function App() {
   return (
     <div className={`app-shell ${isDarkMode ? 'dark' : ''} ${getOverlayThemeClass()}`}>
       {isDebugPoint && <div className="debug-badge">Debug mode</div>}
-      {isIncomingShare && result && (
+      {isIncomingShare && result && !activeComparisonId && (
         <div className="incoming-share-banner">
-          Viewing a shared result — enter your own beliefs below to compare
+          <span>Viewing a shared result — share this link with friends so they can plot their points alongside yours.</span>
+          <button
+            type="button"
+            className="incoming-share-cta"
+            onClick={handleStartComparison}
+            title="Plot your point on the same compass"
+          >
+            Compare your point
+          </button>
+        </div>
+      )}
+      {activeComparisonId && comparison && (
+        <div className="incoming-share-banner">
+          {comparisonViewer?.already_in_comparison ? (
+            <span>You're already in this comparison. Use the refinement quiz to adjust your placement — you can't retake from this device.</span>
+          ) : isJoiningComparison ? (
+            <span>Adding your point to the comparison…</span>
+          ) : comparison.participants?.length >= (comparison.max_participants || 6) ? (
+            <span>This comparison is full ({comparison.max_participants || 6} people).</span>
+          ) : (
+            <span>Comparing {comparison.participants?.length || 0} people · enter your beliefs below to add your point.</span>
+          )}
         </div>
       )}
       {showBypassToast && <div className="bypass-toast">API bypass enabled</div>}
@@ -2121,8 +2375,8 @@ export default function App() {
               <button
                 type="button"
                 className="share-trigger-btn"
-                onClick={handleShareCurrent}
-                title="Share this result"
+                onClick={comparison ? handleShareComparison : handleShareCurrent}
+                title={comparison ? 'Share this comparison' : 'Share this result'}
               >
                 <Share2 size={16} />
                 Share
@@ -2131,6 +2385,9 @@ export default function App() {
 
             <div className="compass-area">
               <AxisBreakdownPanel x={result.x} y={result.y} />
+              {comparison && Array.isArray(comparison.participants) && comparison.participants.length >= 2 && (
+                <ComparisonDiffCard participants={comparison.participants} />
+              )}
               <CompassPlot
                 userPoints={resultPoints}
                 isDarkMode={isDarkMode}

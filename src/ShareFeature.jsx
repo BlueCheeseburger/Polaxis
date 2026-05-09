@@ -297,6 +297,7 @@ export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode 
   const [copied, setCopied] = useState(false);
   const requestedRef = useRef(false);
   const existingShareId = result?.existingShareId || null;
+  const existingComparisonUrl = result?.existingComparisonUrl || null;
 
   const x = typeof result?.x === 'number' ? result.x : 0;
   const y = typeof result?.y === 'number' ? result.y : 0;
@@ -307,9 +308,11 @@ export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode 
   ), [points, archetype, x, y]);
 
   const appUrl = (typeof window !== 'undefined' && window.location?.origin) ? window.location.origin.replace(/^https?:\/\//, '') : 'political-compass';
-  const shareLink = shareId && typeof window !== 'undefined'
-    ? `${window.location.origin}/share/${encodeURIComponent(shareId)}`
-    : '';
+  const shareLink = existingComparisonUrl
+    ? existingComparisonUrl
+    : (shareId && typeof window !== 'undefined'
+        ? `${window.location.origin}/share/${encodeURIComponent(shareId)}`
+        : '');
 
   // Reset state on open/close; pre-populate if an existing share ID is available
   useEffect(() => {
@@ -373,12 +376,14 @@ export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode 
     }
   }, [apiBase, buildSharePayload]);
 
-  // Auto-create share when modal opens on link tab
+  // Auto-create share when modal opens on link tab — but skip if we were
+  // given a pre-existing comparison URL.
   useEffect(() => {
+    if (existingComparisonUrl) return;
     if (open && activeTab === 'link' && !shareId && !creating && !shareError) {
       requestShare();
     }
-  }, [open, activeTab, shareId, creating, shareError, requestShare]);
+  }, [open, activeTab, shareId, creating, shareError, requestShare, existingComparisonUrl]);
 
   // Render preview canvas — re-run when tab switches to 'image'
   useEffect(() => {

@@ -1,5 +1,6 @@
 {
   "rewrites": [
-    { "source": "/share/:shareId", "destination": "/api/share-og?id=:shareId" }
+    { "source": "/share/:shareId", "destination": "/api/share-og?id=:shareId" },
+    { "source": "/compare/:comparisonId", "destination": "/index.html" }
   ]
 }
