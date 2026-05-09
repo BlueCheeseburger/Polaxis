@@ -599,7 +599,32 @@ const AxisBreakdownPanel = ({ x, y }) => {
   const socialPct = Math.round(((y + 10) / 20) * 100);
   return (
     <div className="axis-breakdown-panel">
-      <h3>Alignment</h3>
+      <div className="alignment-header">
+        <h3>Alignment</h3>
+        <div className="info-trigger alignment-info-trigger">
+          <button type="button" className="info-icon-btn" title="How alignment is calculated">ⓘ</button>
+          <div className="info-panel info-panel-left">
+            <div className="info-panel-section">
+              <p className="info-panel-label">HOW PARTY AFFINITY WORKS</p>
+              <p className="info-panel-body">
+                Your compass position is compared to each party's approximate center. The closer you are, the higher the percentage — it's a relative score, so all four always add up to 100%.
+              </p>
+            </div>
+            <div className="info-panel-section">
+              <p className="info-panel-label">PARTY CENTERS USED</p>
+              <p className="info-panel-body">
+                Democrat (center-left, mild auth) · Republican (right, moderate auth) · Libertarian (right, libertarian) · Green (left, libertarian)
+              </p>
+            </div>
+            <div className="info-panel-section">
+              <p className="info-panel-label">NOTE</p>
+              <p className="info-panel-body info-panel-muted">
+                These are simplified positions. Real parties have internal factions — this is a rough compass estimate, not a party endorsement.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
       {matches.map(({ name, pct }) => (
         <div key={name} className="party-match-row">
           <span className="party-match-name">{name}</span>
@@ -929,6 +954,15 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
 };
 
 export default function App() {
+  const [showLanding, setShowLanding] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    // Skip landing on share links
+    if (/^\/share\//.test(window.location.pathname)) return false;
+    // Skip if already dismissed this session
+    if (sessionStorage.getItem('landing_dismissed') === '1') return false;
+    return true;
+  });
+
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -1745,6 +1779,68 @@ export default function App() {
     setShareModalOpen(true);
   };
 
+
+  if (showLanding) {
+    return (
+      <div className={`app-shell landing-shell ${isDarkMode ? 'dark' : ''}`}>
+        <button
+          onClick={() => setIsDarkMode(!isDarkMode)}
+          className="theme-toggle landing-theme-toggle"
+          aria-label="Toggle theme"
+        >
+          {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
+        <div className="landing-page">
+          <div className="landing-hero">
+            <div className="landing-icon-wrap">
+              <div className="hero-icon">
+                <Compass size={36} />
+              </div>
+            </div>
+            <h1 className="landing-title">Where Do Your Beliefs<br />Actually Land?</h1>
+            <p className="landing-subtitle">
+              Find your position on a political compass using AI analysis or a structured quiz. No labels. No judgment.
+            </p>
+            <div className="landing-ctas">
+              <button
+                className="landing-cta-primary"
+                onClick={() => {
+                  sessionStorage.setItem('landing_dismissed', '1');
+                  setShowLanding(false);
+                }}
+              >
+                Get Started
+              </button>
+            </div>
+          </div>
+          <div className="landing-features">
+            <div className="landing-feature">
+              <span className="landing-feature-icon"><FileText size={20} /></span>
+              <div>
+                <strong>Text Analysis</strong>
+                <p>Describe your views in plain language — Gemini maps them to a position.</p>
+              </div>
+            </div>
+            <div className="landing-feature">
+              <span className="landing-feature-icon"><CheckSquare size={20} /></span>
+              <div>
+                <strong>Quiz Mode</strong>
+                <p>Answer 20 questions for an instant placement with AI refinement.</p>
+              </div>
+            </div>
+            <div className="landing-feature">
+              <span className="landing-feature-icon"><Share2 size={20} /></span>
+              <div>
+                <strong>Share Your Result</strong>
+                <p>Share your compass placement as a link or image — compare with friends.</p>
+              </div>
+            </div>
+          </div>
+          <p className="landing-disclaimer">Built on Google Gemini · Results are simplified political estimates, not endorsements</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`app-shell ${isDarkMode ? 'dark' : ''} ${getOverlayThemeClass()}`}>
