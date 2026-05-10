@@ -155,7 +155,7 @@ const deleteSavedPointFromDb = async (clientId, pointId) => {
 const SHARE_ID_ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789";
 const generateShareId = () => {
   let id = "";
-  for (let i = 0; i < 10; i += 1) {
+  for (let i = 0; i < 8; i += 1) {
     id += SHARE_ID_ALPHABET[Math.floor(Math.random() * SHARE_ID_ALPHABET.length)];
   }
   return id;
@@ -409,7 +409,7 @@ app.get("/api/shares/:shareId", async (req, res) => {
   const raw = typeof req.params.shareId === "string" ? req.params.shareId.trim() : "";
   // Accept "{id}" or "{id}-{archetype-slug}"; the prefix before the first dash is always the id.
   const shareId = raw.includes("-") ? raw.split("-")[0] : raw;
-  if (!shareId || shareId.length > 32) return res.status(400).json({ error: "Invalid share id" });
+  if (!shareId || shareId.length > 80) return res.status(400).json({ error: "Invalid share id" });
 
   const cached = sharesById.get(shareId);
   if (cached) {
@@ -438,8 +438,10 @@ app.get("/api/shares/:shareId", async (req, res) => {
 app.post("/api/comparisons", async (req, res) => {
   const clientId = getClientIdFromRequest(req);
   if (!clientId) return res.status(400).json({ error: "Missing X-Client-Id header" });
-  const primaryShareId = typeof req.body?.primary_share_id === "string" ? req.body.primary_share_id.trim() : "";
-  if (!primaryShareId) return res.status(400).json({ error: "Missing primary_share_id" });
+  const rawPrimaryShareId = typeof req.body?.primary_share_id === "string" ? req.body.primary_share_id.trim() : "";
+  if (!rawPrimaryShareId) return res.status(400).json({ error: "Missing primary_share_id" });
+  // Accept "{id}" or "{id}-{archetype-slug}"; the prefix before the first dash is always the bare id.
+  const primaryShareId = rawPrimaryShareId.includes("-") ? rawPrimaryShareId.split("-")[0] : rawPrimaryShareId;
 
   // Look up the underlying share to seed the primary participant.
   let share = sharesById.get(primaryShareId) || await fetchShareFromDb(primaryShareId);

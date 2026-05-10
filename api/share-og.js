@@ -58,15 +58,16 @@ a{color:#fb923c}
 
 export default async function handler(req, res) {
   const rawId = (req.query?.id || '').toString().trim();
-  // Accept "{id}" or "{id}-{archetype-slug}" — the id is the prefix before
-  // the first hyphen.
-  const shareId = rawId.includes('-') ? rawId.split('-')[0] : rawId;
-  if (!/^[a-zA-Z0-9_-]{4,32}$/.test(shareId)) {
+  // Full pretty ID format: "{8-char-random}-{archetype-slug}"
+  // We validate the full string but look up only by the 8-char random prefix.
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{3,79}$/.test(rawId)) {
     res.statusCode = 400;
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.end('Invalid share id');
     return;
   }
+  // Extract the lookup key: everything up to the first hyphen (the random prefix)
+  const lookupId = rawId.split('-')[0];
 
   const baseUrl = PUBLIC_BASE_URL || `https://${req.headers['x-forwarded-host'] || req.headers.host || ''}`;
 
@@ -74,10 +75,12 @@ export default async function handler(req, res) {
   if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
     try {
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      // Look up by prefix match so both old plain IDs and new pretty IDs work
       const { data, error } = await supabase
         .from('shares')
-        .select('archetype, analysis, x, y')
-        .eq('id', shareId)
+        .select('id, archetype, analysis, x, y')
+        .like('id', `${lookupId}%`)
+        .limit(1)
         .maybeSingle();
       if (!error && data) share = data;
     } catch (e) {
@@ -85,10 +88,12 @@ export default async function handler(req, res) {
     }
   }
 
+  // Use the actual stored ID for the redirect so the URL stays canonical
+  const canonicalId = share?.id || rawId;
   const html = buildHtml({
     archetype: share?.archetype || 'The Political Compass',
     analysis: share?.analysis || '',
-    shareId,
+    shareId: canonicalId,
     baseUrl,
   });
 

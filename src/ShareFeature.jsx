@@ -367,7 +367,7 @@ export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode 
       }
       const data = await response.json();
       if (!data?.id) throw new Error('Server returned no share id');
-      setShareId(data.id);
+      setShareId(data.slug || data.id);
     } catch (err) {
       setShareError(err.message || 'Failed to create share link.');
       requestedRef.current = false;

@@ -1161,9 +1161,9 @@ export default function App() {
           insufficiencyReason: '',
           fromShare: true,
         });
-        setCurrentShareId(activeShareId);
-        setIsIncomingShare(true);
         const slugTail = share.archetype_slug ? `${activeShareId}-${share.archetype_slug}` : activeShareId;
+        setCurrentShareId(slugTail);
+        setIsIncomingShare(true);
         window.history.replaceState({}, '', `/share/${slugTail}`);
       } catch {
         // silently fail — show empty app
@@ -1314,7 +1314,7 @@ export default function App() {
         const id = data?.id;
         const slug = data?.slug || id;
         if (id && !cancelled) {
-          setCurrentShareId(id);
+          setCurrentShareId(slug);
           setIsIncomingShare(false);
           window.history.replaceState({}, '', `/share/${slug}`);
         }
