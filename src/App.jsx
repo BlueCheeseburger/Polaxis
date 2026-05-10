@@ -237,16 +237,21 @@ const normalizePlottedPoints = (evalResult) => {
         point &&
         typeof point.x === "number" &&
         typeof point.y === "number" &&
-        typeof point.analysis === "string" &&
         typeof point.label === "string"
       ))
       .slice(0, MAX_MULTI_POINTS)
       .map((point, index) => ({
-        id: `cluster-${index + 1}`,
+        // Preserve the original id if present (e.g. "participant-0") so that
+        // hover-tracking and comparison role-coloring work correctly.
+        id: point.id || `cluster-${index + 1}`,
         label: point.label.trim() || `Point ${index + 1}`,
         x: clampCompassValue(point.x),
         y: clampCompassValue(point.y),
-        analysis: point.analysis.trim(),
+        analysis: typeof point.analysis === "string" ? point.analysis.trim() : "",
+        // Pass through comparison-specific fields so the canvas can color
+        // primary vs friend points differently.
+        ...(point.role ? { role: point.role } : {}),
+        ...(point.participantIndex !== undefined ? { participantIndex: point.participantIndex } : {}),
       }))
     : [];
 
@@ -2209,7 +2214,9 @@ export default function App() {
           </div>
           <h1>The Political Compass</h1>
           <p className="hero-subtitle">
-            Analyze your political alignment through raw text or a structured quiz.
+            {(activeComparisonId && !hasAddedComparisonPoint)
+              ? `Add your point below to compare with ${comparison?.participants?.[0]?.archetype || 'the primary user'}`
+              : 'Analyze your political alignment through raw text or a structured quiz.'}
           </p>
         </header>
 
@@ -2322,7 +2329,11 @@ export default function App() {
           <section className="result-panel">
             <div className="result-header">
               <h2>
-                Your Political Coordinates
+                {isViewingOnly
+                  ? (result.archetype ? `${result.archetype}'s Compass` : 'Shared Compass')
+                  : hasAddedComparisonPoint
+                    ? 'Comparison Results'
+                    : 'Your Political Coordinates'}
                 <div className="info-trigger">
                   <button
                     type="button"
@@ -2486,7 +2497,8 @@ export default function App() {
               </div>
             )}
 
-            <div className="analysis-card">
+            {/* Hide primary user's analysis from friends who haven't added their own point */}
+            <div className="analysis-card" style={isViewingOnly ? { display: 'none' } : {}}>
               <h3>Analysis</h3>
               {isAnalysisPending ? (
                 <div className="chat-bubble assistant">
@@ -2516,7 +2528,9 @@ export default function App() {
                 const closest = calcClosestPolitician(result.x, result.y);
                 return closest ? (
                   <p className="closest-politician">
-                    You're closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>.
+                    {isViewingOnly
+                      ? <>{result.archetype || 'They'} {`${result.archetype ? 'is' : 'are'}`} closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>.</>
+                      : <>You're closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>.</>}
                   </p>
                 ) : null;
               })()}
