@@ -1100,6 +1100,9 @@ export default function App() {
   const [comparison, setComparison] = useState(null);
   const [comparisonViewer, setComparisonViewer] = useState(null);
   const [isJoiningComparison, setIsJoiningComparison] = useState(false);
+  // True once the friend (or primary in another browser) has successfully
+  // submitted their own result and joined the comparison.
+  const [hasAddedComparisonPoint, setHasAddedComparisonPoint] = useState(false);
   const submitRequestRef = useRef(0);
   const debugHoldTimerRef = useRef(null);
   const ignoreNextDebugClickRef = useRef(false);
@@ -1270,6 +1273,7 @@ export default function App() {
         }));
         setResult(prev => prev ? { ...prev, points: allPoints, fromComparison: true } : prev);
         setComparison(comp);
+        setHasAddedComparisonPoint(true);
       } catch {
         // silent
       } finally {
@@ -1481,6 +1485,11 @@ export default function App() {
 
   const isQuizComplete = Object.keys(quizAnswers).length === QUIZ_QUESTIONS.length;
   const resultPoints = result ? normalizePlottedPoints(result) : [];
+
+  // Friend is viewing someone else's compass and hasn't added their own point yet.
+  // Used to hide action buttons that don't apply in this state.
+  const isViewingOnly = (isIncomingShare && !hasAddedComparisonPoint) ||
+    (activeComparisonId && !hasAddedComparisonPoint);
 
   const handleSubmit = async () => {
     const requestId = Date.now();
@@ -2082,7 +2091,7 @@ export default function App() {
       {isDebugPoint && <div className="debug-badge">Debug mode</div>}
       {isIncomingShare && result && !activeComparisonId && (
         <div className="incoming-share-banner">
-          <span>Someone shared their compass with you</span>
+          <span>{result.archetype ? `${result.archetype} shared their compass with you` : 'Someone shared their compass with you'}</span>
         </div>
       )}
       {activeComparisonId && comparison && isJoiningComparison && (
@@ -2204,7 +2213,9 @@ export default function App() {
           </p>
         </header>
 
-        {!result && !loading && (
+        {/* Show input when there's no result yet, OR when friend is on a
+            comparison page and hasn't submitted their own point yet */}
+        {(!result || (activeComparisonId && !hasAddedComparisonPoint)) && !loading && (
           <section className="panel">
             <div className="mode-switch">
               <button
@@ -2358,15 +2369,17 @@ export default function App() {
                   </div>
                 </div>
               </h2>
-              <button
-                type="button"
-                className="share-trigger-btn"
-                onClick={comparison ? handleShareComparison : handleShareCurrent}
-                title={comparison ? 'Share this comparison' : 'Share this result'}
-              >
-                <Share2 size={16} />
-                {comparison ? 'Share Comparison' : 'Share'}
-              </button>
+              {!isViewingOnly && (
+                <button
+                  type="button"
+                  className="share-trigger-btn"
+                  onClick={comparison ? handleShareComparison : handleShareCurrent}
+                  title={comparison ? 'Share this comparison' : 'Share this result'}
+                >
+                  <Share2 size={16} />
+                  {comparison ? 'Share Comparison' : 'Share'}
+                </button>
+              )}
             </div>
 
             {/* Primary user nudge — shown only on fresh Gemini results (not incoming shares) */}
@@ -2551,7 +2564,7 @@ export default function App() {
                 <p>"{refinementNote}"</p>
               </div>
             )}
-            {!isDebugPoint && !isAnalysisPending && !isRefineMode && (() => {
+            {!isViewingOnly && !isDebugPoint && !isAnalysisPending && !isRefineMode && (() => {
               const totalQuestions = REFINEMENT_CLUSTERS.reduce((sum, c) => sum + c.questions.length, 0);
               // Text mode: normal secondary button, same size as Save Point / Try Again
               if (mode === 'text') {
@@ -2705,27 +2718,31 @@ export default function App() {
               );
             })()}
 
-            <div className="result-actions">
-              <button
-                type="button"
-                onClick={handleSavePoint}
-                disabled={!result}
-                className="secondary-btn"
-              >
-                <BookmarkPlus size={18} />
-                Save Point
-              </button>
-            </div>
+            {!isViewingOnly && (
+              <div className="result-actions">
+                <button
+                  type="button"
+                  onClick={handleSavePoint}
+                  disabled={!result}
+                  className="secondary-btn"
+                >
+                  <BookmarkPlus size={18} />
+                  Save Point
+                </button>
+              </div>
+            )}
 
-            <div className="reset-wrap">
-              <button
-                onClick={reset}
-                className="secondary-btn"
-              >
-                <RotateCcw size={18} />
-                Try Again
-              </button>
-            </div>
+            {!isViewingOnly && (
+              <div className="reset-wrap">
+                <button
+                  onClick={reset}
+                  className="secondary-btn"
+                >
+                  <RotateCcw size={18} />
+                  Try Again
+                </button>
+              </div>
+            )}
           </section>
         )}
       </div>
