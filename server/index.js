@@ -550,18 +550,17 @@ app.post("/api/comparisons/:comparisonId/join", async (req, res) => {
   ));
 
   if (existingIdx >= 0) {
-    // Refinement: same device/IP can only update their own point.
+    // Same device/IP rejoining: replace their result (retaking is allowed).
     const existing = participants[existingIdx];
     participants[existingIdx] = {
       ...existing,
       x: incoming.x,
       y: incoming.y,
       grouped_points: incoming.grouped_points,
-      // Preserve role and original archetype unless this is a refinement
-      // that legitimately produces a new analysis blurb.
+      archetype: incoming.archetype || existing.archetype,
       analysis: incoming.analysis || existing.analysis,
-      joined_at: existing.joined_at, // keep original join time
-      refined_at: new Date().toISOString(),
+      joined_at: existing.joined_at,
+      updated_at: new Date().toISOString(),
     };
   } else {
     if (participants.length >= (comparison.max_participants || MAX_COMPARISON_PARTICIPANTS)) {

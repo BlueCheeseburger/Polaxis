@@ -1014,8 +1014,10 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
 export default function App() {
   const [showLanding, setShowLanding] = useState(() => {
     if (typeof window === 'undefined') return false;
-    // Skip landing on share links
-    if (/^\/share\//.test(window.location.pathname)) return false;
+    // Skip landing on share or comparison links
+    if (/^\/(share|compare)\//.test(window.location.pathname)) return false;
+    // Skip if there's a ?share= query param
+    if (new URLSearchParams(window.location.search).get('share')) return false;
     // Skip if already dismissed this session
     if (sessionStorage.getItem('landing_dismissed') === '1') return false;
     return true;
@@ -2080,28 +2082,12 @@ export default function App() {
       {isDebugPoint && <div className="debug-badge">Debug mode</div>}
       {isIncomingShare && result && !activeComparisonId && (
         <div className="incoming-share-banner">
-          <span>Viewing a shared result — share this link with friends so they can plot their points alongside yours.</span>
-          <button
-            type="button"
-            className="incoming-share-cta"
-            onClick={handleStartComparison}
-            title="Plot your point on the same compass"
-          >
-            Compare your point
-          </button>
+          <span>Someone shared their compass with you</span>
         </div>
       )}
-      {activeComparisonId && comparison && (
+      {activeComparisonId && comparison && isJoiningComparison && (
         <div className="incoming-share-banner">
-          {comparisonViewer?.already_in_comparison ? (
-            <span>You're already in this comparison. Use the refinement quiz to adjust your placement — you can't retake from this device.</span>
-          ) : isJoiningComparison ? (
-            <span>Adding your point to the comparison…</span>
-          ) : comparison.participants?.length >= (comparison.max_participants || 6) ? (
-            <span>This comparison is full ({comparison.max_participants || 6} people).</span>
-          ) : (
-            <span>Comparing {comparison.participants?.length || 0} people · enter your beliefs below to add your point.</span>
-          )}
+          <span>Adding your point to the comparison…</span>
         </div>
       )}
       {showBypassToast && <div className="bypass-toast">API bypass enabled</div>}
@@ -2379,9 +2365,55 @@ export default function App() {
                 title={comparison ? 'Share this comparison' : 'Share this result'}
               >
                 <Share2 size={16} />
-                Share
+                {comparison ? 'Share Comparison' : 'Share'}
               </button>
             </div>
+
+            {/* Primary user nudge — shown only on fresh Gemini results (not incoming shares) */}
+            {result.fromGemini && !result.fromShare && !result.fromComparison && !comparison && (
+              <div className="share-nudge-banner">
+                <span>🔗 Share your link — friends can add their point to compare on the same compass</span>
+              </div>
+            )}
+
+            {/* Incoming share — prominent CTA for friend to plot their point */}
+            {isIncomingShare && !activeComparisonId && (
+              <div className="compare-cta-card">
+                <div className="compare-cta-content">
+                  <div className="compare-cta-dot" aria-hidden="true" />
+                  <div>
+                    <p className="compare-cta-heading">This is {result.archetype || 'their'}'s compass</p>
+                    <p className="compare-cta-sub">See how your political views compare — add your point to the same compass.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="compare-cta-btn"
+                  onClick={handleStartComparison}
+                >
+                  Add My Point →
+                </button>
+              </div>
+            )}
+
+            {/* Comparison context header — shown when viewing/joining a comparison */}
+            {activeComparisonId && comparison && (
+              <div className="compare-cta-card compare-context-card">
+                <div className="compare-cta-content">
+                  <div className="compare-legend">
+                    <span className="legend-dot primary" /> {comparison.participants?.[0]?.archetype || 'Primary'}
+                    {comparison.participants?.slice(1).map((p, i) => (
+                      <span key={i}><span className="legend-dot friend" /> {p.archetype || `Friend ${i + 1}`}</span>
+                    ))}
+                  </div>
+                  <p className="compare-cta-sub">
+                    {(comparison.participants?.length || 1) < (comparison.max_participants || 6)
+                      ? `${comparison.participants?.length || 1} of 6 plotted — enter your beliefs below to add your point`
+                      : `${comparison.participants?.length || 1} of 6 plotted — comparison is full`}
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="compass-area">
               <AxisBreakdownPanel x={result.x} y={result.y} />
