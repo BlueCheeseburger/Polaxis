@@ -868,7 +868,9 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
     const xPos = ((event.clientX - rect.left) / rect.width) * CANVAS_SIZE;
     const yPos = ((event.clientY - rect.top) / rect.height) * CANVAS_SIZE;
 
-    if (userPoints.length > 1) {
+    // Always check user points — previously this was skipped for single-point
+    // results, which made hovering the orange dot do nothing.
+    {
       let nearestUser = null;
       let nearestUserDist = Infinity;
       userPoints.forEach((point) => {
@@ -877,7 +879,9 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
         const dist = Math.hypot(pointX - xPos, pointY - yPos);
         if (dist < nearestUserDist) { nearestUserDist = dist; nearestUser = point; }
       });
-      if (nearestUser && nearestUserDist <= 14) {
+      // Slightly wider hit-zone for a single point (no multi-point ambiguity).
+      const hitThreshold = userPoints.length === 1 ? 18 : 14;
+      if (nearestUser && nearestUserDist <= hitThreshold) {
         setHoveredUserPoint(nearestUser);
         setHoveredUserPosition({ x: xPos, y: yPos });
         setHoveredReference(null);
@@ -928,7 +932,7 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
     const xPos = ((touch.clientX - rect.left) / rect.width) * CANVAS_SIZE;
     const yPos = ((touch.clientY - rect.top) / rect.height) * CANVAS_SIZE;
 
-    if (userPoints.length > 1) {
+    {
       let nearestUser = null;
       let nearestUserDist = Infinity;
       userPoints.forEach((point) => {
@@ -937,7 +941,8 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
         const dist = Math.hypot(pointX - xPos, pointY - yPos);
         if (dist < nearestUserDist) { nearestUserDist = dist; nearestUser = point; }
       });
-      if (nearestUser && nearestUserDist <= 22) {
+      const hitThreshold = userPoints.length === 1 ? 28 : 22;
+      if (nearestUser && nearestUserDist <= hitThreshold) {
         setHoveredUserPoint(nearestUser);
         setHoveredUserPosition({ x: xPos, y: yPos });
         setHoveredReference(null);
@@ -994,7 +999,8 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
             style={getTooltipStyle(hoveredUserPosition.x, hoveredUserPosition.y, CANVAS_SIZE)}
           >
             <div className="person-tooltip-name">{hoveredUserPoint.label}</div>
-            {hoveredUserPoint.analysis && (
+            {/* In comparison mode show archetype name only — no analysis blurb */}
+            {!hoveredUserPoint.role && hoveredUserPoint.analysis && (
               <div className="person-tooltip-text">{hoveredUserPoint.analysis}</div>
             )}
           </div>
