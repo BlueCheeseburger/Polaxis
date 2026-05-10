@@ -236,13 +236,14 @@ const fetchShareFromDb = async (shareId) => {
   try {
     const { data, error } = await supabase
       .from("shares")
-      .select("id, archetype, archetype_slug, title, analysis, x, y, grouped_points, party_match, created_at")
+      .select("id, client_id, archetype, archetype_slug, title, analysis, x, y, grouped_points, party_match, created_at")
       .eq("id", shareId)
       .maybeSingle();
     if (error) { console.error("Supabase fetch share:", error.message); return null; }
     if (!data) return null;
     return {
       id: data.id,
+      client_id: data.client_id || "",
       archetype: data.archetype || "",
       archetype_slug: data.archetype_slug || slugifyArchetype(data.archetype || ""),
       title: data.title || "",
@@ -447,12 +448,16 @@ app.post("/api/comparisons", async (req, res) => {
   let share = sharesById.get(primaryShareId) || await fetchShareFromDb(primaryShareId);
   if (!share) return res.status(404).json({ error: "Primary share not found" });
 
-  const ipHash = sha256(getClientIp(req));
-  const clientIdHash = sha256(clientId);
+  // The primary participant must be tied to the *share owner's* client_id —
+  // NOT the friend who triggered the comparison creation. Using the requester
+  // here would let the friend's later /join call match index 0 and overwrite
+  // the primary's data. ip_hash for primary is left blank for the same reason
+  // (we don't know the original IP, and matching on requester IP is wrong).
+  const primaryClientIdHash = share.client_id ? sha256(share.client_id) : "";
   const primaryParticipant = {
     role: "primary",
-    client_id_hash: clientIdHash,
-    ip_hash: ipHash,
+    client_id_hash: primaryClientIdHash,
+    ip_hash: "",
     archetype: share.archetype || "",
     analysis: share.analysis || "",
     x: clampCompassValue(Number(share.x) || 0),
@@ -497,9 +502,12 @@ app.get("/api/comparisons/:comparisonId", async (req, res) => {
   const ipHash = sha256(getClientIp(req));
   const clientIdHash = clientId ? sha256(clientId) : "";
   const participants = Array.isArray(comparison.participants) ? comparison.participants : [];
+  // Only match against FRIEND slots — primary is locked.
   const myParticipantIndex = participants.findIndex((p) => (
-    (clientIdHash && p.client_id_hash === clientIdHash) ||
-    (ipHash && p.ip_hash === ipHash)
+    p.role === "friend" && (
+      (clientIdHash && p.client_id_hash === clientIdHash) ||
+      (ipHash && p.ip_hash === ipHash)
+    )
   ));
   return res.json({
     comparison: {
@@ -547,8 +555,14 @@ app.post("/api/comparisons/:comparisonId/join", async (req, res) => {
   if (!incoming) return res.status(400).json({ error: "Invalid participant payload" });
 
   const participants = Array.isArray(comparison.participants) ? [...comparison.participants] : [];
+  // Only consider FRIEND slots when matching for replacement — the primary
+  // participant is locked and can never be overwritten by a /join request,
+  // even if the requester happens to share device/IP with the share owner.
   const existingIdx = participants.findIndex((p) => (
-    p.client_id_hash === clientIdHash || p.ip_hash === ipHash
+    p.role === "friend" && (
+      (clientIdHash && p.client_id_hash === clientIdHash) ||
+      (ipHash && p.ip_hash === ipHash)
+    )
   ));
 
   if (existingIdx >= 0) {
