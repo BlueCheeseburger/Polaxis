@@ -368,55 +368,6 @@ const applyAiTitlesToPendingSaves = (existingSavedPoints, sourceBatchId, aiPoint
   });
 };
 
-const generateFollowupQuestion = async (promptText, baseResult, options = {}) => runGeminiJsonRequest({
-  promptText: `Original user input:\n${promptText}\n\nCurrent coordinates: x=${baseResult.x}, y=${baseResult.y}\nCurrent analysis: ${baseResult.analysis}\n\nAsk one short follow-up question that best disambiguates placement. Provide 2 to 4 answer choices. Each choice must be plain, simple, and under 10 words — no full sentences, no clauses. Write choices like a person would actually say them (e.g. "The state should lead", "Leave it to markets", "Depends on the issue").`,
-  systemInstructionText: "You are refining a political compass placement. Ask exactly one short, plain follow-up question. Choices must be brief — under 10 words each, written simply and naturally. No formal phrasing, no full sentences with subordinate clauses. Make them feel like real human answers, not academic statements.",
-  responseSchema: {
-    type: "OBJECT",
-    properties: {
-      question: { type: "STRING", description: "Single follow-up question." },
-      choices: {
-        type: "ARRAY",
-        items: { type: "STRING" },
-        minItems: 2,
-        maxItems: 5
-      }
-    },
-    required: ["question", "choices"]
-  },
-  ...options,
-});
-
-const generateMultiPointFollowup = async (points, options = {}) => runGeminiJsonRequest({
-  promptText: `The user's beliefs produced ${points.length} distinct ideological clusters:\n${
-    points.map((p, i) => `${i + 1}. "${p.label}" (Econ: ${p.x.toFixed(1)}, Social: ${p.y.toFixed(1)}): ${p.analysis}`).join('\n\n')
-  }\n\nGenerate one neutral, thought-provoking question that invites the user to reflect on the tension between these positions.`,
-  systemInstructionText: "You help users understand internal ideological tensions. Generate a single reflective question with 2-3 answer choices that explores why the user holds these seemingly distinct positions. Do not be judgmental.",
-  responseSchema: {
-    type: "OBJECT",
-    properties: {
-      question: { type: "STRING" },
-      choices: { type: "ARRAY", items: { type: "STRING" }, minItems: 2, maxItems: 3 }
-    },
-    required: ["question", "choices"]
-  },
-  ...options,
-});
-
-const refineBeliefsFromFollowup = async ({ promptText, baseResult, question, answer, bypassLimit = false }) => runGeminiJsonRequest({
-  promptText: `Original user input:\n${promptText}\n\nPrevious coordinates: x=${baseResult.x}, y=${baseResult.y}\nPrevious analysis: ${baseResult.analysis}\n\nFollow-up question: ${question}\nUser selected answer: ${answer}\n\nRefine the user's coordinates using the additional answer.`,
-  systemInstructionText: "You refine political compass placement from one additional multiple-choice answer. Return updated coordinates and a short clarification explaining what changed.",
-  responseSchema: {
-    type: "OBJECT",
-    properties: {
-      x: { type: "NUMBER", description: "Refined economic score from -10 to 10" },
-      y: { type: "NUMBER", description: "Refined social score from 10 to -10" },
-      clarification: { type: "STRING", description: "Brief explanation of how the new answer changed placement." }
-    },
-    required: ["x", "y", "clarification"]
-  },
-  bypassLimit,
-});
 
 const QUIZ_QUESTIONS = [
   "The government should own and operate essential industries like energy, water, and rail.",
@@ -1049,12 +1000,6 @@ export default function App() {
   const [sourcePrompt, setSourcePrompt] = useState("");
   const [overlayPreset, setOverlayPreset] = useState('global');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [followupQuestion, setFollowupQuestion] = useState(null);
-  const [followupLoading, setFollowupLoading] = useState(false);
-  const [selectedFollowupChoice, setSelectedFollowupChoice] = useState("");
-  const [isRefining, setIsRefining] = useState(false);
-  const [refinementNote, setRefinementNote] = useState("");
-  const [isMultiPointFollowup, setIsMultiPointFollowup] = useState(false);
   const [isRefineMode, setIsRefineMode] = useState(false);
   const [refineAnswers, setRefineAnswers] = useState({});
   const [refineDelta, setRefineDelta] = useState(null);
@@ -1519,9 +1464,6 @@ export default function App() {
     setError(null);
     setResult(null);
     setIsDebugPoint(false);
-    setFollowupQuestion(null);
-    setSelectedFollowupChoice("");
-    setRefinementNote("");
     setIsAnalysisPending(false);
     setHasGeminiQuizResult(false);
     setIsRefineMode(false);
@@ -1577,7 +1519,6 @@ export default function App() {
         } finally {
           if (submitRequestRef.current === requestId) {
             setIsAnalysisPending(false);
-            setFollowupLoading(false);
           }
         }
         return;
@@ -1593,54 +1534,12 @@ export default function App() {
         const insufficiencyMessage = evalResult.insufficiencyReason?.trim()
           ? evalResult.insufficiencyReason
           : "There is not enough political-belief data to place this reliably.";
-        if (evalResult.isPoliticalInput === false) {
-          setError(insufficiencyMessage);
-        } else {
-          setError(insufficiencyMessage);
-        }
+        setError(insufficiencyMessage);
         return;
       }
 
       const normalizedPoints = normalizePlottedPoints(evalResult);
       setResult({ ...evalResult, points: normalizedPoints, fromGemini: true, sourceBatchId: requestId });
-      if (normalizedPoints.length === 1) {
-        setFollowupLoading(true);
-        try {
-          const followup = await generateFollowupQuestion(promptText, evalResult, {
-            mode,
-            inputLength,
-            bypassLimit: isDebugBypassEnabled
-          });
-          const normalizedChoices = Array.isArray(followup.choices) ? followup.choices.slice(0, 5) : [];
-          if (followup.question && normalizedChoices.length >= 2) {
-            setFollowupQuestion({ question: followup.question, choices: normalizedChoices });
-          }
-        } catch {
-          setFollowupQuestion(null);
-        } finally {
-          setFollowupLoading(false);
-        }
-      } else {
-        setIsMultiPointFollowup(true);
-        setFollowupLoading(true);
-        try {
-          const followup = await generateMultiPointFollowup(normalizedPoints, {
-            mode,
-            inputLength,
-            bypassLimit: isDebugBypassEnabled
-          });
-          const normalizedChoices = Array.isArray(followup.choices) ? followup.choices.slice(0, 3) : [];
-          if (followup.question && normalizedChoices.length >= 2) {
-            setFollowupQuestion({ question: followup.question, choices: normalizedChoices });
-          } else {
-            setFollowupQuestion(null);
-          }
-        } catch {
-          setFollowupQuestion(null);
-        } finally {
-          setFollowupLoading(false);
-        }
-      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -1656,14 +1555,8 @@ export default function App() {
     setOverlayPreset('global');
     setIsFilterOpen(false);
     setSourcePrompt("");
-    setFollowupQuestion(null);
-    setFollowupLoading(false);
-    setSelectedFollowupChoice("");
-    setIsRefining(false);
-    setRefinementNote("");
     setIsAnalysisPending(false);
     setHasGeminiQuizResult(false);
-    setIsMultiPointFollowup(false);
     setIsRefineMode(false);
     setRefineAnswers({});
     setRefineDelta(null);
@@ -1704,9 +1597,6 @@ export default function App() {
       sourceBatchId: `debug-${Date.now()}`,
     });
     setSourcePrompt("Debug mode user profile.");
-    setFollowupQuestion(null);
-    setSelectedFollowupChoice("");
-    setRefinementNote("");
   };
 
   const handleDebugButtonClick = (event) => {
@@ -1743,35 +1633,6 @@ export default function App() {
     debugHoldTimerRef.current = null;
   };
 
-  const handleFollowupChoice = async (choice) => {
-    if (!followupQuestion || !result || !sourcePrompt || isRefining) return;
-    setSelectedFollowupChoice(choice);
-
-    if (isMultiPointFollowup) {
-      setRefinementNote("Thanks for reflecting on this. Holding beliefs across multiple ideological spaces is more common than you'd think — political identity is rarely a clean fit.");
-      return;
-    }
-
-    setIsRefining(true);
-    setError(null);
-    try {
-      const refined = await refineBeliefsFromFollowup({
-        promptText: sourcePrompt,
-        baseResult: result,
-        question: followupQuestion.question,
-        answer: choice,
-        mode,
-        inputLength: typeof sourcePrompt === "string" ? sourcePrompt.length : 0,
-        bypassLimit: isDebugBypassEnabled,
-      });
-      setResult((prev) => ({ ...prev, x: refined.x, y: refined.y }));
-      setRefinementNote(refined.clarification);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsRefining(false);
-    }
-  };
 
   const handleStartRefinement = () => {
     if (!result) return;
@@ -1911,9 +1772,6 @@ export default function App() {
       points: restoredPoints,
       fromGemini: true,
     });
-    setRefinementNote("");
-    setFollowupQuestion(null);
-    setSelectedFollowupChoice("");
     setError(null);
   };
 
@@ -2414,6 +2272,7 @@ export default function App() {
                   )}
                 </div>
               )}
+            </div>
 
             {/* Incoming share — prominent CTA for friend to plot their point */}
             {isIncomingShare && !activeComparisonId && (
@@ -2521,9 +2380,6 @@ export default function App() {
                   Analyzing your quiz results...
                 </div>
               ) : null}
-              {!isAnalysisPending && hasGeminiQuizResult && mode === 'quiz' && (
-                <p>Analysis complete.</p>
-              )}
               {!isDebugPoint && !isAnalysisPending && resultPoints.length > 1 ? (
                 <div className="analysis-multi">
                   <p className="analysis-summary">"{result.analysis}"</p>
@@ -2550,70 +2406,8 @@ export default function App() {
                 ) : null;
               })()}
             </div>
-            <div className="chat-followup">
-              {followupLoading && (
-                <div className="chat-bubble assistant">
-                  <PulsingCrosshairs size={18} className="inline" label="Preparing follow-up" />
-                  Preparing a follow-up question...
-                </div>
-              )}
-              {followupQuestion && (
-                <div className="chat-bubble assistant">
-                  <p>{followupQuestion.question}</p>
-                  <div className="chat-options">
-                    {followupQuestion.choices.map((choice) => (
-                      <button
-                        key={choice}
-                        type="button"
-                        className={`chat-option ${selectedFollowupChoice === choice ? 'selected' : ''}`}
-                        disabled={!!selectedFollowupChoice}
-                        onClick={() => handleFollowupChoice(choice)}
-                      >
-                        {choice}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {selectedFollowupChoice && (
-                <div className="chat-bubble user">
-                  You selected: {selectedFollowupChoice}
-                </div>
-              )}
-              {isRefining && (
-                <div className="chat-bubble assistant">
-                  <PulsingCrosshairs size={18} className="inline" label="Refining placement" />
-                  Refining your placement...
-                </div>
-              )}
-            </div>
-            {refinementNote && (
-              <div className="analysis-card refinement-card">
-                <h3>Refined Analysis</h3>
-                <p>"{refinementNote}"</p>
-              </div>
-            )}
             {!isViewingOnly && !isDebugPoint && !isAnalysisPending && !isRefineMode && (() => {
               const totalQuestions = REFINEMENT_CLUSTERS.reduce((sum, c) => sum + c.questions.length, 0);
-              // Text mode: normal secondary button, same size as Save Point / Try Again
-              if (mode === 'text') {
-                return (
-                  <div className="result-actions">
-                    {refineDelta ? (
-                      <button type="button" onClick={handleStartRefinement} className="secondary-btn">
-                        <SlidersHorizontal size={18} />
-                        Refine again
-                      </button>
-                    ) : (
-                      <button type="button" onClick={handleStartRefinement} className="secondary-btn">
-                        <SlidersHorizontal size={18} />
-                        Refine placement
-                      </button>
-                    )}
-                  </div>
-                );
-              }
-              // Quiz mode: keep the full attention-grabbing button
               return (
                 <div className="refine-prompt">
                   {refineDelta ? (
