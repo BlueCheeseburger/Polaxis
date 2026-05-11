@@ -1078,6 +1078,7 @@ export default function App() {
   const [isHintIdleReady, setIsHintIdleReady] = useState(true);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareModalSource, setShareModalSource] = useState(null);
+  const [showShareNudge, setShowShareNudge] = useState(false);
   const [currentShareId, setCurrentShareId] = useState(null);
   const [isIncomingShare, setIsIncomingShare] = useState(false);
   // Accepts either "{id}" or "{id}-{archetype-slug}". The id is the prefix
@@ -1443,6 +1444,15 @@ export default function App() {
 
     return () => window.clearTimeout(cycleTimer);
   }, [mode, textInput, hintIndex, isTextInputFocused, isHintIdleReady]);
+
+  // Show share nudge tooltip briefly after a fresh (non-share, non-comparison) Gemini result
+  useEffect(() => {
+    if (!result?.fromGemini || result?.fromShare || result?.fromComparison || activeComparisonId) return;
+    setShowShareNudge(true);
+    const t = window.setTimeout(() => setShowShareNudge(false), 4500);
+    return () => window.clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result?.fromGemini, result?.fromShare, result?.fromComparison]);
 
   const handleQuizChange = (qIndex, answer) => {
     setQuizAnswers(prev => ({ ...prev, [qIndex]: answer }));
@@ -2387,24 +2397,23 @@ export default function App() {
                 </div>
               </h2>
               {!isViewingOnly && (
-                <button
-                  type="button"
-                  className="share-trigger-btn"
-                  onClick={comparison ? handleShareComparison : handleShareCurrent}
-                  title={comparison ? 'Share this comparison' : 'Share this result'}
-                >
-                  <Share2 size={16} />
-                  {comparison ? 'Share Comparison' : 'Share'}
-                </button>
+                <div className="share-btn-wrap">
+                  <button
+                    type="button"
+                    className="share-trigger-btn"
+                    onClick={comparison ? handleShareComparison : handleShareCurrent}
+                    title={comparison ? 'Share this comparison' : 'Share this result'}
+                  >
+                    <Share2 size={16} />
+                    {comparison ? 'Share Comparison' : 'Share'}
+                  </button>
+                  {showShareNudge && (
+                    <div className="share-nudge-tooltip">
+                      🔗 Share — friends can plot next to you
+                    </div>
+                  )}
+                </div>
               )}
-            </div>
-
-            {/* Primary user nudge — shown only on fresh Gemini results (not incoming shares) */}
-            {result.fromGemini && !result.fromShare && !result.fromComparison && !comparison && (
-              <div className="share-nudge-banner">
-                <span>🔗 Share your link — friends can add their point to compare on the same compass</span>
-              </div>
-            )}
 
             {/* Incoming share — prominent CTA for friend to plot their point */}
             {isIncomingShare && !activeComparisonId && (

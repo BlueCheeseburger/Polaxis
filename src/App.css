@@ -3045,17 +3045,46 @@
 .app-shell.dark .legend-dot.friend { background: #e2e8f0; }
 
 /* Share nudge for primary user's own fresh result */
-.share-nudge-banner {
-  border-radius: 10px;
-  padding: 8px 14px;
-  margin: 0 0 12px 0;
-  background: rgba(99,102,241,0.07);
-  border: 1px solid rgba(99,102,241,0.2);
-  font-size: 0.78rem;
-  color: #4338ca;
+/* Share nudge tooltip anchored to the Share button */
+.share-btn-wrap {
+  position: relative;
+  display: inline-flex;
 }
-.app-shell.dark .share-nudge-banner {
-  background: rgba(99,102,241,0.12);
-  border-color: rgba(99,102,241,0.35);
-  color: #a5b4fc;
+.share-nudge-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: #4338ca;
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 6px 10px;
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 200;
+  animation: nudge-fade-in 0.25s ease, nudge-fade-out 0.4s ease 4.1s forwards;
+}
+.share-nudge-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #4338ca;
+}
+.app-shell.dark .share-nudge-tooltip {
+  background: #6366f1;
+}
+.app-shell.dark .share-nudge-tooltip::after {
+  border-top-color: #6366f1;
+}
+@keyframes nudge-fade-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes nudge-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
