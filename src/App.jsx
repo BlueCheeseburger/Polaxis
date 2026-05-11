@@ -510,9 +510,181 @@ const OVERLAY_PRESETS = {
       { name: "Franklin D. Roosevelt", x: -4.2, y: 2.7, description: "Strong economic intervention and institutional federal expansion." },
     ],
   },
+  ideologies: {
+    label: "Ideologies",
+    points: [
+      // Edges / corners
+      { name: "Hive Mind Collectivism", x: -9, y: 9.3, description: "Total subsumption of the individual into a collective consciousness; absolute conformity." },
+      { name: "IngSocism", x: -0.3, y: 9.5, description: "Orwell's '1984' totalitarianism: oligarchical socialism with perpetual war and thought control." },
+      { name: "Kraterocracy", x: 9.5, y: 9.5, description: "Rule by the strong; legitimacy comes from the ability to seize and hold power." },
+      { name: "Fully Automated Luxury Space Gay Communism", x: -9.5, y: 4.5, description: "Post-scarcity utopian communism enabled by full automation and advanced technology." },
+      { name: "Posadism", x: -9.5, y: 3, description: "Trotskyist sect predicting nuclear war and contact with aliens will bring about socialism." },
+      { name: "Communalism", x: -9.5, y: 0.4, description: "Direct democracy organized through confederated, self-governing free communities." },
+      { name: "Social Darwinism", x: 9.5, y: 0.4, description: "Application of 'survival of the fittest' to society and the economy." },
+      { name: "Bookchin Communalism", x: -9.5, y: -4, description: "Murray Bookchin's libertarian municipalism with strong ecological focus." },
+      { name: "Anarcho-Posadism", x: -9.5, y: -7.5, description: "Anarchist variant predicting societal collapse will bring forth a freer order." },
+      { name: "Soulism", x: -9.5, y: -9.5, description: "Radical post-scarcity transhumanist anarchism with maximal individual self-determination." },
+      { name: "Dark Enlightenment", x: 9.5, y: -5, description: "Neo-reactionary ideology rejecting democracy in favor of corporate-monarchic governance." },
+      { name: "Anarcho-Primitivism", x: -0.6, y: -9.5, description: "Rejection of civilization, agriculture, and industrial society in favor of primitive life." },
+      { name: "Avaritionism", x: 9.5, y: -9.5, description: "Extreme egoist capitalism centered on greed as the prime virtue." },
+
+      // Authoritarian-Left (top-left, red)
+      { name: "Stalinism", x: -7, y: 8, description: "Centralized one-party state socialism under absolute personal authority." },
+      { name: "National Bolshevism", x: -4.5, y: 8.3, description: "Fusion of far-left economics with far-right ethno-nationalism." },
+      { name: "Maoism", x: -3.7, y: 8.5, description: "Marxist-Leninism with peasant-based revolution and continuous cultural revolution." },
+      { name: "Strasserism", x: -2.5, y: 8.5, description: "'Left' wing of Nazism emphasizing anti-capitalist nationalism." },
+      { name: "Juche", x: -1.5, y: 8.5, description: "North Korean self-reliance ideology under absolute leader-worship." },
+      { name: "Eco-Fascism", x: -0.4, y: 8.5, description: "Authoritarian ethno-nationalism justified by environmental scarcity." },
+      { name: "Anti-Revisionism", x: -7.5, y: 7, description: "Marxist-Leninists who reject de-Stalinization as a betrayal of socialism." },
+      { name: "Mugabeism", x: -5, y: 7, description: "Authoritarian post-colonial socialism with ethno-nationalist land reform." },
+      { name: "Xi-ism", x: -3.7, y: 7.3, description: "'Socialism with Chinese characteristics' centralized under Xi Jinping." },
+      { name: "Left Wing Nationalism", x: -2.5, y: 6.5, description: "Socialist economics paired with strong national identity and sovereignty." },
+      { name: "Ba'athism", x: -1.7, y: 7, description: "Pan-Arab socialism with single-party authoritarian rule." },
+      { name: "Monarcho-Communism", x: -1, y: 6.3, description: "Hypothetical fusion of monarchical authority with communist economics." },
+      { name: "Leninism", x: -7, y: 5, description: "Vanguard-party rule transitioning toward socialism via dictatorship of the proletariat." },
+      { name: "Chavism", x: -5, y: 5, description: "Bolivarian socialism with populist redistribution and a strong centralized executive." },
+      { name: "Titoism", x: -3.7, y: 5, description: "Yugoslav socialism with workers' self-management and non-alignment." },
+      { name: "State Capitalism", x: -2.4, y: 5, description: "State ownership and management of capitalist enterprises." },
+      { name: "Futurist", x: -0.7, y: 5, description: "Italian movement glorifying speed, machines, and authoritarian modernity." },
+      { name: "Conservative Socialism", x: -5, y: 4, description: "Socialism that preserves traditional cultural and religious values." },
+      { name: "Dengism", x: -3.7, y: 4, description: "Deng Xiaoping's market reforms within a one-party socialist state." },
+      { name: "Social Gospel", x: -2.7, y: 4, description: "Christian movement applying religious ethics to social-justice reforms." },
+      { name: "Technocracy", x: -1.8, y: 4, description: "Rule by technical experts and engineers rather than elected politicians." },
+      { name: "Kleptocracy (Auth-Left)", x: -0.7, y: 4, description: "Government by self-enriching officials within a leftist authoritarian state." },
+      { name: "Trotskyism", x: -8, y: 3, description: "Marxist tendency favoring permanent international revolution." },
+      { name: "Socialist Transhumanism", x: -6.5, y: 3, description: "Collectivist economics paired with radical human enhancement through technology." },
+      { name: "Ho Chi Minh Thought", x: -4.7, y: 2.5, description: "Vietnamese revolutionary synthesis of nationalism and Marxism-Leninism." },
+      { name: "Castroism", x: -2.7, y: 3, description: "Cuban revolutionary Marxism-Leninism with strong anti-imperialist focus." },
+      { name: "Christian Democracy", x: -0.5, y: 3, description: "Centrist mix of Christian social ethics and welfare-state policy." },
+      { name: "Agrarianism", x: -7, y: 2, description: "Society organized around small-farm rural life and traditional values." },
+      { name: "Unionism", x: -3.7, y: 2, description: "Labor-union centric politics with strong collective bargaining." },
+      { name: "Social Nationalism", x: -2.7, y: 2, description: "Welfare state combined with cultural nationalism." },
+      { name: "Labourism", x: -1.5, y: 1.5, description: "Trade-union democratic socialism within parliamentary politics." },
+      { name: "Orthodox Marxism", x: -8, y: 0.5, description: "Classical Marxist theory adhering strictly to dialectical materialism." },
+      { name: "Collectivism", x: -6.5, y: 0.5, description: "Priority of group ownership and collective decision over the individual." },
+      { name: "Left Populism", x: -5.7, y: 0.5, description: "Mass anti-elite politics oriented around economic redistribution." },
+      { name: "Distributism", x: -4, y: 0.5, description: "Wide distribution of productive property across families and small holders." },
+
+      // Authoritarian-Right (top-right, blue)
+      { name: "Fascism", x: 1.5, y: 8, description: "Ultra-nationalist authoritarian state with corporatist economics and a cult leader." },
+      { name: "Esoteric Fascism", x: 3, y: 8.5, description: "Mystical/occult variant of fascism rooted in spiritual and racial hierarchy." },
+      { name: "Nazism", x: 4, y: 8.5, description: "Race-based fascism with genocidal antisemitism (NSDAP)." },
+      { name: "Neo-Nazism", x: 5.5, y: 8.5, description: "Postwar revival of Nazi ideology, symbols, and racial doctrine." },
+      { name: "Corporate Autocracy", x: 7, y: 8.5, description: "Government by and for major corporations, with weak public accountability." },
+      { name: "Conquestalism", x: 8.3, y: 8.5, description: "Politics organized around perpetual military conquest and expansion." },
+      { name: "Absolute Monarchism", x: 9, y: 8.5, description: "A single hereditary monarch with unchecked, unconstrained power." },
+      { name: "Ghengis Khanism", x: 9.7, y: 8.5, description: "Nomadic-imperial conquest model with absolute warlord rule." },
+      { name: "Neo-Fascism", x: 5.5, y: 7.3, description: "Modern revival of fascist movements with updated rhetoric and branding." },
+      { name: "Authoritarian Capitalism", x: 7, y: 7.3, description: "Market economy paired with a strong central state and limited civil freedoms." },
+      { name: "Imperialism", x: 9, y: 7.3, description: "Extension of national power through colonization and foreign domination." },
+      { name: "Fordism", x: 9.7, y: 7.3, description: "Mass-production capitalism with paternalistic management of workers." },
+      { name: "Vichy Fascism", x: 1.3, y: 6, description: "Collaborationist authoritarian regime modeled after WWII Vichy France." },
+      { name: "Islamist Theocracy", x: 3, y: 6, description: "Government by clerical interpretation of Islamic law (sharia)." },
+      { name: "Aristocracy", x: 7, y: 6, description: "Rule by a hereditary noble class with inherited privilege." },
+      { name: "Colonialism", x: 9, y: 6, description: "Settlement and political control of foreign territory by a metropole." },
+      { name: "Kuomintangism", x: 1.2, y: 4.7, description: "Sun Yat-sen's Three Principles: nationalism, democracy, and people's livelihood." },
+      { name: "Christian Theocracy", x: 3, y: 5, description: "Government by clerical interpretation of Christian doctrine." },
+      { name: "Hindu Theocracy", x: 4.5, y: 5, description: "Government structured around Hindu religious authority and Hindutva." },
+      { name: "Buddhist Theocracy", x: 6, y: 5, description: "Government structured around Buddhist religious authority and monastic order." },
+      { name: "Feudalism", x: 8.5, y: 5, description: "Hierarchy of lords, vassals, and peasants tied to land obligation." },
+      { name: "Confederalism", x: 3, y: 4, description: "Loose union of largely sovereign units with limited central authority." },
+      { name: "Elective Monarchism", x: 5, y: 4, description: "Monarch chosen by an electorate rather than born to the throne." },
+      { name: "Paleo-Conservatism", x: 7, y: 4, description: "Traditionalist American right emphasizing nationalism, restraint, and tradition." },
+      { name: "Pinochetism", x: 9.3, y: 4, description: "Chilean military authoritarianism paired with free-market economics." },
+      { name: "Progressive Conservatism", x: 1.5, y: 3, description: "Conservatism that accepts moderate social and economic reform." },
+      { name: "Eco-Conservatism", x: 3.5, y: 3, description: "Right-wing conservation of nature, traditional landscapes, and rural life." },
+      { name: "Nationalist Conservatism", x: 5.5, y: 3, description: "Conservative emphasis on national identity, sovereignty, and borders." },
+      { name: "Traditionalist Conservatism", x: 8, y: 3, description: "Defense of long-standing customs, religion, and the established social order." },
+      { name: "Senatorialism", x: 1.5, y: 2, description: "Government dominated by an elite legislative chamber of senior figures." },
+      { name: "Constitutional Monarchism", x: 3.5, y: 2, description: "Hereditary monarch operating within a constitutional or parliamentary framework." },
+      { name: "Liberal Conservatism", x: 5.5, y: 2, description: "Free-market economics combined with a culturally conservative outlook." },
+      { name: "Zionism", x: 7, y: 2, description: "Jewish national self-determination centered on the state of Israel." },
+      { name: "Neo-Conservatism", x: 8.5, y: 2, description: "American right-wing emphasizing interventionist foreign policy and democracy promotion." },
+      { name: "Third Way", x: 0.7, y: 0.5, description: "Centrist blend of market economics with social-democratic policy goals." },
+      { name: "National Liberalism", x: 2, y: 0.5, description: "Liberal democracy combined with a nationalist character." },
+      { name: "Liberalism", x: 4, y: 0.5, description: "Constitutional government, individual rights, and a market economy." },
+      { name: "Conservatism", x: 5.5, y: 0.5, description: "Defense of established institutions and traditions; preference for gradual change." },
+      { name: "Fiscal Conservatism", x: 8, y: 0.5, description: "Low taxes, small government, and balanced budgets." },
+
+      // Libertarian-Left (bottom-left, green)
+      { name: "Left Communism", x: -7.7, y: -1.3, description: "Communism opposed to vanguard parties and parliamentary politics." },
+      { name: "Accelerationism", x: -5.7, y: -1, description: "Push existing processes (capitalism, technology) to their limits to provoke change." },
+      { name: "Eco-Transhumanism", x: -3.5, y: -1, description: "Ecological civilization advanced through human enhancement and biotechnology." },
+      { name: "Progressivism", x: -1.5, y: -1, description: "Reformist politics favoring social, economic, and civil-rights improvement." },
+      { name: "Greenism", x: -5.7, y: -2, description: "Politics centered on ecological sustainability and environmental protection." },
+      { name: "Social Democracy", x: -4, y: -2, description: "Mixed economy with a strong welfare state and labor protections." },
+      { name: "Liberal Democracy", x: -2.5, y: -2, description: "Representative democracy with constitutional civil liberties." },
+      { name: "Welfarism", x: -1, y: -2, description: "State guarantees of social welfare, healthcare, and basic needs." },
+      { name: "Luxemburgism", x: -7.5, y: -3, description: "Marxist tendency emphasizing mass strike and democratic workers' councils (Rosa Luxemburg)." },
+      { name: "Democratic Socialism", x: -5.5, y: -3, description: "Socialism achieved and maintained through democratic institutions." },
+      { name: "Syndicalism", x: -3.5, y: -3, description: "Labor unions, not the state, organize society and the economy." },
+      { name: "Nordic Liberalism", x: -1, y: -3, description: "Scandinavian-style mix of free markets and universal welfare." },
+      { name: "Council Communism", x: -7.5, y: -4, description: "Workers' councils, not parties, run socialist society." },
+      { name: "Democratic Confederalism", x: -5.5, y: -4, description: "Stateless democratic confederation of self-governing communes (Öcalan-influenced)." },
+      { name: "Environmentalism", x: -3.7, y: -4, description: "Politics focused on protecting and restoring natural ecosystems." },
+      { name: "Market Socialism", x: -2.6, y: -4, description: "Worker-owned firms competing within a market economy." },
+      { name: "Technological Primitivism", x: -1, y: -4, description: "Selective use of technology to support simple, low-impact living." },
+      { name: "Classical Marxism", x: -9, y: -5, description: "Foundational Marxist theory of class struggle and historical materialism." },
+      { name: "Gandhism", x: -7, y: -5, description: "Nonviolent resistance, decentralized villages, and economic self-reliance." },
+      { name: "Mandelaism", x: -5, y: -5, description: "Multiracial democracy with reconciliation and social-democratic economics." },
+      { name: "Liberal Socialism", x: -3, y: -5, description: "Socialism that preserves liberal civil rights, pluralism, and democracy." },
+      { name: "Georgism", x: -1, y: -5, description: "A single tax on land values to capture economic rent for the public." },
+      { name: "Libertarian Market Socialism", x: -7.5, y: -6, description: "Stateless economy of cooperative firms competing in markets." },
+      { name: "Libertarian Socialism", x: -5.5, y: -6, description: "Socialism without a centralized state, organized from below." },
+      { name: "Anti-Authoritarianism", x: -3.5, y: -6, description: "Opposition to coercive hierarchical authority in any form." },
+      { name: "Geo-Libertarianism", x: -1.5, y: -6, description: "Libertarianism combined with Georgist land-value taxation." },
+      { name: "Situationism", x: -7, y: -7.5, description: "Revolutionary critique of consumer-spectacle society (Guy Debord)." },
+      { name: "Minarcho-Socialism", x: -5.5, y: -7.5, description: "Minimal state coexisting with socialist self-organization." },
+      { name: "Religious Anarchism", x: -3.5, y: -7.5, description: "Faith-based rejection of coercive state authority." },
+      { name: "Anarcho Pacifism", x: -1.5, y: -7.5, description: "Stateless society achieved and maintained through nonviolence." },
+      { name: "Anarcho-Communism", x: -9, y: -8.5, description: "Stateless, classless, moneyless communist society." },
+      { name: "Eco-Anarchism", x: -7.5, y: -8.5, description: "Stateless society organized around ecological principles." },
+      { name: "Anarcha-Feminism", x: -6, y: -8.5, description: "Feminist anarchism opposing patriarchy and the state simultaneously." },
+      { name: "Queer Anarchism", x: -5, y: -8.5, description: "Anarchism centered on sexual and gender liberation." },
+      { name: "Anarcho-Collectivism", x: -3, y: -8.5, description: "Stateless collective ownership with workers compensated by labor contributed." },
+      { name: "Anarcho-Mutualism", x: -1.3, y: -8.5, description: "Stateless economy of free producers exchanging through mutual credit." },
+
+      // Libertarian-Right (bottom-right, yellow)
+      { name: "Neo-Liberalism", x: 1.5, y: -1, description: "Free markets, deregulation, privatization, and globalization." },
+      { name: "General Capitalism", x: 3.5, y: -1, description: "Mainstream private-property market economy." },
+      { name: "Capitalist Transhumanism", x: 5.5, y: -1, description: "Markets as the engine for radical human enhancement and technology." },
+      { name: "Conservative Libertarianism", x: 7.5, y: -1, description: "Libertarian economics paired with culturally conservative values." },
+      { name: "Social Libertarianism", x: 1.5, y: -2, description: "Civil-libertarian social policy combined with progressive market economics." },
+      { name: "Transhumanism", x: 3.5, y: -2.5, description: "Use of technology to radically extend and enhance human capabilities." },
+      { name: "Classical Liberalism", x: 7, y: -1.7, description: "19th-century liberalism: limited government, individual liberty, and free markets." },
+      { name: "Liberal Corporatism", x: 5.5, y: -3, description: "Coordination among business, labor, and the state within a liberal framework." },
+      { name: "Democratic Liberalism", x: 8, y: -3, description: "Liberal democracy emphasizing electoral pluralism and individual rights." },
+      { name: "Libertarianism", x: 1.7, y: -3.5, description: "Maximal individual liberty with a minimal state." },
+      { name: "Kleptocracy (Lib-Right)", x: 3.7, y: -4, description: "Self-enriching officials operating within a market-oriented state." },
+      { name: "Paleo Libertarianism", x: 6, y: -4, description: "Libertarianism rooted in tradition, localism, and cultural conservatism." },
+      { name: "National Libertarianism", x: 8.5, y: -4, description: "Libertarian economics paired with strong nationalism and border control." },
+      { name: "Right Georgism", x: 1.3, y: -5, description: "Georgist land-value taxation paired with otherwise small-government economics." },
+      { name: "Green Libertarianism", x: 3, y: -5, description: "Free-market environmentalism using property-rights solutions." },
+      { name: "Techno Liberalism", x: 1.3, y: -6, description: "Liberalism shaped by digital-age individualism and tech innovation." },
+      { name: "Neoclassical Liberalism", x: 3, y: -6, description: "Modern free-market liberalism informed by neoclassical economics." },
+      { name: "Neo Libertarianism", x: 5, y: -6, description: "Modern variant of libertarianism with hawkish foreign policy." },
+      { name: "Objectivism", x: 6.5, y: -6, description: "Ayn Rand's philosophy of rational self-interest and laissez-faire capitalism." },
+      { name: "Minarchism", x: 8.5, y: -6, description: "State limited strictly to courts, police, and national defense." },
+      { name: "Eco-Capitalism", x: 1.3, y: -7.5, description: "Market-driven environmental solutions and pricing of externalities." },
+      { name: "Anarcho Monarchism", x: 2.3, y: -7.5, description: "Voluntary recognition of a monarch within an otherwise stateless society." },
+      { name: "Consequentialism", x: 4, y: -7.5, description: "Politics judged solely by outcomes (often utilitarian-libertarian)." },
+      { name: "Pink Capitalism", x: 6, y: -7.5, description: "Market embrace of LGBT+ identities, brands, and consumers." },
+      { name: "Christian Libertarianism", x: 8, y: -7.5, description: "Libertarianism grounded in a Christian moral framework." },
+      { name: "Agorism", x: 1.3, y: -8.5, description: "Counter-economic strategy of black-market activity to erode the state." },
+      { name: "Individualist Anarchism", x: 3, y: -8.5, description: "Stateless society rooted in the sovereignty of the individual." },
+      { name: "Voluntaryism", x: 5, y: -8.5, description: "All human relations should be voluntary, with no coercion." },
+      { name: "Hoppeanism", x: 6.5, y: -8.5, description: "Hans-Hermann Hoppe's anarcho-capitalism with covenant communities." },
+      { name: "Anarcho-Capitalism", x: 8.5, y: -8.5, description: "Stateless society with all services provided by private markets." },
+      { name: "Egoism", x: 0.7, y: -9.5, description: "Stirner's radical individualism centered on the unique self." },
+      { name: "Anarcho-Frontierism", x: 1.7, y: -9.5, description: "Stateless self-reliance modeled on frontier settler life." },
+    ],
+  },
 };
 const calcClosestPolitician = (x, y) => {
-  const allPoints = Object.values(OVERLAY_PRESETS).flatMap(preset => preset.points);
+  // Exclude the ideologies preset — those are concepts, not politicians.
+  const allPoints = Object.entries(OVERLAY_PRESETS)
+    .filter(([key]) => key !== 'ideologies')
+    .flatMap(([, preset]) => preset.points);
   const seen = new Set();
   const unique = allPoints.filter(p => {
     if (seen.has(p.name)) return false;
@@ -676,6 +848,7 @@ const getTooltipStyle = (x, y, canvasSize) => {
 
 const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, suppressAnalysis }) => {
   const canvasRef = useRef(null);
+  const ideologyLayoutRef = useRef(null);
   const [hoveredReference, setHoveredReference] = useState(null);
   const [hoverPosition, setHoverPosition] = useState(null);
   const [hasDismissedCue, setHasDismissedCue] = useState(false);
@@ -752,28 +925,105 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, s
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
 
-    referencePoints.forEach((person) => {
-      const refX = ((person.x + 10) / 20) * width;
-      const refY = ((10 - person.y) / 20) * height;
-      const isHovered = hoveredReference?.name === person.name;
+    if (overlayPreset === 'ideologies') {
+      // Render ideology names as small text labels colored by quadrant.
+      // Greedy collision-aware staggering nudges overlapping labels vertically;
+      // each label gets a faint background pill so residual overlap stays readable.
+      const quadrantColor = (x, y, hovered) => {
+        const alpha = hovered ? 1 : (isDarkMode ? 0.92 : 0.88);
+        if (y >= 0 && x < 0) return isDarkMode ? `rgba(252, 165, 165, ${alpha})` : `rgba(153, 27, 27, ${alpha})`;
+        if (y >= 0 && x >= 0) return isDarkMode ? `rgba(147, 197, 253, ${alpha})` : `rgba(30, 64, 175, ${alpha})`;
+        if (y < 0 && x < 0) return isDarkMode ? `rgba(134, 239, 172, ${alpha})` : `rgba(22, 101, 52, ${alpha})`;
+        return isDarkMode ? `rgba(253, 224, 71, ${alpha})` : `rgba(133, 77, 14, ${alpha})`;
+      };
+      const FONT = 'bold 8.5px sans-serif';
+      const LINE_H = 10;
+      const PAD_X = 3;
+      const truncate = (s) => (s.length > 26 ? s.slice(0, 25) + '…' : s);
+      ctx.font = FONT;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
 
-      ctx.beginPath();
-      ctx.arc(refX, refY, isHovered ? 6 : (isMobile ? 7 : 4), 0, 2 * Math.PI);
-      ctx.fillStyle = isHovered ? (isDarkMode ? 'rgba(248, 250, 252, 0.95)' : 'rgba(15, 23, 42, 0.9)') : referenceDotColor;
-      ctx.fill();
-
-      if (isHovered) {
-        ctx.beginPath();
-        ctx.arc(refX, refY, 10, 0, 2 * Math.PI);
-        ctx.strokeStyle = isDarkMode ? 'rgba(248, 250, 252, 0.45)' : 'rgba(15, 23, 42, 0.35)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        const label = overlayPreset === 'global' && person.flag ? `${person.flag} ${person.name}` : person.name;
-        ctx.fillStyle = referenceTextColor;
-        ctx.fillText(label, refX + 11, refY - 11);
+      // Compute layout with greedy vertical staggering. Labels processed in
+      // input order; each label tries its base position first, then alternating
+      // small offsets until it doesn't overlap any already-placed label box.
+      const placed = [];
+      const offsets = [0, -LINE_H, LINE_H, -2 * LINE_H, 2 * LINE_H, -3 * LINE_H, 3 * LINE_H, -4 * LINE_H, 4 * LINE_H];
+      for (const person of referencePoints) {
+        const display = truncate(person.name);
+        const textW = ctx.measureText(display).width;
+        const w = textW + PAD_X * 2;
+        const h = LINE_H;
+        const baseX = ((person.x + 10) / 20) * width;
+        const baseY = ((10 - person.y) / 20) * height;
+        let cy = baseY;
+        for (const off of offsets) {
+          const tryY = baseY + off;
+          if (tryY < h / 2 + 18 || tryY > height - h / 2 - 18) continue;
+          const collides = placed.some(q =>
+            Math.abs(q.cx - baseX) < (q.w + w) / 2 + 1 &&
+            Math.abs(q.cy - tryY) < (q.h + h) / 2 + 1
+          );
+          if (!collides) { cy = tryY; break; }
+        }
+        placed.push({ person, display, cx: baseX, cy, w, h, textW });
       }
-    });
+      ideologyLayoutRef.current = placed;
+
+      // Draw non-hovered labels first
+      const bgFill = isDarkMode ? 'rgba(15, 23, 42, 0.55)' : 'rgba(255, 255, 255, 0.6)';
+      for (const item of placed) {
+        if (hoveredReference?.name === item.person.name) continue;
+        ctx.fillStyle = bgFill;
+        ctx.fillRect(item.cx - item.w / 2, item.cy - item.h / 2, item.w, item.h);
+        ctx.fillStyle = quadrantColor(item.person.x, item.person.y, false);
+        ctx.fillText(item.display, item.cx, item.cy);
+      }
+      // Draw hovered label last with stronger styling and full (untruncated) name
+      if (hoveredReference) {
+        const item = placed.find(p => p.person.name === hoveredReference.name);
+        if (item) {
+          ctx.font = 'bold 11px sans-serif';
+          const fullW = ctx.measureText(hoveredReference.name).width + 10;
+          const fullH = 17;
+          ctx.fillStyle = isDarkMode ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255, 255, 255, 0.97)';
+          ctx.fillRect(item.cx - fullW / 2, item.cy - fullH / 2, fullW, fullH);
+          ctx.strokeStyle = quadrantColor(hoveredReference.x, hoveredReference.y, true);
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(item.cx - fullW / 2, item.cy - fullH / 2, fullW, fullH);
+          ctx.fillStyle = quadrantColor(hoveredReference.x, hoveredReference.y, true);
+          ctx.fillText(hoveredReference.name, item.cx, item.cy);
+        }
+      }
+      // Restore defaults for downstream draws (user points)
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+    } else {
+      ideologyLayoutRef.current = null;
+      referencePoints.forEach((person) => {
+        const refX = ((person.x + 10) / 20) * width;
+        const refY = ((10 - person.y) / 20) * height;
+        const isHovered = hoveredReference?.name === person.name;
+
+        ctx.beginPath();
+        ctx.arc(refX, refY, isHovered ? 6 : (isMobile ? 7 : 4), 0, 2 * Math.PI);
+        ctx.fillStyle = isHovered ? (isDarkMode ? 'rgba(248, 250, 252, 0.95)' : 'rgba(15, 23, 42, 0.9)') : referenceDotColor;
+        ctx.fill();
+
+        if (isHovered) {
+          ctx.beginPath();
+          ctx.arc(refX, refY, 10, 0, 2 * Math.PI);
+          ctx.strokeStyle = isDarkMode ? 'rgba(248, 250, 252, 0.45)' : 'rgba(15, 23, 42, 0.35)';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          const label = overlayPreset === 'global' && person.flag ? `${person.flag} ${person.name}` : person.name;
+          ctx.fillStyle = referenceTextColor;
+          ctx.fillText(label, refX + 11, refY - 11);
+        }
+      });
+    }
 
     userPoints.forEach((point, index) => {
       const pointX = ((point.x + 10) / 20) * width;
@@ -847,17 +1097,29 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, s
 
     let nearest = null;
     let nearestDist = Infinity;
-    referencePoints.forEach((person) => {
-      const pointX = ((person.x + 10) / 20) * CANVAS_SIZE;
-      const pointY = ((10 - person.y) / 20) * CANVAS_SIZE;
-      const dist = Math.hypot(pointX - xPos, pointY - yPos);
-      if (dist < nearestDist) {
-        nearestDist = dist;
-        nearest = person;
+    if (overlayPreset === 'ideologies' && ideologyLayoutRef.current) {
+      // Hit-test against the laid-out label rectangles (after staggering)
+      // so hovering matches what the user actually sees.
+      for (const item of ideologyLayoutRef.current) {
+        const dx = Math.max(0, Math.abs(xPos - item.cx) - item.w / 2);
+        const dy = Math.max(0, Math.abs(yPos - item.cy) - item.h / 2);
+        const d = Math.hypot(dx, dy);
+        if (d < nearestDist) { nearestDist = d; nearest = item.person; }
       }
-    });
+    } else {
+      referencePoints.forEach((person) => {
+        const pointX = ((person.x + 10) / 20) * CANVAS_SIZE;
+        const pointY = ((10 - person.y) / 20) * CANVAS_SIZE;
+        const dist = Math.hypot(pointX - xPos, pointY - yPos);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearest = person;
+        }
+      });
+    }
 
-    if (nearest && nearestDist <= 12) {
+    const refHitThreshold = overlayPreset === 'ideologies' ? 4 : 12;
+    if (nearest && nearestDist <= refHitThreshold) {
       if (!hasDismissedCue) setHasDismissedCue(true);
       setHoveredReference(nearest);
       setHoverPosition({ x: xPos, y: yPos });
@@ -908,17 +1170,26 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, s
 
     let nearest = null;
     let nearestDist = Infinity;
-    referencePoints.forEach((person) => {
-      const pointX = ((person.x + 10) / 20) * CANVAS_SIZE;
-      const pointY = ((10 - person.y) / 20) * CANVAS_SIZE;
-      const dist = Math.hypot(pointX - xPos, pointY - yPos);
-      if (dist < nearestDist) {
-        nearestDist = dist;
-        nearest = person;
+    if (overlayPreset === 'ideologies' && ideologyLayoutRef.current) {
+      for (const item of ideologyLayoutRef.current) {
+        const dx = Math.max(0, Math.abs(xPos - item.cx) - item.w / 2);
+        const dy = Math.max(0, Math.abs(yPos - item.cy) - item.h / 2);
+        const d = Math.hypot(dx, dy);
+        if (d < nearestDist) { nearestDist = d; nearest = item.person; }
       }
-    });
+    } else {
+      referencePoints.forEach((person) => {
+        const pointX = ((person.x + 10) / 20) * CANVAS_SIZE;
+        const pointY = ((10 - person.y) / 20) * CANVAS_SIZE;
+        const dist = Math.hypot(pointX - xPos, pointY - yPos);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearest = person;
+        }
+      });
+    }
 
-    const threshold = 20;
+    const threshold = overlayPreset === 'ideologies' ? 6 : 20;
     const hit = !!(nearest && nearestDist <= threshold);
     if (hit) {
       if (!hasDismissedCue) setHasDismissedCue(true);
@@ -1002,6 +1273,9 @@ export default function App() {
   const [sourcePrompt, setSourcePrompt] = useState("");
   const [overlayPreset, setOverlayPreset] = useState('global');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [showIdeologiesNew, setShowIdeologiesNew] = useState(
+    () => sessionStorage.getItem('ideologies_new_seen') !== '1'
+  );
   const [isRefineMode, setIsRefineMode] = useState(false);
   const [refineAnswers, setRefineAnswers] = useState({});
   const [refineDelta, setRefineDelta] = useState(null);
@@ -1695,6 +1969,7 @@ export default function App() {
   const getOverlayThemeClass = () => {
     if (overlayPreset === 'republican') return 'overlay-republican';
     if (overlayPreset === 'democratic') return 'overlay-democratic';
+    if (overlayPreset === 'ideologies') return 'overlay-ideologies';
     return 'overlay-neutral';
   };
 
@@ -2188,6 +2463,11 @@ export default function App() {
               )}
 
               <div className="analyze-wrap">
+                {mode === 'quiz' && (
+                  <span className="quiz-progress">
+                    {Object.keys(quizAnswers).length} / {QUIZ_QUESTIONS.length} answered
+                  </span>
+                )}
                 <button
                   onClick={handleSubmit}
                   type="button"
@@ -2336,6 +2616,11 @@ export default function App() {
                 suppressAnalysis={isIncomingShare || !!activeComparisonId}
               />
               <div className="overlay-filter">
+                {showIdeologiesNew && !isFilterOpen && (
+                  <div className="new-bubble">
+                    ✨ New: Ideology Map
+                  </div>
+                )}
                 <button
                   type="button"
                   className="filter-toggle"
@@ -2370,6 +2655,19 @@ export default function App() {
                     >
                       <img src="/images/democrat.png" alt="Democratic" className="filter-party-icon" />
                       Democratic
+                    </button>
+                    <button
+                      type="button"
+                      className={`filter-option ${overlayPreset === 'ideologies' ? 'active' : ''}`}
+                      onClick={() => {
+                        setOverlayPreset('ideologies');
+                        setShowIdeologiesNew(false);
+                        sessionStorage.setItem('ideologies_new_seen', '1');
+                      }}
+                    >
+                      <Compass size={15} />
+                      Ideologies
+                      {showIdeologiesNew && <span className="new-badge">New!</span>}
                     </button>
                   </div>
                 )}
@@ -2453,7 +2751,9 @@ export default function App() {
             })()}
 
             <p className="reference-note">
-              Faint reference dots are approximate and currently set to the {OVERLAY_PRESETS[overlayPreset].label} overlay.
+              {overlayPreset === 'ideologies'
+                ? `Ideology positions are approximate. Your dot shows where your views land — the labeled ideologies nearby are the closest conceptual match, not a label for who you are.`
+                : `Faint reference dots are approximate and currently set to the ${OVERLAY_PRESETS[overlayPreset].label} overlay.`}
             </p>
 
             {isRefineMode && (() => {
@@ -2563,11 +2863,6 @@ export default function App() {
                   <BookmarkPlus size={18} />
                   Save Point
                 </button>
-              </div>
-            )}
-
-            {!isViewingOnly && (
-              <div className="reset-wrap">
                 <button
                   onClick={reset}
                   className="secondary-btn"

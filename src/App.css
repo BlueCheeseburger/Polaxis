@@ -526,13 +526,21 @@
 .reset-wrap {
   margin-top: 22px;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: 12px;
+}
+
+.quiz-progress {
+  font-size: 0.8rem;
+  color: var(--text-muted, #888);
 }
 
 .result-actions {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
 }
 
 .analyze-btn,
@@ -1050,6 +1058,80 @@
 .app-shell.dark.overlay-democratic .party-badge {
   background: rgba(30, 58, 138, 0.45);
   color: #93c5fd;
+}
+
+/* "New!" speech bubble above the Overlay button */
+.new-bubble {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  background: #7c3aed;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 10px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
+  animation: bubble-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  z-index: 10;
+}
+
+.new-bubble::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 14px;
+  border: 6px solid transparent;
+  border-top-color: #7c3aed;
+}
+
+/* "New!" pill inside the Ideologies menu item */
+.new-badge {
+  margin-left: auto;
+  background: #7c3aed;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+@keyframes bubble-pop {
+  from { opacity: 0; transform: scale(0.7) translateY(4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.app-shell.dark .new-bubble {
+  background: #8b5cf6;
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
+}
+
+.app-shell.dark .new-bubble::after {
+  border-top-color: #8b5cf6;
+}
+
+.app-shell.dark .new-badge {
+  background: #8b5cf6;
+}
+
+.overlay-ideologies .party-badge,
+.overlay-ideologies .filter-toggle,
+.overlay-ideologies .filter-option.active {
+  border-color: rgba(180, 140, 40, 0.55);
+}
+
+.overlay-ideologies .party-badge {
+  background: rgba(254, 243, 199, 0.88);
+  color: #92400e;
+}
+
+.app-shell.dark.overlay-ideologies .party-badge {
+  background: rgba(120, 53, 15, 0.45);
+  color: #fde68a;
 }
 
 .analysis-card {
