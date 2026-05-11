@@ -553,15 +553,17 @@ const ComparisonDiffCard = ({ participants }) => {
   if (!Array.isArray(participants) || participants.length < 2) return null;
   const primary = participants.find(p => p.role === 'primary') || participants[0];
   const friends = participants.filter(p => p !== primary);
-  const fmt = (n) => (Math.round(n * 10) / 10).toFixed(1);
-  const econLabel = (delta) => {
-    if (Math.abs(delta) < 0.5) return 'aligned';
-    return delta > 0 ? `${fmt(delta)} more right` : `${fmt(-delta)} more left`;
+
+  // Returns a qualitative phrase like "slightly more left" or null if aligned.
+  const qual = (abs) => abs < 1 ? null : abs < 4 ? 'slightly more' : abs < 7 ? 'more' : 'much more';
+  const deltaDesc = (dx, dy) => {
+    const econPhrase = qual(Math.abs(dx)) ? `${qual(Math.abs(dx))} ${dx > 0 ? 'right' : 'left'}` : null;
+    const socialPhrase = qual(Math.abs(dy)) ? `${qual(Math.abs(dy))} ${dy > 0 ? 'authoritarian' : 'libertarian'}` : null;
+    const parts = [socialPhrase, econPhrase].filter(Boolean);
+    if (parts.length === 0) return 'politically aligned with them';
+    return `${parts.join(' and ')} than them`;
   };
-  const socialLabel = (delta) => {
-    if (Math.abs(delta) < 0.5) return 'aligned';
-    return delta > 0 ? `${fmt(delta)} more authoritarian` : `${fmt(-delta)} more libertarian`;
-  };
+
   return (
     <div className="comparison-diff-card">
       <div className="comparison-diff-head">
@@ -571,19 +573,19 @@ const ComparisonDiffCard = ({ participants }) => {
       <div className="comparison-diff-row">
         <span className="comparison-diff-dot primary" />
         <strong>{primary.archetype || 'Primary'}</strong>
-        <span className="comparison-diff-coords">{fmt(primary.x)} / {fmt(primary.y)}</span>
       </div>
       {friends.map((p, idx) => {
         const dx = p.x - primary.x;
         const dy = p.y - primary.y;
         return (
-          <div className="comparison-diff-row" key={`friend-${idx}`}>
-            <span className="comparison-diff-dot friend" />
-            <strong>{p.archetype || `Friend ${idx + 1}`}</strong>
-            <span className="comparison-diff-coords">{fmt(p.x)} / {fmt(p.y)}</span>
-            <span className="comparison-diff-delta">
-              {econLabel(dx)} · {socialLabel(dy)}
-            </span>
+          <div className="comparison-diff-friend" key={`friend-${idx}`}>
+            <div className="comparison-diff-row">
+              <span className="comparison-diff-dot friend" />
+              <strong>{p.archetype || `Friend ${idx + 1}`}</strong>
+            </div>
+            <p className="comparison-diff-sentence">
+              You are <em>{deltaDesc(dx, dy)}</em>
+            </p>
           </div>
         );
       })}
@@ -672,7 +674,7 @@ const getTooltipStyle = (x, y, canvasSize) => {
   return style;
 };
 
-const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset }) => {
+const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, suppressAnalysis }) => {
   const canvasRef = useRef(null);
   const [hoveredReference, setHoveredReference] = useState(null);
   const [hoverPosition, setHoverPosition] = useState(null);
@@ -950,8 +952,8 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset })
             style={getTooltipStyle(hoveredUserPosition.x, hoveredUserPosition.y, CANVAS_SIZE)}
           >
             <div className="person-tooltip-name">{hoveredUserPoint.label}</div>
-            {/* In comparison mode show archetype name only — no analysis blurb */}
-            {!hoveredUserPoint.role && hoveredUserPoint.analysis && (
+            {/* In comparison/share-view mode show archetype only; suppress full analysis */}
+            {!hoveredUserPoint.role && !suppressAnalysis && hoveredUserPoint.analysis && (
               <div className="person-tooltip-text">{hoveredUserPoint.analysis}</div>
             )}
           </div>
@@ -1057,6 +1059,7 @@ export default function App() {
   const [comparison, setComparison] = useState(null);
   const [comparisonViewer, setComparisonViewer] = useState(null);
   const [isJoiningComparison, setIsJoiningComparison] = useState(false);
+  const [comparisonLoadError, setComparisonLoadError] = useState(false);
   // True once the friend (or primary in another browser) has successfully
   // submitted their own result and joined the comparison.
   const [hasAddedComparisonPoint, setHasAddedComparisonPoint] = useState(false);
@@ -1145,12 +1148,13 @@ export default function App() {
         const res = await fetch(`${API_BASE}/api/comparisons/${encodeURIComponent(activeComparisonId)}`, {
           headers: { 'X-Client-Id': clientId },
         });
-        if (!res.ok || cancelled) return;
+        if (cancelled) return;
+        if (!res.ok) { if (!cancelled) setComparisonLoadError(true); return; }
         const data = await res.json();
         const comp = data?.comparison;
-        if (!comp || cancelled) return;
+        if (!comp || cancelled) { if (!cancelled) setComparisonLoadError(true); return; }
         const primary = (comp.participants || []).find(p => p.role === 'primary') || comp.participants?.[0];
-        if (!primary) return;
+        if (!primary) { if (!cancelled) setComparisonLoadError(true); return; }
         // Build the resultPoints array from all participants. The first point
         // is the primary user (orange); subsequent participants are friends
         // (white). Each point carries a `role` and `participantIndex` so the
@@ -1181,7 +1185,7 @@ export default function App() {
         const slugTail = comp.archetype_slug ? `${comp.id}-${comp.archetype_slug}` : comp.id;
         window.history.replaceState({}, '', `/compare/${slugTail}`);
       } catch {
-        // silent
+        if (!cancelled) setComparisonLoadError(true);
       }
     };
     load();
@@ -2080,6 +2084,12 @@ export default function App() {
         </button>
       </div>
       <div className="app-content">
+        {comparisonLoadError && (
+          <div className="comparison-load-error">
+            <AlertCircle size={18} />
+            <span>This comparison link has expired or is no longer available. <button type="button" className="error-home-link" onClick={() => { setComparisonLoadError(false); window.history.replaceState({}, '', '/'); }}>Go home</button></span>
+          </div>
+        )}
         <header className="hero">
           <div className="hero-icon-wrap">
             <div className="hero-icon">
@@ -2088,7 +2098,7 @@ export default function App() {
           </div>
           <h1>The Political Compass</h1>
           <p className="hero-subtitle">
-            {(activeComparisonId && !hasAddedComparisonPoint)
+            {(activeComparisonId && !hasAddedComparisonPoint && !comparisonLoadError)
               ? `Add your point below to compare with ${comparison?.participants?.[0]?.archetype || 'the primary user'}`
               : 'Analyze your political alignment through raw text or a structured quiz.'}
           </p>
@@ -2323,6 +2333,7 @@ export default function App() {
                 isDarkMode={isDarkMode}
                 referencePoints={OVERLAY_PRESETS[overlayPreset].points}
                 overlayPreset={overlayPreset}
+                suppressAnalysis={isIncomingShare || !!activeComparisonId}
               />
               <div className="overlay-filter">
                 <button
