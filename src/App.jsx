@@ -700,6 +700,16 @@ const calcClosestPolitician = (x, y) => {
   return closest;
 };
 
+const calcClosestIdeology = (x, y) => {
+  let closest = null;
+  let minDist = Infinity;
+  for (const p of OVERLAY_PRESETS.ideologies.points) {
+    const d = Math.hypot(x - p.x, y - p.y);
+    if (d < minDist) { minDist = d; closest = p; }
+  }
+  return closest;
+};
+
 const calcPartyMatch = (x, y) => {
   const parties = [
     { name: "Democrat", cx: -2.5, cy: 0.5 },
@@ -2706,11 +2716,12 @@ export default function App() {
               ) : null}
               {!isDebugPoint && !isAnalysisPending && (() => {
                 const closest = calcClosestPolitician(result.x, result.y);
+                const closestIdeology = calcClosestIdeology(result.x, result.y);
                 return closest ? (
                   <p className="closest-politician">
                     {isViewingOnly
-                      ? <>{result.archetype || 'They'} {`${result.archetype ? 'is' : 'are'}`} closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>.</>
-                      : <>You're closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>.</>}
+                      ? <>{result.archetype || 'They'} {`${result.archetype ? 'is' : 'are'}`} closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>{closestIdeology ? <>, ideologically nearest to <strong>{closestIdeology.name}</strong></> : ''}.</>
+                      : <>You're closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>{closestIdeology ? <>, ideologically nearest to <strong>{closestIdeology.name}</strong></> : ''}.</>}
                   </p>
                 ) : null;
               })()}
