@@ -759,7 +759,8 @@ const expandParticipantPoints = (p, idx) => {
   }];
 };
 
-const ComparisonDiffCard = ({ participants }) => {
+// myParticipantIndex: -1 = not joined yet, 0 = primary, 1+ = a friend slot
+const ComparisonDiffCard = ({ participants, myParticipantIndex = -1 }) => {
   if (!Array.isArray(participants) || participants.length < 2) return null;
   const primary = participants.find(p => p.role === 'primary') || participants[0];
   const friends = participants.filter(p => p !== primary);
@@ -785,17 +786,35 @@ const ComparisonDiffCard = ({ participants }) => {
         <strong>{primary.archetype || 'Primary'}</strong>
       </div>
       {friends.map((p, idx) => {
-        const dx = p.x - primary.x;
-        const dy = p.y - primary.y;
+        // participants index: 0 = primary, 1 = first friend, 2 = second friend…
+        const participantIndex = idx + 1;
+        // Only show "You are…" for the viewer's own row.
+        // Primary (index 0) sees a sentence for every friend row — from primary's POV.
+        // A friend (index N) only sees the sentence on their own row — from their POV.
+        // Viewers who haven't joined (index -1) see no sentences.
+        let sentence = null;
+        if (myParticipantIndex === 0) {
+          // Primary viewing: "You (primary) are X than Friend N"
+          const dx = primary.x - p.x;
+          const dy = primary.y - p.y;
+          sentence = deltaDesc(dx, dy);
+        } else if (participantIndex === myParticipantIndex) {
+          // This friend is the viewer: "You (friend) are X than primary"
+          const dx = p.x - primary.x;
+          const dy = p.y - primary.y;
+          sentence = deltaDesc(dx, dy);
+        }
         return (
           <div className="comparison-diff-friend" key={`friend-${idx}`}>
             <div className="comparison-diff-row">
               <span className="comparison-diff-dot friend" />
               <strong>{p.archetype || `Friend ${idx + 1}`}</strong>
             </div>
-            <p className="comparison-diff-sentence">
-              You are <em>{deltaDesc(dx, dy)}</em>
-            </p>
+            {sentence && (
+              <p className="comparison-diff-sentence">
+                You are <em>{sentence}</em>
+              </p>
+            )}
           </div>
         );
       })}
@@ -1375,6 +1394,9 @@ export default function App() {
   // True once the friend (or primary in another browser) has successfully
   // submitted their own result and joined the comparison.
   const [hasAddedComparisonPoint, setHasAddedComparisonPoint] = useState(false);
+  const [myComparisonParticipantIndex, setMyComparisonParticipantIndex] = useState(-1);
+  // Whether the friend on a /compare/ page has clicked "Add My Point" to reveal the input
+  const [compareFriendWantsToJoin, setCompareFriendWantsToJoin] = useState(false);
   const [showSixMonthBanner, setShowSixMonthBanner] = useState(false);
   const [historicalPoint, setHistoricalPoint] = useState(null);
   const [isComparisonMode, setIsComparisonMode] = useState(false);
@@ -1491,6 +1513,7 @@ export default function App() {
         });
         setComparison(comp);
         setComparisonViewer(data?.viewer || null);
+        setMyComparisonParticipantIndex(data?.viewer?.participant_index ?? -1);
         setIsIncomingShare(true);
         const slugTail = comp.archetype_slug ? `${comp.id}-${comp.archetype_slug}` : comp.id;
         window.history.replaceState({}, '', `/compare/${slugTail}`);
@@ -1537,6 +1560,12 @@ export default function App() {
         const allPoints = (comp.participants || []).flatMap(expandParticipantPoints);
         setResult(prev => prev ? { ...prev, points: allPoints, fromComparison: true } : prev);
         setComparison(comp);
+        // Find the participant slot we just filled so the diff card shows the right sentence
+        const joinedIdx = (comp.participants || []).findIndex((p, i) =>
+          i > 0 && p.role === 'friend' &&
+          Math.abs(p.x - result.x) < 0.5 && Math.abs(p.y - result.y) < 0.5
+        );
+        if (joinedIdx >= 0) setMyComparisonParticipantIndex(joinedIdx);
         setHasAddedComparisonPoint(true);
       } catch {
         // silent
@@ -1679,6 +1708,17 @@ export default function App() {
     const timer = window.setTimeout(() => setShowSavedHintCue(false), 4200);
     return () => window.clearTimeout(timer);
   }, [showSavedHintCue]);
+
+  // Auto-dismiss "New: Ideology Map" bubble after ~4.5 s (same as share nudge)
+  useEffect(() => {
+    if (!showIdeologiesNew) return undefined;
+    const timer = window.setTimeout(() => {
+      setShowIdeologiesNew(false);
+      sessionStorage.setItem('ideologies_new_seen', '1');
+    }, 4500);
+    return () => window.clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (mode !== 'text') return undefined;
@@ -2449,15 +2489,15 @@ export default function App() {
           </div>
           <h1>The Political Compass</h1>
           <p className="hero-subtitle">
-            {(activeComparisonId && !hasAddedComparisonPoint && !comparisonLoadError)
+            {(activeComparisonId && compareFriendWantsToJoin && !hasAddedComparisonPoint && !comparisonLoadError)
               ? `Add your point below to compare with ${comparison?.participants?.[0]?.archetype || 'the primary user'}`
               : 'Analyze your political alignment through raw text or a structured quiz.'}
           </p>
         </header>
 
-        {/* Show input when there's no result yet, OR when friend is on a
-            comparison page and hasn't submitted their own point yet */}
-        {(!result || (activeComparisonId && !hasAddedComparisonPoint)) && !loading && (
+        {/* Show input when there's no result yet, OR when friend on a
+            comparison page has clicked "Add My Point" but hasn't submitted yet */}
+        {(!result || (activeComparisonId && compareFriendWantsToJoin && !hasAddedComparisonPoint)) && !loading && (
           <section className="panel">
             <div className="mode-switch">
               <button
@@ -2673,8 +2713,28 @@ export default function App() {
               </div>
             )}
 
-            {/* Comparison context header — shown when viewing/joining a comparison */}
-            {activeComparisonId && comparison && (
+            {/* Compare page: CTA before friend joins (mirrors share-page experience) */}
+            {activeComparisonId && comparison && !hasAddedComparisonPoint && !compareFriendWantsToJoin && (
+              <div className="compare-cta-card">
+                <div className="compare-cta-content">
+                  <div className="compare-cta-dot" aria-hidden="true" />
+                  <div>
+                    <p className="compare-cta-heading">This is {comparison.participants?.[0]?.archetype || 'their'}'s compass</p>
+                    <p className="compare-cta-sub">See how your political views compare — add your point to the same compass.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="compare-cta-btn"
+                  onClick={() => setCompareFriendWantsToJoin(true)}
+                >
+                  Add My Point →
+                </button>
+              </div>
+            )}
+
+            {/* Comparison context header — shown after friend has joined or is mid-input */}
+            {activeComparisonId && comparison && (hasAddedComparisonPoint || compareFriendWantsToJoin) && (
               <div className="compare-cta-card compare-context-card">
                 <div className="compare-cta-content">
                   <div className="compare-legend">
@@ -2685,7 +2745,7 @@ export default function App() {
                   </div>
                   <p className="compare-cta-sub">
                     {(comparison.participants?.length || 1) < (comparison.max_participants || 6)
-                      ? `${comparison.participants?.length || 1} of 6 plotted — enter your beliefs below to add your point`
+                      ? `${comparison.participants?.length || 1} of 6 plotted`
                       : `${comparison.participants?.length || 1} of 6 plotted — comparison is full`}
                   </p>
                 </div>
@@ -2695,7 +2755,7 @@ export default function App() {
             <div className="compass-area">
               <AxisBreakdownPanel x={result.x} y={result.y} />
               {comparison && Array.isArray(comparison.participants) && comparison.participants.length >= 2 && (
-                <ComparisonDiffCard participants={comparison.participants} />
+                <ComparisonDiffCard participants={comparison.participants} myParticipantIndex={myComparisonParticipantIndex} />
               )}
               <CompassPlot
                 userPoints={resultPoints}
