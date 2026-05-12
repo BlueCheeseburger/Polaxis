@@ -531,16 +531,16 @@ app.get("/api/comparisons/:comparisonId", async (req, res) => {
 
   // Compute device-state for the requesting client so the frontend can decide
   // whether to show "Compare your point" or "Refine my point" only.
+  // NOTE: we intentionally match only by client_id_hash here (not IP) because
+  // IP matching is too broad — people on the same network (household, hotspot)
+  // would all be identified as the same participant, causing the wrong
+  // "You are X than them" sentence to show for different friends.
   const clientId = getClientIdFromRequest(req);
-  const ipHash = sha256(getClientIp(req));
   const clientIdHash = clientId ? sha256(clientId) : "";
   const participants = Array.isArray(comparison.participants) ? comparison.participants : [];
   // Only match against FRIEND slots — primary is locked.
   const myParticipantIndex = participants.findIndex((p) => (
-    p.role === "friend" && (
-      (clientIdHash && p.client_id_hash === clientIdHash) ||
-      (ipHash && p.ip_hash === ipHash)
-    )
+    p.role === "friend" && clientIdHash && p.client_id_hash === clientIdHash
   ));
   return res.json({
     comparison: {

@@ -741,10 +741,13 @@ const expandParticipantPoints = (p, idx) => {
     analysis: p.analysis || '',
   };
   if (Array.isArray(p.grouped_points) && p.grouped_points.length > 1) {
+    // All dots for this participant share the same archetype label — the individual
+    // grouped-point topics (e.g. "Civil Liberties") are irrelevant in comparison context.
+    const participantLabel = p.archetype || (idx === 0 ? 'Primary' : `Friend ${idx}`);
     return p.grouped_points.map((g, gi) => ({
       ...base,
       id: `participant-${idx}-${gi}`,
-      label: g.label || p.archetype || (idx === 0 ? 'Primary' : `Friend ${idx}`),
+      label: participantLabel,
       x: g.x,
       y: g.y,
       analysis: g.analysis || p.analysis || '',
@@ -1514,6 +1517,10 @@ export default function App() {
         setComparison(comp);
         setComparisonViewer(data?.viewer || null);
         setMyComparisonParticipantIndex(data?.viewer?.participant_index ?? -1);
+        // If server recognises this device as already having joined, restore that state
+        if (data?.viewer?.already_in_comparison) {
+          setHasAddedComparisonPoint(true);
+        }
         setIsIncomingShare(true);
         const slugTail = comp.archetype_slug ? `${comp.id}-${comp.archetype_slug}` : comp.id;
         window.history.replaceState({}, '', `/compare/${slugTail}`);
