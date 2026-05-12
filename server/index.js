@@ -406,6 +406,39 @@ app.post("/api/shares", async (req, res) => {
   return res.status(201).json({ id: shareId, archetype_slug: archetypeSlug, slug: archetypeSlug ? `${shareId}-${archetypeSlug}` : shareId });
 });
 
+app.get("/api/check-six-month-return", async (req, res) => {
+  const clientId = getClientIdFromRequest(req);
+  if (!clientId) return res.status(400).json({ error: "Missing client_id" });
+  const debugMode = req.query.debugMode === "true";
+
+  if (!supabase) return res.json({ isEligible: false, daysSinceLast: 0, lastPoint: null });
+
+  try {
+    const { data, error } = await supabase
+      .from("shares")
+      .select("x, y, created_at")
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (error) return res.json({ isEligible: false, daysSinceLast: 0, lastPoint: null });
+    if (!data || data.length === 0) return res.json({ isEligible: false, daysSinceLast: 0, lastPoint: null });
+
+    const row = data[0];
+    const daysSinceLast = debugMode
+      ? 181
+      : Math.floor((Date.now() - new Date(row.created_at).getTime()) / 86400000);
+    const isEligible = daysSinceLast >= 180;
+
+    return res.json({
+      isEligible,
+      daysSinceLast,
+      lastPoint: { x: row.x, y: row.y, created_at: row.created_at },
+    });
+  } catch (e) {
+    return res.json({ isEligible: false, daysSinceLast: 0, lastPoint: null });
+  }
+});
+
 app.get("/api/shares/:shareId", async (req, res) => {
   const raw = typeof req.params.shareId === "string" ? req.params.shareId.trim() : "";
   // Accept "{id}" or "{id}-{archetype-slug}"; the prefix before the first dash is always the id.

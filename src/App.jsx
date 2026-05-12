@@ -1347,6 +1347,11 @@ export default function App() {
   // True once the friend (or primary in another browser) has successfully
   // submitted their own result and joined the comparison.
   const [hasAddedComparisonPoint, setHasAddedComparisonPoint] = useState(false);
+  const [showSixMonthBanner, setShowSixMonthBanner] = useState(false);
+  const [historicalPoint, setHistoricalPoint] = useState(null);
+  const [isComparisonMode, setIsComparisonMode] = useState(false);
+  const [sixMonthBannerDismissed, setSixMonthBannerDismissed] = useState(false);
+  const [showSixMonthDebugToast, setShowSixMonthDebugToast] = useState(false);
   const submitRequestRef = useRef(0);
   const debugHoldTimerRef = useRef(null);
   const ignoreNextDebugClickRef = useRef(false);
@@ -1687,6 +1692,35 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result?.fromGemini, result?.fromShare, result?.fromComparison]);
 
+  // Check if user is returning after 6+ months
+  useEffect(() => {
+    if (sessionStorage.getItem('six_month_banner_dismissed') === '1') return;
+    if (activeShareId || activeComparisonId) return;
+    const clientId = getOrCreateStableClientId();
+    const debugMode = localStorage.getItem('six_month_debug_mode') === 'true';
+    const check = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/check-six-month-return?client_id=${encodeURIComponent(clientId)}&debugMode=${debugMode}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.isEligible && data.lastPoint) {
+          setHistoricalPoint(data.lastPoint);
+          setShowSixMonthBanner(true);
+        }
+      } catch {
+        // silently fail
+      }
+    };
+    check();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!showSixMonthDebugToast) return undefined;
+    const t = window.setTimeout(() => setShowSixMonthDebugToast(false), 2500);
+    return () => window.clearTimeout(t);
+  }, [showSixMonthDebugToast]);
+
   const handleQuizChange = (qIndex, answer) => {
     setQuizAnswers(prev => ({ ...prev, [qIndex]: answer }));
   };
@@ -1827,6 +1861,10 @@ export default function App() {
       }
 
       const normalizedPoints = normalizePlottedPoints(evalResult);
+      if (showSixMonthBanner && historicalPoint) {
+        setIsComparisonMode(true);
+        setShowSixMonthBanner(false);
+      }
       setResult({ ...evalResult, points: normalizedPoints, fromGemini: true, sourceBatchId: requestId });
     } catch (err) {
       setError(err.message);
@@ -1890,6 +1928,16 @@ export default function App() {
   const handleDebugButtonClick = (event) => {
     if (ignoreNextDebugClickRef.current) {
       ignoreNextDebugClickRef.current = false;
+      return;
+    }
+    if (event?.ctrlKey || event?.metaKey) {
+      const isOn = localStorage.getItem('six_month_debug_mode') === 'true';
+      if (isOn) {
+        localStorage.removeItem('six_month_debug_mode');
+      } else {
+        localStorage.setItem('six_month_debug_mode', 'true');
+        setShowSixMonthDebugToast(true);
+      }
       return;
     }
     if (event?.altKey) {
@@ -2268,6 +2316,7 @@ export default function App() {
         </div>
       )}
       {showBypassToast && <div className="bypass-toast">API bypass enabled</div>}
+      {showSixMonthDebugToast && <div className="bypass-toast">&#x1F41B; 6-month debug mode enabled</div>}
       {showSaveToast && <div className="save-toast">Point saved</div>}
       {showSavedHintCue && <div className="saved-hint-cue">Saved points live in the top-right bookmark.</div>}
       <div className="top-controls">
@@ -2448,6 +2497,19 @@ export default function App() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {showSixMonthBanner && !sixMonthBannerDismissed && (
+                <div className="six-month-banner">
+                  <span>Welcome back! Your beliefs may have changed. Retake the quiz to compare your result with 6 months ago →</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSixMonthBannerDismissed(true);
+                      sessionStorage.setItem('six_month_banner_dismissed', '1');
+                    }}
+                  >✕</button>
                 </div>
               )}
 
@@ -2893,6 +2955,8 @@ export default function App() {
         points={shareModalSource?.points || []}
         apiBase={API_BASE}
         isDarkMode={isDarkMode}
+        comparisonMode={isComparisonMode}
+        historicalPoint={historicalPoint}
       />
     </div>
   );

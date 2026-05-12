@@ -68,7 +68,7 @@ const roundRect = (ctx, x, y, w, h, r) => {
   ctx.closePath();
 };
 
-const drawShareImage = (canvas, { archetype, x, y, points, partyMatch, appUrl, dark = false }) => {
+const drawShareImage = (canvas, { archetype, x, y, points, partyMatch, appUrl, dark = false, comparisonMode = false, historicalPoint = null }) => {
   const ctx = canvas.getContext('2d');
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.width = SHARE_IMAGE_W * dpr;
@@ -101,7 +101,11 @@ const drawShareImage = (canvas, { archetype, x, y, points, partyMatch, appUrl, d
 
   ctx.fillStyle = c.sub;
   ctx.font = '32px sans-serif';
-  ctx.fillText(`Economic ${x.toFixed(1)}  ·  Social ${y.toFixed(1)}`, SHARE_IMAGE_W / 2, 185);
+  if (comparisonMode && historicalPoint) {
+    ctx.fillText(`Then: Eco ${historicalPoint.x.toFixed(1)} · Soc ${historicalPoint.y.toFixed(1)}   →   Now: Eco ${x.toFixed(1)} · Soc ${y.toFixed(1)}`, SHARE_IMAGE_W / 2, 185);
+  } else {
+    ctx.fillText(`Economic ${x.toFixed(1)}  ·  Social ${y.toFixed(1)}`, SHARE_IMAGE_W / 2, 185);
+  }
 
   // Compass card — rounded card background
   const compassSize = 720;
@@ -121,7 +125,7 @@ const drawShareImage = (canvas, { archetype, x, y, points, partyMatch, appUrl, d
 
   const compassX = (SHARE_IMAGE_W - compassSize) / 2;
   const compassY = cardY + cardPad;
-  drawCompass(ctx, compassX, compassY, compassSize, points, c);
+  drawCompass(ctx, compassX, compassY, compassSize, points, c, comparisonMode && historicalPoint ? historicalPoint : null);
 
   // Party bars card
   const barsCardX = cardX;
@@ -162,7 +166,7 @@ const drawShareImage = (canvas, { archetype, x, y, points, partyMatch, appUrl, d
   ctx.fillText(appUrl, SHARE_IMAGE_W / 2, urlY);
 };
 
-const drawCompass = (ctx, ox, oy, size, points, c) => {
+const drawCompass = (ctx, ox, oy, size, points, c, historicalPoint = null) => {
   const centerX = ox + size / 2;
   const centerY = oy + size / 2;
   const r = 16; // corner radius for quadrants
@@ -235,6 +239,53 @@ const drawCompass = (ctx, ox, oy, size, points, c) => {
     ctx.lineWidth = 3;
     ctx.stroke();
   });
+
+  // Historical point (6-month comparison)
+  if (historicalPoint) {
+    const hpx = ox + ((historicalPoint.x + 10) / 20) * size;
+    const hpy = oy + ((10 - historicalPoint.y) / 20) * size;
+    // Draw arrow from historical to first current point
+    if (points.length > 0) {
+      const cpx = ox + ((points[0].x + 10) / 20) * size;
+      const cpy = oy + ((10 - points[0].y) / 20) * size;
+      const dx = cpx - hpx;
+      const dy = cpy - hpy;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 1) {
+        const ux = dx / dist;
+        const uy = dy / dist;
+        const arrowStart = 20;
+        const arrowEnd = 20;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(hpx + ux * arrowStart, hpy + uy * arrowStart);
+        ctx.lineTo(cpx - ux * arrowEnd, cpy - uy * arrowEnd);
+        ctx.strokeStyle = 'rgba(100,116,139,0.5)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+    }
+    // Historical point dot
+    ctx.beginPath();
+    ctx.arc(hpx, hpy, 22, 0, 2 * Math.PI);
+    ctx.fillStyle = 'rgba(150,150,150,0.2)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(hpx, hpy, 13, 0, 2 * Math.PI);
+    ctx.fillStyle = 'rgba(150,150,150,0.6)';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // Label
+    ctx.fillStyle = 'rgba(100,116,139,0.9)';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('6 months ago', hpx, hpy - 28);
+  }
 };
 
 const drawPartyBars = (ctx, ox, oy, width, partyMatch, c) => {
@@ -287,7 +338,7 @@ const drawAxisSlider = (ctx, ox, oy, width, leftLabel, rightLabel, fraction, c) 
   ctx.stroke();
 };
 
-export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode }) => {
+export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode, comparisonMode = false, historicalPoint = null }) => {
   const previewCanvasRef = useRef(null);
   const exportCanvasRef = useRef(null);
   const [activeTab, setActiveTab] = useState('link');
@@ -390,8 +441,8 @@ export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode 
     if (!open || activeTab !== 'image') return;
     const canvas = previewCanvasRef.current;
     if (!canvas) return;
-    drawShareImage(canvas, { archetype, x, y, points: safePoints, partyMatch, appUrl, dark: isDarkMode });
-  }, [open, activeTab, archetype, x, y, safePoints, partyMatch, appUrl, isDarkMode]);
+    drawShareImage(canvas, { archetype, x, y, points: safePoints, partyMatch, appUrl, dark: isDarkMode, comparisonMode, historicalPoint });
+  }, [open, activeTab, archetype, x, y, safePoints, partyMatch, appUrl, isDarkMode, comparisonMode, historicalPoint]);
 
   if (!open) return null;
 
@@ -408,7 +459,7 @@ export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode 
 
   const handleDownload = () => {
     const canvas = exportCanvasRef.current || document.createElement('canvas');
-    drawShareImage(canvas, { archetype, x, y, points: safePoints, partyMatch, appUrl, dark: isDarkMode });
+    drawShareImage(canvas, { archetype, x, y, points: safePoints, partyMatch, appUrl, dark: isDarkMode, comparisonMode, historicalPoint });
     canvas.toBlob((blob) => {
       if (!blob) return;
       const url = URL.createObjectURL(blob);

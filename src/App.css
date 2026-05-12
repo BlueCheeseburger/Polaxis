@@ -608,6 +608,45 @@
   margin-top: 1px;
 }
 
+.six-month-banner {
+  background-color: #e3f2fd;
+  border-left: 4px solid #2196f3;
+  color: #0d47a1;
+  padding: 14px 16px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.app-shell.dark .six-month-banner {
+  background-color: rgba(21, 101, 192, 0.2);
+  border-left-color: #42a5f5;
+  color: #90caf9;
+}
+
+.six-month-banner button {
+  background: none;
+  border: none;
+  color: #0d47a1;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0;
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+.app-shell.dark .six-month-banner button {
+  color: #90caf9;
+}
+
+.six-month-banner button:hover {
+  opacity: 0.7;
+}
+
 .loading-state {
   padding: 64px 0;
   text-align: center;
