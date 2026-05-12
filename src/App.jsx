@@ -731,6 +731,34 @@ const calcPartyMatch = (x, y) => {
 
 const PARTY_COLORS = { Democrat: '#2563eb', Republican: '#dc2626', Libertarian: '#d97706', Green: '#16a34a' };
 
+// Expand a comparison participant into one or more canvas points.
+// Primary users with multiple beliefs become multiple orange dots;
+// friends with multiple beliefs become multiple white dots.
+const expandParticipantPoints = (p, idx) => {
+  const base = {
+    role: p.role,
+    participantIndex: idx,
+    analysis: p.analysis || '',
+  };
+  if (Array.isArray(p.grouped_points) && p.grouped_points.length > 1) {
+    return p.grouped_points.map((g, gi) => ({
+      ...base,
+      id: `participant-${idx}-${gi}`,
+      label: g.label || p.archetype || (idx === 0 ? 'Primary' : `Friend ${idx}`),
+      x: g.x,
+      y: g.y,
+      analysis: g.analysis || p.analysis || '',
+    }));
+  }
+  return [{
+    ...base,
+    id: `participant-${idx}`,
+    label: p.archetype || (idx === 0 ? 'Primary' : `Friend ${idx}`),
+    x: p.x,
+    y: p.y,
+  }];
+};
+
 const ComparisonDiffCard = ({ participants }) => {
   if (!Array.isArray(participants) || participants.length < 2) return null;
   const primary = participants.find(p => p.role === 'primary') || participants[0];
@@ -1448,14 +1476,7 @@ export default function App() {
         // is the primary user (orange); subsequent participants are friends
         // (white). Each point carries a `role` and `participantIndex` so the
         // canvas knows how to color it.
-        const points = (comp.participants || []).map((p, idx) => ({
-          id: `participant-${idx}`,
-          label: p.archetype || (idx === 0 ? 'Primary' : `Friend ${idx}`),
-          x: p.x, y: p.y,
-          analysis: p.analysis || '',
-          role: p.role,
-          participantIndex: idx,
-        }));
+        const points = (comp.participants || []).flatMap(expandParticipantPoints);
         setResult({
           x: primary.x,
           y: primary.y,
@@ -1513,14 +1534,7 @@ export default function App() {
         if (!comp || cancelled) return;
         // Hydrate result with all participants so the canvas re-renders
         // with everyone plotted.
-        const allPoints = (comp.participants || []).map((p, idx) => ({
-          id: `participant-${idx}`,
-          label: p.archetype || (idx === 0 ? 'Primary' : `Friend ${idx}`),
-          x: p.x, y: p.y,
-          analysis: p.analysis || '',
-          role: p.role,
-          participantIndex: idx,
-        }));
+        const allPoints = (comp.participants || []).flatMap(expandParticipantPoints);
         setResult(prev => prev ? { ...prev, points: allPoints, fromComparison: true } : prev);
         setComparison(comp);
         setHasAddedComparisonPoint(true);
