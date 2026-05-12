@@ -1888,6 +1888,7 @@ export default function App() {
     setRefineDelta(null);
     setRefineBaseline(null);
     setActiveRefineClusterIndex(0);
+    setShowSixMonthDebugToast(false);
     setCurrentShareId(null);
     setIsIncomingShare(false);
     if (typeof window !== 'undefined' && window.history?.replaceState) {
@@ -2315,10 +2316,12 @@ export default function App() {
           <span>Adding your point to the comparison…</span>
         </div>
       )}
-      {showBypassToast && <div className="bypass-toast">API bypass enabled</div>}
-      {showSixMonthDebugToast && <div className="bypass-toast">&#x1F41B; 6-month debug mode enabled</div>}
-      {showSaveToast && <div className="save-toast">Point saved</div>}
-      {showSavedHintCue && <div className="saved-hint-cue">Saved points live in the top-right bookmark.</div>}
+      <div className="toast-stack">
+        {showBypassToast && <div className="bypass-toast">API bypass enabled</div>}
+        {showSixMonthDebugToast && <div className="bypass-toast">&#x1F41B; 6-month debug mode enabled</div>}
+        {showSaveToast && <div className="save-toast">Point saved</div>}
+        {showSavedHintCue && <div className="saved-hint-cue">Saved points live in the top-right bookmark.</div>}
+      </div>
       <div className="top-controls">
         <button
           onClick={handleDebugButtonClick}

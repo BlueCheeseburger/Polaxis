@@ -110,12 +110,20 @@
   color: #a5b4fc;
 }
 
-.bypass-toast {
+.toast-stack {
   position: fixed;
   top: 22px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.bypass-toast {
   border-radius: 999px;
   padding: 8px 12px;
   font-size: 0.78rem;
@@ -124,6 +132,7 @@
   background: rgba(209, 250, 229, 0.95);
   color: #065f46;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+  white-space: nowrap;
 }
 
 .app-shell.dark .bypass-toast {
@@ -133,11 +142,6 @@
 }
 
 .save-toast {
-  position: fixed;
-  top: 64px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 30;
   border-radius: 999px;
   padding: 8px 12px;
   font-size: 0.78rem;
@@ -146,6 +150,7 @@
   background: rgba(219, 234, 254, 0.96);
   color: #1e3a8a;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.16);
+  white-space: nowrap;
 }
 
 .app-shell.dark .save-toast {
@@ -155,11 +160,6 @@
 }
 
 .saved-hint-cue {
-  position: fixed;
-  top: 76px;
-  right: 20px;
-  z-index: 30;
-  max-width: 240px;
   border-radius: 12px;
   padding: 8px 10px;
   font-size: 0.74rem;
@@ -168,6 +168,7 @@
   background: rgba(254, 243, 199, 0.97);
   color: #92400e;
   box-shadow: 0 10px 20px rgba(15, 23, 42, 0.16);
+  white-space: nowrap;
 }
 
 .app-shell.dark .saved-hint-cue {
@@ -1700,8 +1701,6 @@
   }
 
   .saved-hint-cue {
-    top: 86px;
-    right: 14px;
     max-width: 220px;
   }
 
@@ -1928,11 +1927,12 @@
 
 /* Save toast slide */
 @keyframes toast-slide {
-  from { opacity: 0; transform: translate(-50%, -10px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .save-toast,
-.bypass-toast {
+.bypass-toast,
+.saved-hint-cue {
   animation: toast-slide 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -1944,7 +1944,8 @@
   .chat-bubble,
   .filter-option,
   .save-toast,
-  .bypass-toast {
+  .bypass-toast,
+  .saved-hint-cue {
     animation: none;
   }
   .theme-toggle:active,
