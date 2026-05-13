@@ -1552,21 +1552,6 @@ export default function App() {
           x: p.x, y: p.y, analysis: p.analysis || '',
         })) : null;
 
-        // Immediately merge the joining friend's point with existing participants
-        // so other friends' dots never disappear from the canvas while the API call is in flight.
-        if (comparison?.participants) {
-          const existingPts = comparison.participants.flatMap(expandParticipantPoints);
-          const pendingIdx = comparison.participants.length;
-          const myPendingPts = pts.map((p, gi) => ({
-            ...p,
-            id: `participant-${pendingIdx}-${gi}`,
-            label: result.archetype || `Friend ${pendingIdx}`,
-            role: 'friend',
-            participantIndex: pendingIdx,
-          }));
-          setResult(prev => prev ? { ...prev, points: [...existingPts, ...myPendingPts] } : prev);
-        }
-
         const res = await fetch(`${API_BASE}/api/comparisons/${encodeURIComponent(activeComparisonId)}/join`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Client-Id': clientId },
@@ -1864,7 +1849,29 @@ export default function App() {
   };
 
   const isQuizComplete = Object.keys(quizAnswers).length === QUIZ_QUESTIONS.length;
-  const resultPoints = result ? normalizePlottedPoints(result) : [];
+  // When a friend is on a /compare/ page and Gemini just produced their result
+  // (but the join API call hasn't finished yet), result.points = friend's raw points only.
+  // We must keep ALL existing comparison participants on-canvas so they never
+  // disappear while the join is in flight. After the join completes, result.points
+  // is updated to the full set (fromComparison: true) and this path is skipped.
+  const resultPoints = (() => {
+    if (activeComparisonId && comparison?.participants && result?.fromGemini && !result?.fromComparison) {
+      // Existing participants (already confirmed in the comparison)
+      const existingPts = comparison.participants.flatMap(expandParticipantPoints);
+      // Friend's own new point — show it as a pending participant
+      const pendingIdx = comparison.participants.length;
+      const rawPts = normalizePlottedPoints(result);
+      const myPendingPts = rawPts.map((p, gi) => ({
+        ...p,
+        id: `participant-${pendingIdx}-${gi}`,
+        label: result.archetype || `Friend ${pendingIdx}`,
+        role: 'friend',
+        participantIndex: pendingIdx,
+      }));
+      return [...existingPts, ...myPendingPts];
+    }
+    return result ? normalizePlottedPoints(result) : [];
+  })();
 
   // Friend is viewing someone else's compass and hasn't added their own point yet.
   // Used to hide action buttons that don't apply in this state.
