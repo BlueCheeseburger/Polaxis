@@ -1145,6 +1145,7 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, s
       // Slightly wider hit-zone for a single point (no multi-point ambiguity).
       const hitThreshold = userPoints.length === 1 ? 18 : 14;
       if (nearestUser && nearestUserDist <= hitThreshold) {
+        if (!hasDismissedCue) setHasDismissedCue(true);
         setHoveredUserPoint(nearestUser);
         setHoveredUserPosition({ x: xPos, y: yPos });
         setHoveredReference(null);
@@ -1218,6 +1219,7 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, s
       });
       const hitThreshold = userPoints.length === 1 ? 28 : 22;
       if (nearestUser && nearestUserDist <= hitThreshold) {
+        if (!hasDismissedCue) setHasDismissedCue(true);
         setHoveredUserPoint(nearestUser);
         setHoveredUserPosition({ x: xPos, y: yPos });
         setHoveredReference(null);
@@ -1549,6 +1551,22 @@ export default function App() {
           label: p.label || `Point ${i + 1}`,
           x: p.x, y: p.y, analysis: p.analysis || '',
         })) : null;
+
+        // Immediately merge the joining friend's point with existing participants
+        // so other friends' dots never disappear from the canvas while the API call is in flight.
+        if (comparison?.participants) {
+          const existingPts = comparison.participants.flatMap(expandParticipantPoints);
+          const pendingIdx = comparison.participants.length;
+          const myPendingPts = pts.map((p, gi) => ({
+            ...p,
+            id: `participant-${pendingIdx}-${gi}`,
+            label: result.archetype || `Friend ${pendingIdx}`,
+            role: 'friend',
+            participantIndex: pendingIdx,
+          }));
+          setResult(prev => prev ? { ...prev, points: [...existingPts, ...myPendingPts] } : prev);
+        }
+
         const res = await fetch(`${API_BASE}/api/comparisons/${encodeURIComponent(activeComparisonId)}/join`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Client-Id': clientId },
@@ -1568,11 +1586,13 @@ export default function App() {
         const allPoints = (comp.participants || []).flatMap(expandParticipantPoints);
         setResult(prev => prev ? { ...prev, points: allPoints, fromComparison: true } : prev);
         setComparison(comp);
-        // Find the participant slot we just filled so the diff card shows the right sentence
-        const joinedIdx = (comp.participants || []).findIndex((p, i) =>
-          i > 0 && p.role === 'friend' &&
-          Math.abs(p.x - result.x) < 0.5 && Math.abs(p.y - result.y) < 0.5
-        );
+        // Find the participant slot we just filled — match by archetype (unique per person)
+        // to avoid false matches from position proximity.
+        const myArchetype = result.archetype || '';
+        const joinedIdx = myArchetype
+          ? (comp.participants || []).findIndex((p, i) =>
+              i > 0 && p.role === 'friend' && p.archetype === myArchetype)
+          : -1;
         if (joinedIdx >= 0) setMyComparisonParticipantIndex(joinedIdx);
         setHasAddedComparisonPoint(true);
       } catch {
