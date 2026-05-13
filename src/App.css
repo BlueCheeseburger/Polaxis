@@ -1358,6 +1358,65 @@
   color: #e2e8f0;
 }
 
+.alignment-closest {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.app-shell.dark .alignment-closest {
+  border-top-color: rgba(71, 85, 105, 0.4);
+}
+
+.global-party-block {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+}
+
+.app-shell.dark .global-party-block {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+.global-party-match {
+  margin: 0 0 4px;
+  font-size: 0.85rem;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.app-shell.dark .global-party-match {
+  color: #e2e8f0;
+}
+
+.global-party-match strong {
+  font-weight: 700;
+}
+
+.global-party-country {
+  font-weight: 400;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.app-shell.dark .global-party-country {
+  color: #94a3b8;
+}
+
+.global-party-reason {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.app-shell.dark .global-party-reason {
+  color: #94a3b8;
+}
+
 .reference-note {
   margin: 6px 2px 0;
   font-size: 0.8rem;
@@ -3207,6 +3266,16 @@
 .legend-dot.primary { background: #f97316; box-shadow: 0 0 0 2px rgba(249,115,22,0.25); }
 .legend-dot.friend { background: #fff; border: 1.5px solid #94a3b8; }
 .app-shell.dark .legend-dot.friend { background: #e2e8f0; }
+.legend-item {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.legend-you {
+  opacity: 0.55;
+  font-size: 0.78em;
+  margin-left: 2px;
+}
 
 /* Share nudge for primary user's own fresh result */
 /* Share nudge tooltip anchored to the Share button */

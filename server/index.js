@@ -538,10 +538,16 @@ app.get("/api/comparisons/:comparisonId", async (req, res) => {
   const clientId = getClientIdFromRequest(req);
   const clientIdHash = clientId ? sha256(clientId) : "";
   const participants = Array.isArray(comparison.participants) ? comparison.participants : [];
-  // Only match against FRIEND slots — primary is locked.
-  const myParticipantIndex = participants.findIndex((p) => (
+  // Check if the requester is the primary participant (e.g. they're revisiting their own comparison link).
+  const isPrimary = !!(clientIdHash &&
+    participants.length > 0 &&
+    participants[0].role === "primary" &&
+    participants[0].client_id_hash === clientIdHash);
+  // Check if the requester is a friend who already joined.
+  const myFriendIndex = isPrimary ? -1 : participants.findIndex((p) => (
     p.role === "friend" && clientIdHash && p.client_id_hash === clientIdHash
   ));
+  const myParticipantIndex = isPrimary ? 0 : myFriendIndex;
   return res.json({
     comparison: {
       id: comparison.id,
@@ -555,6 +561,7 @@ app.get("/api/comparisons/:comparisonId", async (req, res) => {
     viewer: {
       already_in_comparison: myParticipantIndex >= 0,
       participant_index: myParticipantIndex,
+      is_primary: isPrimary,
       can_join: myParticipantIndex < 0 && participants.length < (comparison.max_participants || MAX_COMPARISON_PARTICIPANTS),
     },
   });
@@ -588,6 +595,16 @@ app.post("/api/comparisons/:comparisonId/join", async (req, res) => {
   if (!incoming) return res.status(400).json({ error: "Invalid participant payload" });
 
   const participants = Array.isArray(comparison.participants) ? [...comparison.participants] : [];
+
+  // Block the primary user from joining their own comparison as a friend.
+  const isPrimaryRequester = !!(clientIdHash &&
+    participants.length > 0 &&
+    participants[0].role === "primary" &&
+    participants[0].client_id_hash === clientIdHash);
+  if (isPrimaryRequester) {
+    return res.status(409).json({ error: "Primary user cannot join their own comparison as a friend" });
+  }
+
   // Only consider FRIEND slots when matching for replacement — the primary
   // participant is locked and can never be overwritten by a /join request,
   // even if the requester happens to share device/IP with the share owner.

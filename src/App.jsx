@@ -197,7 +197,7 @@ const runGeminiJsonRequest = async ({
 
 const evaluateBeliefs = async (promptText, options = {}) => runGeminiJsonRequest({
   promptText,
-  systemInstructionText: "You are an objective political science model. Assess political beliefs and place them on the standard 2D political compass. X-axis (Economic): -10 (Far Left) to 10 (Far Right). Y-axis (Social/Government): 10 (Authoritarian) to -10 (Libertarian). Writing style: use second person ('you') for first-person inputs, third person for inputs about others. Keep each analysis to 2-3 punchy sentences (max 55 words). No jargon — write for a general audience. If the input contains clearly conflicting clusters that cannot be represented by a single point, include a points array (2-4 points). Each point needs x, y, analysis, and a short label (1-4 words). Set top-level x/y to the midpoint and top-level analysis to a one-sentence summary of the tension. Always provide an archetype: a punchy 2-3 word political identity name in 'The X' format (e.g., 'The Futurist', 'The Traditionalist', 'The Anarchist Idealist', 'The Pragmatic Centrist', 'The Reformer', 'The Localist'). Make it specific to the placement, distinctive, and POSITIVE or NEUTRAL in tone — it should feel like an identity the user would be happy to claim. STRICTLY FORBIDDEN words: contradictory, confused, conflicted, inconsistent, incoherent, naive, hypocritical, paradoxical, muddled, scattered, indecisive. For mixed or multi-cluster placements, use neutral framings like 'The Pluralist', 'The Synthesist', 'The Bridge-Builder', 'The Eclectic', 'The Independent' — never imply the user's views are flawed or self-contradicting. The archetype string must be plain ASCII letters and spaces only — no quotes, em-dashes, accents, emojis, slashes, parentheses, or other punctuation (a single hyphen is allowed, e.g. 'The Bridge-Builder'). Keep it URL-safe. Always provide a globalParty: the real-world political party from any country whose platform most closely matches the assessed position. Include the party name, the country it belongs to, a single flag emoji for that country, and a 1-2 sentence explanation of why the match fits. If there is not enough political-belief data, set hasSufficientData to false with a brief insufficiencyReason. Always set confidence (1–5) based on how precisely the input pins down political coordinates. Use this rubric strictly and conservatively — most inputs should score 2 or 3, not 4 or 5: 5 = at least 8 distinct, specific policy positions stated explicitly across BOTH economic AND social axes with clear directional stances (e.g. exact tax rates, specific program cuts/expansions, concrete social policies); 4 = at least 5 distinct specific policy stances covering both axes with minimal ambiguity; 3 = 3–4 clear stances or general ideological leanings with at least one concrete policy example; 2 = only 1–2 specific stances or mostly vague ideological language without concrete policies; 1 = barely enough to plot — single-word labels, party names only, or extremely vague statements. Default to the LOWER score when in doubt. A short paragraph or a few sentences should almost never exceed 3. Set confidenceReason to one plain-English sentence explaining the score and what was missing (e.g. 'You gave a few general leanings but no specific policy positions, so placement is uncertain.'). Follow the JSON schema exactly.",
+  systemInstructionText: "You are an objective political science model. Assess political beliefs and place them on the standard 2D political compass. X-axis (Economic): -10 (Far Left) to 10 (Far Right). Y-axis (Social/Government): 10 (Authoritarian) to -10 (Libertarian). Writing style: use second person ('you') for first-person inputs, third person for inputs about others. Keep each analysis to 2-3 punchy sentences (max 55 words). No jargon — write for a general audience. If the input contains clearly conflicting clusters that cannot be represented by a single point, include a points array (2-4 points). Each point needs x, y, analysis, and a short label (1-4 words). Set top-level x/y to the midpoint and top-level analysis to a one-sentence summary of the tension. Always provide an archetype: a punchy 2-3 word political identity name in 'The X' format (e.g., 'The Futurist', 'The Traditionalist', 'The Anarchist Idealist', 'The Pragmatic Centrist', 'The Reformer', 'The Localist'). Make it specific to the placement, distinctive, and POSITIVE or NEUTRAL in tone — it should feel like an identity the user would be happy to claim. STRICTLY FORBIDDEN words: contradictory, confused, conflicted, inconsistent, incoherent, naive, hypocritical, paradoxical, muddled, scattered, indecisive. For mixed or multi-cluster placements, use neutral framings like 'The Pluralist', 'The Synthesist', 'The Bridge-Builder', 'The Eclectic', 'The Independent' — never imply the user's views are flawed or self-contradicting. The archetype string must be plain ASCII letters and spaces only — no quotes, em-dashes, accents, emojis, slashes, parentheses, or other punctuation (a single hyphen is allowed, e.g. 'The Bridge-Builder'). Keep it URL-safe. If there is not enough political-belief data, set hasSufficientData to false with a brief insufficiencyReason. Always set confidence (1–5) based on how precisely the input pins down political coordinates. Use this rubric strictly and conservatively — most inputs should score 2 or 3, not 4 or 5: 5 = at least 8 distinct, specific policy positions stated explicitly across BOTH economic AND social axes with clear directional stances (e.g. exact tax rates, specific program cuts/expansions, concrete social policies); 4 = at least 5 distinct specific policy stances covering both axes with minimal ambiguity; 3 = 3–4 clear stances or general ideological leanings with at least one concrete policy example; 2 = only 1–2 specific stances or mostly vague ideological language without concrete policies; 1 = barely enough to plot — single-word labels, party names only, or extremely vague statements. Default to the LOWER score when in doubt. A short paragraph or a few sentences should almost never exceed 3. Set confidenceReason to one plain-English sentence explaining the score and what was missing (e.g. 'You gave a few general leanings but no specific policy positions, so placement is uncertain.'). Follow the JSON schema exactly.",
   responseSchema: {
     type: "OBJECT",
     properties: {
@@ -206,17 +206,6 @@ const evaluateBeliefs = async (promptText, options = {}) => runGeminiJsonRequest
       title: { type: "STRING", description: "A concise 1-3 word point title. Prefer proper names when clear." },
       archetype: { type: "STRING", description: "A 2-3 word political archetype name in 'The X' format (e.g., 'The Futurist'). Distinct, neutral, and specific to the placement." },
       analysis: { type: "STRING", description: "A 2-3 sentence analysis of the subject's political alignment." },
-      globalParty: {
-        type: "OBJECT",
-        description: "The real-world political party whose platform most closely matches the assessed position.",
-        properties: {
-          name: { type: "STRING", description: "Full party name (e.g. 'Liberal Democrats')" },
-          country: { type: "STRING", description: "Country the party belongs to (e.g. 'United Kingdom')" },
-          flag: { type: "STRING", description: "Single flag emoji for the country (e.g. '🇬🇧')" },
-          partyReason: { type: "STRING", description: "1-2 sentences explaining why this party matches the assessed position." }
-        },
-        required: ["name", "country", "flag", "partyReason"]
-      },
       confidence: { type: "INTEGER", description: "How precisely the input pins down coordinates, from 1 (barely enough to plot) to 5 (many specific policies stated clearly)." },
       confidenceReason: { type: "STRING", description: "One plain-English sentence explaining the confidence score." },
       points: {
@@ -239,7 +228,7 @@ const evaluateBeliefs = async (promptText, options = {}) => runGeminiJsonRequest
       isPoliticalInput: { type: "BOOLEAN", description: "True when the input is actually about politics or ideology. False when irrelevant (e.g., cooking, sports with no political content)." },
       insufficiencyReason: { type: "STRING", description: "Short explanation when there is not enough data to plot reliably." }
     },
-    required: ["x", "y", "title", "archetype", "analysis", "globalParty", "confidence", "confidenceReason", "hasSufficientData", "isPoliticalInput", "insufficiencyReason"]
+    required: ["x", "y", "title", "archetype", "analysis", "confidence", "confidenceReason", "hasSufficientData", "isPoliticalInput", "insufficiencyReason"]
   },
   ...options,
 });
@@ -497,6 +486,24 @@ const OVERLAY_PRESETS = {
       { name: "Barack Obama", flag: "🇺🇸", x: -1.5, y: -1.5, description: "Liberal institutionalist with moderate center-left economics." },
       { name: "Javier Milei", flag: "🇦🇷", x: 8.5, y: -3.0, description: "Anarcho-capitalist economics with libertarian anti-state positioning." },
       { name: "Nicolás Maduro", flag: "🇻🇪", x: -6.0, y: 7.5, description: "State-socialist economy under authoritarian single-party governance." },
+      // Auth-Left additions
+      { name: "Kim Jong-un", flag: "🇰🇵", x: -2.0, y: 9.5, description: "Supreme leader of North Korea, absolute totalitarian control over a state-run economy." },
+      { name: "Fidel Castro", flag: "🇨🇺", x: -5.5, y: 7.0, description: "Cuban revolutionary, decades-long communist single-party rule with state ownership of the economy." },
+      { name: "Mao Zedong", flag: "🇨🇳", x: -6.5, y: 9.0, description: "Founder of the People's Republic of China; collectivized economy under one-man authoritarian rule." },
+      { name: "Alexander Lukashenko", flag: "🇧🇾", x: -2.5, y: 8.0, description: "Belarus president since 1994; post-Soviet authoritarian rule with state-dominated economy." },
+      // Auth-Right additions
+      { name: "Vladimir Putin", flag: "🇷🇺", x: 3.5, y: 8.0, description: "Russian president; nationalist statism, resource-oligarch capitalism, and aggressive executive power." },
+      { name: "Viktor Orbán", flag: "🇭🇺", x: 4.5, y: 6.5, description: "Hungarian PM; Christian-nationalist illiberalism with strong state control and anti-EU sovereignty." },
+      { name: "Recep Erdoğan", flag: "🇹🇷", x: 3.0, y: 7.0, description: "Turkish president; Islamist-conservative governance with steadily centralised executive authority." },
+      // Lib-Left additions
+      { name: "Justin Trudeau", flag: "🇨🇦", x: -2.5, y: -1.5, description: "Canadian PM; progressive social liberalism with a centre-left mixed-economy approach." },
+      { name: "Jacinda Ardern", flag: "🇳🇿", x: -3.5, y: -3.0, description: "New Zealand PM; social-democratic welfare state with strong civil liberties and participatory governance." },
+      { name: "Jeremy Corbyn", flag: "🇬🇧", x: -7.0, y: -3.0, description: "UK Labour leader; democratic socialist platform with strong anti-war and civil liberties record." },
+      { name: "Nelson Mandela", flag: "🇿🇦", x: -4.0, y: -4.5, description: "South African president; multiracial democracy built on reconciliation, social-democratic economics, and anti-authoritarianism." },
+      // Lib-Right additions
+      { name: "Ron Paul", flag: "🇺🇸", x: 7.5, y: -5.5, description: "US congressman and libertarian icon; anti-Fed, anti-interventionist, and minimal-government principles." },
+      { name: "Barry Goldwater", flag: "🇺🇸", x: 7.0, y: -3.5, description: "US senator; father of modern conservatism, combining free-market economics with strong individual liberty." },
+      { name: "Calvin Coolidge", flag: "🇺🇸", x: 5.0, y: -1.5, description: "1920s US president; 'do nothing' small-government philosophy, minimal regulation, and fiscal restraint." },
     ],
   },
   republican: {
@@ -723,6 +730,48 @@ const calcClosestIdeology = (x, y) => {
   let closest = null;
   let minDist = Infinity;
   for (const p of OVERLAY_PRESETS.ideologies.points) {
+    const d = Math.hypot(x - p.x, y - p.y);
+    if (d < minDist) { minDist = d; closest = p; }
+  }
+  return closest;
+};
+
+const GLOBAL_PARTIES = [
+  // Auth-Left
+  { name: "Communist Party of China", country: "China", flag: "🇨🇳", x: 1.5, y: 8.5, description: "State capitalism under single-party rule — your position reflects a high tolerance for central authority with mixed-market leanings." },
+  { name: "United Russia", country: "Russia", flag: "🇷🇺", x: 3.5, y: 8.0, description: "Nationalist statism with a powerful executive — your preference for state management and order mirrors United Russia's platform." },
+  { name: "PSUV", country: "Venezuela", flag: "🇻🇪", x: -5.5, y: 7.0, description: "Socialist resource nationalism under a strong executive — matches your left-leaning economics and tolerance for state authority." },
+  { name: "Cuban Communist Party", country: "Cuba", flag: "🇨🇺", x: -6.5, y: 8.0, description: "Single-party communist state with central planning — your far-left, highly authoritarian position aligns with Cuba's ruling party." },
+  { name: "Workers' Party of Korea", country: "North Korea", flag: "🇰🇵", x: -2.0, y: 9.5, description: "Totalitarian single-party rule with a state-controlled economy — your extreme authoritarian-left position mirrors the WPK." },
+  // Auth-Right
+  { name: "BJP", country: "India", flag: "🇮🇳", x: 5.5, y: 5.5, description: "Hindu nationalism with a strong central government — your right-leaning, authority-accepting profile closely mirrors BJP." },
+  { name: "Fidesz", country: "Hungary", flag: "🇭🇺", x: 4.5, y: 6.5, description: "Christian-nationalist illiberal statism — aligns with your right-leaning, authority-valuing views." },
+  { name: "AKP", country: "Turkey", flag: "🇹🇷", x: 3.0, y: 6.5, description: "Conservative Islamist governance with a powerful executive — matches your socially conservative, state-forward position." },
+  { name: "Rassemblement National", country: "France", flag: "🇫🇷", x: 4.0, y: 5.0, description: "National-conservative sovereignty and welfare — fits your right-leaning, moderately authoritarian stance." },
+  { name: "Conservative Party", country: "United Kingdom", flag: "🇬🇧", x: 4.5, y: 2.5, description: "Centre-right governance balancing free markets with traditional institutions — matches your moderate right-leaning position." },
+  // Centre
+  { name: "CDU/CSU", country: "Germany", flag: "🇩🇪", x: 2.5, y: 2.5, description: "Christian democratic centre-right consensus politics — your moderate right positioning aligns with CDU's balancing approach." },
+  { name: "SPD", country: "Germany", flag: "🇩🇪", x: -2.0, y: 1.5, description: "Social democratic centre-left — your left-leaning economics with mild institutional authority fits the SPD's tradition." },
+  { name: "Labour Party", country: "United Kingdom", flag: "🇬🇧", x: -2.5, y: 1.5, description: "Centre-left party championing workers' rights and public services — aligns with your left-leaning, moderately institutional views." },
+  { name: "Liberal Party", country: "Canada", flag: "🇨🇦", x: -1.5, y: 0.5, description: "Canadian centre-left liberalism blending market economics with social programs — matches your centrist to mildly left position." },
+  { name: "Renaissance (En Marche)", country: "France", flag: "🇫🇷", x: 2.0, y: 1.5, description: "Pro-EU centrist liberalism — your centrist positioning with mild institutional leanings fits Macron's movement." },
+  // Lib-Left
+  { name: "Die Grünen", country: "Germany", flag: "🇩🇪", x: -3.5, y: -2.5, description: "Ecological social democracy with strong civil liberties — your green-left combination aligns closely with the German Greens." },
+  { name: "Podemos", country: "Spain", flag: "🇪🇸", x: -6.0, y: -3.0, description: "Left-populist redistribution and participatory democracy — mirrors your libertarian-left combination." },
+  { name: "NDP", country: "Canada", flag: "🇨🇦", x: -4.0, y: -1.5, description: "Social democratic workers' rights and universal healthcare — your centre-left libertarian positioning fits the NDP." },
+  { name: "Syriza", country: "Greece", flag: "🇬🇷", x: -6.0, y: -2.0, description: "Radical left opposing austerity and authoritarian governance — your anti-establishment left position matches Syriza." },
+  { name: "Green Party", country: "New Zealand", flag: "🇳🇿", x: -4.5, y: -3.0, description: "Progressive ecological politics with strong civil liberties — matches your libertarian-left values." },
+  // Lib-Right
+  { name: "FDP", country: "Germany", flag: "🇩🇪", x: 4.0, y: -3.0, description: "Free-market liberalism with strong civil liberties — your right-leaning libertarian views align with the FDP." },
+  { name: "Liberal Democrats", country: "United Kingdom", flag: "🇬🇧", x: 1.5, y: -3.0, description: "Pro-market liberalism with social tolerance — your centre-right libertarian positioning matches the Lib Dems." },
+  { name: "ACT Party", country: "New Zealand", flag: "🇳🇿", x: 6.5, y: -4.5, description: "Radical free-market liberalism with individual freedoms — your strongly right-libertarian positioning closely mirrors ACT." },
+  { name: "Libertarian Party", country: "United States", flag: "🇺🇸", x: 7.0, y: -5.0, description: "Minimal government, personal freedom, and free markets — your right-libertarian views are a natural match." },
+];
+
+const calcClosestGlobalParty = (x, y) => {
+  let closest = null;
+  let minDist = Infinity;
+  for (const p of GLOBAL_PARTIES) {
     const d = Math.hypot(x - p.x, y - p.y);
     if (d < minDist) { minDist = d; closest = p; }
   }
@@ -2821,14 +2870,22 @@ export default function App() {
               </div>
             )}
 
-            {/* Comparison context header — shown after friend has joined or is mid-input */}
+            {/* Comparison context header — shown after friend has joined, is mid-input, or viewer is already a participant */}
             {activeComparisonId && comparison && (hasAddedComparisonPoint || compareFriendWantsToJoin) && (
               <div className="compare-cta-card compare-context-card">
                 <div className="compare-cta-content">
                   <div className="compare-legend">
-                    <span className="legend-dot primary" /> {comparison.participants?.[0]?.archetype || 'Primary'}
+                    <span className="legend-item">
+                      <span className="legend-dot primary" />
+                      {comparison.participants?.[0]?.archetype || 'Primary'}
+                      {myComparisonParticipantIndex === 0 && <span className="legend-you"> (You)</span>}
+                    </span>
                     {comparison.participants?.slice(1).map((p, i) => (
-                      <span key={i}><span className="legend-dot friend" /> {p.archetype || `Friend ${i + 1}`}</span>
+                      <span key={i} className="legend-item">
+                        <span className="legend-dot friend" />
+                        {p.archetype || `Friend ${i + 1}`}
+                        {myComparisonParticipantIndex === i + 1 && <span className="legend-you"> (You)</span>}
+                      </span>
                     ))}
                   </div>
                   <p className="compare-cta-sub">
@@ -2941,18 +2998,19 @@ export default function App() {
               ) : !isDebugPoint && !isAnalysisPending ? (
                 <p>"{result.analysis}"</p>
               ) : null}
-              {!isDebugPoint && !isAnalysisPending && result.globalParty?.name && (
-                <div className="global-party-block">
-                  <p className="global-party-match">
-                    {isViewingOnly
-                      ? <>{result.archetype || 'They'} align{result.archetype ? 's' : ''} most with <strong>{result.globalParty.flag} {result.globalParty.name}</strong> <span className="global-party-country">({result.globalParty.country})</span></>
-                      : <>You align most with <strong>{result.globalParty.flag} {result.globalParty.name}</strong> <span className="global-party-country">({result.globalParty.country})</span></>}
-                  </p>
-                  {result.globalParty.partyReason && (
-                    <p className="global-party-reason">{result.globalParty.partyReason}</p>
-                  )}
-                </div>
-              )}
+              {!isDebugPoint && !isAnalysisPending && (() => {
+                const gp = calcClosestGlobalParty(result.x, result.y);
+                return gp ? (
+                  <div className="global-party-block">
+                    <p className="global-party-match">
+                      {isViewingOnly
+                        ? <>{result.archetype || 'They'} align{result.archetype ? 's' : ''} most with <strong>{gp.flag} {gp.name}</strong> <span className="global-party-country">({gp.country})</span></>
+                        : <>You align most with <strong>{gp.flag} {gp.name}</strong> <span className="global-party-country">({gp.country})</span></>}
+                    </p>
+                    <p className="global-party-reason">{gp.description}</p>
+                  </div>
+                ) : null;
+              })()}
             </div>
             {!isViewingOnly && !isDebugPoint && !isAnalysisPending && !isRefineMode && (() => {
               const totalQuestions = REFINEMENT_CLUSTERS.reduce((sum, c) => sum + c.questions.length, 0);
