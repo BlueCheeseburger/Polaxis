@@ -11,6 +11,14 @@ const CLIENT_ID_STORAGE_KEY = "political_compass_client_id_v1";
 const MAX_MULTI_POINTS = 4;
 const FIRST_SAVE_HINT_SESSION_KEY = "political_compass_first_save_hint_seen_v1";
 const LEGACY_SAVED_POINTS_STORAGE_KEY = "politicalCompass.savedPoints";
+const ANALYZING_MESSAGES = [
+  "Analyzing your beliefs",
+  "Plotting your point",
+  "Computing your position",
+  "Calculating ideology",
+  "Mapping your views",
+  "Finding your alignment",
+];
 const TEXT_INPUT_HINTS = [
   "Put your beliefs here",
   "Example: I support strong unions, higher taxes on billionaires, and universal healthcare.",
@@ -1357,6 +1365,8 @@ export default function App() {
   const [showSavedHintCue, setShowSavedHintCue] = useState(false);
   const [hintIndex, setHintIndex] = useState(0);
   const [isHintFading, setIsHintFading] = useState(false);
+  const [analyzingMessageIndex, setAnalyzingMessageIndex] = useState(0);
+  const [isAnalyzingFading, setIsAnalyzingFading] = useState(false);
   const [isTextInputFocused, setIsTextInputFocused] = useState(false);
   const [isHintIdleReady, setIsHintIdleReady] = useState(true);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -1749,6 +1759,19 @@ export default function App() {
 
     return () => window.clearTimeout(cycleTimer);
   }, [mode, textInput, hintIndex, isTextInputFocused, isHintIdleReady]);
+
+  useEffect(() => {
+    if (!loading) return undefined;
+    const cycleTimer = window.setTimeout(() => {
+      setIsAnalyzingFading(true);
+      const fadeTimer = window.setTimeout(() => {
+        setAnalyzingMessageIndex((prev) => (prev + 1) % ANALYZING_MESSAGES.length);
+        setIsAnalyzingFading(false);
+      }, 420);
+      return () => window.clearTimeout(fadeTimer);
+    }, 4200);
+    return () => window.clearTimeout(cycleTimer);
+  }, [loading, analyzingMessageIndex]);
 
   // Scroll the input panel into view when a friend on a /compare/ page clicks "Add My Point"
   useEffect(() => {
@@ -2658,8 +2681,8 @@ export default function App() {
 
         {loading && (
           <div className="loading-state">
-            <PulsingCrosshairs size={64} label="Analyzing your beliefs" />
-            <p>Analyzing your beliefs...</p>
+            <PulsingCrosshairs size={64} label={ANALYZING_MESSAGES[analyzingMessageIndex]} />
+            <p><span className={`analyzing-message${isAnalyzingFading ? ' fading' : ''}`}>{ANALYZING_MESSAGES[analyzingMessageIndex]}...</span></p>
           </div>
         )}
 

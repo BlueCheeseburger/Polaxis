@@ -434,6 +434,14 @@
   opacity: 0;
 }
 
+.analyzing-message {
+  transition: opacity 0.28s ease;
+}
+
+.analyzing-message.fading {
+  opacity: 0;
+}
+
 .belief-textarea:focus {
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
