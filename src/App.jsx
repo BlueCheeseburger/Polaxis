@@ -197,7 +197,7 @@ const runGeminiJsonRequest = async ({
 
 const evaluateBeliefs = async (promptText, options = {}) => runGeminiJsonRequest({
   promptText,
-  systemInstructionText: "You are an objective political science model. Assess political beliefs and place them on the standard 2D political compass. X-axis (Economic): -10 (Far Left) to 10 (Far Right). Y-axis (Social/Government): 10 (Authoritarian) to -10 (Libertarian). Writing style: use second person ('you') for first-person inputs, third person for inputs about others. Keep each analysis to 1-2 punchy sentences (max 35 words). No jargon — write for a general audience. If the input contains clearly conflicting clusters that cannot be represented by a single point, include a points array (2-4 points). Each point needs x, y, analysis, and a short label (1-4 words). Set top-level x/y to the midpoint and top-level analysis to a one-sentence summary of the tension. Always provide an archetype: a punchy 2-3 word political identity name in 'The X' format (e.g., 'The Futurist', 'The Traditionalist', 'The Anarchist Idealist', 'The Pragmatic Centrist', 'The Reformer', 'The Localist'). Make it specific to the placement, distinctive, and POSITIVE or NEUTRAL in tone — it should feel like an identity the user would be happy to claim. STRICTLY FORBIDDEN words: contradictory, confused, conflicted, inconsistent, incoherent, naive, hypocritical, paradoxical, muddled, scattered, indecisive. For mixed or multi-cluster placements, use neutral framings like 'The Pluralist', 'The Synthesist', 'The Bridge-Builder', 'The Eclectic', 'The Independent' — never imply the user's views are flawed or self-contradicting. The archetype string must be plain ASCII letters and spaces only — no quotes, em-dashes, accents, emojis, slashes, parentheses, or other punctuation (a single hyphen is allowed, e.g. 'The Bridge-Builder'). Keep it URL-safe. If there is not enough political-belief data, set hasSufficientData to false with a brief insufficiencyReason. Always set confidence (1–5) based on how precisely the input pins down political coordinates: 5 = multiple specific policies stated clearly; 4 = several clear stances; 3 = general leanings with some specifics; 2 = vague or limited input; 1 = barely enough to plot. Set confidenceReason to one plain-English sentence explaining the score (e.g. 'You mentioned several specific policies, so your placement is fairly precise.'). Follow the JSON schema exactly.",
+  systemInstructionText: "You are an objective political science model. Assess political beliefs and place them on the standard 2D political compass. X-axis (Economic): -10 (Far Left) to 10 (Far Right). Y-axis (Social/Government): 10 (Authoritarian) to -10 (Libertarian). Writing style: use second person ('you') for first-person inputs, third person for inputs about others. Keep each analysis to 2-3 punchy sentences (max 55 words). No jargon — write for a general audience. If the input contains clearly conflicting clusters that cannot be represented by a single point, include a points array (2-4 points). Each point needs x, y, analysis, and a short label (1-4 words). Set top-level x/y to the midpoint and top-level analysis to a one-sentence summary of the tension. Always provide an archetype: a punchy 2-3 word political identity name in 'The X' format (e.g., 'The Futurist', 'The Traditionalist', 'The Anarchist Idealist', 'The Pragmatic Centrist', 'The Reformer', 'The Localist'). Make it specific to the placement, distinctive, and POSITIVE or NEUTRAL in tone — it should feel like an identity the user would be happy to claim. STRICTLY FORBIDDEN words: contradictory, confused, conflicted, inconsistent, incoherent, naive, hypocritical, paradoxical, muddled, scattered, indecisive. For mixed or multi-cluster placements, use neutral framings like 'The Pluralist', 'The Synthesist', 'The Bridge-Builder', 'The Eclectic', 'The Independent' — never imply the user's views are flawed or self-contradicting. The archetype string must be plain ASCII letters and spaces only — no quotes, em-dashes, accents, emojis, slashes, parentheses, or other punctuation (a single hyphen is allowed, e.g. 'The Bridge-Builder'). Keep it URL-safe. Always provide a globalParty: the real-world political party from any country whose platform most closely matches the assessed position. Include the party name, the country it belongs to, a single flag emoji for that country, and a 1-2 sentence explanation of why the match fits. If there is not enough political-belief data, set hasSufficientData to false with a brief insufficiencyReason. Always set confidence (1–5) based on how precisely the input pins down political coordinates. Use this rubric strictly and conservatively — most inputs should score 2 or 3, not 4 or 5: 5 = at least 8 distinct, specific policy positions stated explicitly across BOTH economic AND social axes with clear directional stances (e.g. exact tax rates, specific program cuts/expansions, concrete social policies); 4 = at least 5 distinct specific policy stances covering both axes with minimal ambiguity; 3 = 3–4 clear stances or general ideological leanings with at least one concrete policy example; 2 = only 1–2 specific stances or mostly vague ideological language without concrete policies; 1 = barely enough to plot — single-word labels, party names only, or extremely vague statements. Default to the LOWER score when in doubt. A short paragraph or a few sentences should almost never exceed 3. Set confidenceReason to one plain-English sentence explaining the score and what was missing (e.g. 'You gave a few general leanings but no specific policy positions, so placement is uncertain.'). Follow the JSON schema exactly.",
   responseSchema: {
     type: "OBJECT",
     properties: {
@@ -205,7 +205,18 @@ const evaluateBeliefs = async (promptText, options = {}) => runGeminiJsonRequest
       y: { type: "NUMBER", description: "Social score from 10 (Authoritarian) to -10 (Libertarian)" },
       title: { type: "STRING", description: "A concise 1-3 word point title. Prefer proper names when clear." },
       archetype: { type: "STRING", description: "A 2-3 word political archetype name in 'The X' format (e.g., 'The Futurist'). Distinct, neutral, and specific to the placement." },
-      analysis: { type: "STRING", description: "A brief analysis of the subject's political alignment." },
+      analysis: { type: "STRING", description: "A 2-3 sentence analysis of the subject's political alignment." },
+      globalParty: {
+        type: "OBJECT",
+        description: "The real-world political party whose platform most closely matches the assessed position.",
+        properties: {
+          name: { type: "STRING", description: "Full party name (e.g. 'Liberal Democrats')" },
+          country: { type: "STRING", description: "Country the party belongs to (e.g. 'United Kingdom')" },
+          flag: { type: "STRING", description: "Single flag emoji for the country (e.g. '🇬🇧')" },
+          partyReason: { type: "STRING", description: "1-2 sentences explaining why this party matches the assessed position." }
+        },
+        required: ["name", "country", "flag", "partyReason"]
+      },
       confidence: { type: "INTEGER", description: "How precisely the input pins down coordinates, from 1 (barely enough to plot) to 5 (many specific policies stated clearly)." },
       confidenceReason: { type: "STRING", description: "One plain-English sentence explaining the confidence score." },
       points: {
@@ -228,7 +239,7 @@ const evaluateBeliefs = async (promptText, options = {}) => runGeminiJsonRequest
       isPoliticalInput: { type: "BOOLEAN", description: "True when the input is actually about politics or ideology. False when irrelevant (e.g., cooking, sports with no political content)." },
       insufficiencyReason: { type: "STRING", description: "Short explanation when there is not enough data to plot reliably." }
     },
-    required: ["x", "y", "title", "archetype", "analysis", "confidence", "confidenceReason", "hasSufficientData", "isPoliticalInput", "insufficiencyReason"]
+    required: ["x", "y", "title", "archetype", "analysis", "globalParty", "confidence", "confidenceReason", "hasSufficientData", "isPoliticalInput", "insufficiencyReason"]
   },
   ...options,
 });
@@ -833,10 +844,12 @@ const ComparisonDiffCard = ({ participants, myParticipantIndex = -1 }) => {
   );
 };
 
-const AxisBreakdownPanel = ({ x, y }) => {
+const AxisBreakdownPanel = ({ x, y, archetype, isViewingOnly }) => {
   const matches = calcPartyMatch(x, y);
   const econPct = Math.round(((x + 10) / 20) * 100);
   const socialPct = Math.round(((y + 10) / 20) * 100);
+  const closest = calcClosestPolitician(x, y);
+  const closestIdeology = calcClosestIdeology(x, y);
   return (
     <div className="axis-breakdown-panel">
       <div className="alignment-header">
@@ -888,6 +901,13 @@ const AxisBreakdownPanel = ({ x, y }) => {
         </div>
         <span className="axis-slider-label">Auth</span>
       </div>
+      {closest && (
+        <p className="closest-politician alignment-closest">
+          {isViewingOnly
+            ? <>{archetype || 'They'} {archetype ? 'is' : 'are'} closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>{closestIdeology ? <>, ideologically nearest to <strong>{closestIdeology.name}</strong></> : ''}.</>
+            : <>You're closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>{closestIdeology ? <>, ideologically nearest to <strong>{closestIdeology.name}</strong></> : ''}.</>}
+        </p>
+      )}
     </div>
   );
 };
@@ -2821,7 +2841,7 @@ export default function App() {
             )}
 
             <div className="compass-area">
-              <AxisBreakdownPanel x={result.x} y={result.y} />
+              <AxisBreakdownPanel x={result.x} y={result.y} archetype={result.archetype} isViewingOnly={isViewingOnly} />
               {comparison && Array.isArray(comparison.participants) && comparison.participants.length >= 2 && (
                 <ComparisonDiffCard participants={comparison.participants} myParticipantIndex={myComparisonParticipantIndex} />
               )}
@@ -2921,17 +2941,18 @@ export default function App() {
               ) : !isDebugPoint && !isAnalysisPending ? (
                 <p>"{result.analysis}"</p>
               ) : null}
-              {!isDebugPoint && !isAnalysisPending && (() => {
-                const closest = calcClosestPolitician(result.x, result.y);
-                const closestIdeology = calcClosestIdeology(result.x, result.y);
-                return closest ? (
-                  <p className="closest-politician">
+              {!isDebugPoint && !isAnalysisPending && result.globalParty?.name && (
+                <div className="global-party-block">
+                  <p className="global-party-match">
                     {isViewingOnly
-                      ? <>{result.archetype || 'They'} {`${result.archetype ? 'is' : 'are'}`} closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>{closestIdeology ? <>, ideologically nearest to <strong>{closestIdeology.name}</strong></> : ''}.</>
-                      : <>You're closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>{closestIdeology ? <>, ideologically nearest to <strong>{closestIdeology.name}</strong></> : ''}.</>}
+                      ? <>{result.archetype || 'They'} align{result.archetype ? 's' : ''} most with <strong>{result.globalParty.flag} {result.globalParty.name}</strong> <span className="global-party-country">({result.globalParty.country})</span></>
+                      : <>You align most with <strong>{result.globalParty.flag} {result.globalParty.name}</strong> <span className="global-party-country">({result.globalParty.country})</span></>}
                   </p>
-                ) : null;
-              })()}
+                  {result.globalParty.partyReason && (
+                    <p className="global-party-reason">{result.globalParty.partyReason}</p>
+                  )}
+                </div>
+              )}
             </div>
             {!isViewingOnly && !isDebugPoint && !isAnalysisPending && !isRefineMode && (() => {
               const totalQuestions = REFINEMENT_CLUSTERS.reduce((sum, c) => sum + c.questions.length, 0);
