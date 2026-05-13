@@ -1410,6 +1410,7 @@ export default function App() {
   const ignoreNextDebugClickRef = useRef(false);
   const hintIdleTimerRef = useRef(null);
   const savedMenuWrapRef = useRef(null);
+  const inputPanelRef = useRef(null);
 
   const isMobile = /Mobi|Android/i.test(navigator.userAgent);
 
@@ -1743,6 +1744,16 @@ export default function App() {
 
     return () => window.clearTimeout(cycleTimer);
   }, [mode, textInput, hintIndex, isTextInputFocused, isHintIdleReady]);
+
+  // Scroll the input panel into view when a friend on a /compare/ page clicks "Add My Point"
+  useEffect(() => {
+    if (!compareFriendWantsToJoin) return;
+    // Small delay so the panel is in the DOM before scrolling
+    const t = window.setTimeout(() => {
+      inputPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+    return () => window.clearTimeout(t);
+  }, [compareFriendWantsToJoin]);
 
   // Show share nudge tooltip briefly after a fresh (non-share, non-comparison) Gemini result
   useEffect(() => {
@@ -2505,7 +2516,7 @@ export default function App() {
         {/* Show input when there's no result yet, OR when friend on a
             comparison page has clicked "Add My Point" but hasn't submitted yet */}
         {(!result || (activeComparisonId && compareFriendWantsToJoin && !hasAddedComparisonPoint)) && !loading && (
-          <section className="panel">
+          <section className="panel" ref={inputPanelRef}>
             <div className="mode-switch">
               <button
                 onClick={() => setMode('text')}
