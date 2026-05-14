@@ -3532,42 +3532,86 @@
 .debate-close-btn:hover { color: #f1f5f9; }
 
 .debate-persona-card {
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(239, 68, 68, 0.12);
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.14);
   background: rgba(239, 68, 68, 0.04);
   flex-shrink: 0;
 }
-.debate-persona-info {
+.debate-vs-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 8px;
+}
+.debate-vs-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.debate-vs-you {
+  align-items: flex-start;
+}
+.debate-vs-enemy {
+  align-items: flex-end;
+}
+.debate-vs-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #475569;
+}
+.debate-vs-you .debate-vs-label {
+  color: #6366f1;
+}
+.debate-vs-enemy .debate-vs-label {
+  color: #ef4444;
+}
+.debate-vs-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.debate-vs-you .debate-vs-name {
+  color: #a5b4fc;
+}
+.debate-vs-enemy .debate-vs-name {
+  color: #fca5a5;
+}
+.debate-vs-coords {
+  font-size: 0.68rem;
+  color: #475569;
+  font-variant-numeric: tabular-nums;
+}
+.debate-vs-divider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  color: #ef4444;
+  opacity: 0.6;
+}
+.debate-persona-meta {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 4px;
-}
-.debate-persona-label {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #fca5a5;
 }
 .debate-persona-quadrant {
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: 0.65rem;
+  font-weight: 700;
   background: rgba(239, 68, 68, 0.15);
   color: #ef4444;
   border-radius: 999px;
   padding: 2px 8px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.debate-persona-coords {
-  display: flex;
-  gap: 12px;
-  font-size: 0.72rem;
-  color: #64748b;
-  margin-bottom: 6px;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 .debate-disclaimer {
-  font-size: 0.7rem;
-  color: #475569;
+  font-size: 0.68rem;
+  color: #334155;
   margin: 0;
   font-style: italic;
 }

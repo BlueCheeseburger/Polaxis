@@ -204,17 +204,25 @@ export default function DebateMode({ open, onClose, userX, userY, userArchetype,
         </div>
 
         <div className="debate-persona-card">
-          <div className="debate-persona-info">
-            <span className="debate-persona-label">{persona.label}</span>
+          <div className="debate-vs-row">
+            <div className="debate-vs-side debate-vs-you">
+              <span className="debate-vs-label">You</span>
+              <span className="debate-vs-name">{userArchetype || 'Your Position'}</span>
+              <span className="debate-vs-coords">({Number(userX).toFixed(1)}, {Number(userY).toFixed(1)})</span>
+            </div>
+            <div className="debate-vs-divider">
+              <Swords size={16} />
+            </div>
+            <div className="debate-vs-side debate-vs-enemy">
+              <span className="debate-vs-label">Adversary</span>
+              <span className="debate-vs-name">{persona.label}</span>
+              <span className="debate-vs-coords">({ax}, {ay})</span>
+            </div>
+          </div>
+          <div className="debate-persona-meta">
             <span className="debate-persona-quadrant">{persona.quadrant}</span>
+            <span className="debate-disclaimer">AI role-play · does not reflect Gemini's views</span>
           </div>
-          <div className="debate-persona-coords">
-            <span>Econ: {ax}</span>
-            <span>Social: {ay}</span>
-          </div>
-          <p className="debate-disclaimer">
-            This AI argues the opposite of your position. It does not reflect Gemini's actual views.
-          </p>
         </div>
 
         <div className="debate-messages">
