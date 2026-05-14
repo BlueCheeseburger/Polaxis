@@ -1012,8 +1012,8 @@ const AxisBreakdownPanel = ({ x, y, archetype, isViewingOnly, resultPoints }) =>
         <div className="global-party-block alignment-global-party">
           <p className="global-party-match">
             {isViewingOnly
-              ? <>{archetype || 'They'} align{archetype ? 's' : ''} most with <strong>{gp.flag} {gp.name}</strong> <span className="global-party-country">({gp.country})</span></>
-              : <>You align most with <strong>{gp.flag} {gp.name}</strong> <span className="global-party-country">({gp.country})</span></>}
+              ? <>{archetype || 'They'} align{archetype ? 's' : ''} most with <strong>{gp.flag} {gp.name}</strong></>
+              : <>You align most with <strong>{gp.flag} {gp.name}</strong></>}
           </p>
           <p className="global-party-reason">{gp.description}</p>
         </div>

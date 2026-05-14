@@ -276,7 +276,7 @@
 }
 
 .app-content {
-  max-width: 980px;
+  max-width: 1060px;
   margin: 0 auto;
   padding: 52px 0 32px;
 }
@@ -394,9 +394,12 @@
   background: rgba(30, 64, 175, 0.28);
 }
 
-.panel-body,
-.result-panel {
+.panel-body {
   padding: 28px;
+}
+
+.result-panel {
+  padding: 28px 14px;
 }
 
 .belief-textarea {
@@ -864,7 +867,7 @@
 }
 
 .compass-plot-card {
-  width: min(100%, 460px);
+  width: min(100%, 640px);
   border-radius: 14px;
   padding: 10px;
   border: 1px solid rgba(148, 163, 184, 0.4);
@@ -878,7 +881,7 @@
 
 .compass-canvas {
   width: 100%;
-  max-width: 520px;
+  max-width: 620px;
   aspect-ratio: 1;
   height: auto;
   display: block;
@@ -952,7 +955,7 @@
   display: flex;
   justify-content: center;
   gap: 12px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .overlay-filter {
@@ -1613,7 +1616,8 @@
 
 /* Axis breakdown panel */
 .axis-breakdown-panel {
-  min-width: 190px;
+  width: 260px;
+  flex-shrink: 0;
   border-radius: 12px;
   border: 1px solid rgba(148, 163, 184, 0.4);
   background: rgba(248, 250, 252, 0.75);
