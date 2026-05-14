@@ -2641,7 +2641,10 @@ export default function App() {
                             maxLength={60}
                           />
                         ) : (
-                          <h4>{point.pinned ? '📌 ' : ''}{point.title}{point.titlePending ? " (title pending)" : ""}</h4>
+                          <h4>
+                            {point.pinned && <span className="pinned-badge">Pinned</span>}
+                            {point.title}{point.titlePending ? " (title pending)" : ""}
+                          </h4>
                         )}
                         <p className="saved-point-meta">
                           Economic: {point.x.toFixed(2)} | Social: {point.y.toFixed(2)}
