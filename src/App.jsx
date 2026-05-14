@@ -2707,7 +2707,23 @@ export default function App() {
           </div>
         )}
         <header className="hero">
-          <div className="hero-icon-wrap" style={{ cursor: 'pointer' }} onClick={() => { sessionStorage.removeItem('landing_dismissed'); setShowLanding(true); }} title="Go to home">
+          <div className="hero-icon-wrap" style={{ cursor: 'pointer' }} onClick={() => {
+            sessionStorage.removeItem('landing_dismissed');
+            setResult(null);
+            setTextInput('');
+            setQuizAnswers({});
+            setMode('text');
+            setError(null);
+            setIsRefineMode(false);
+            setRefineAnswers({});
+            setRefineDelta(null);
+            setRefineBaseline(null);
+            setSourcePrompt('');
+            setHasGeminiQuizResult(false);
+            setIsAnalysisPending(false);
+            window.history.replaceState({}, '', '/');
+            setShowLanding(true);
+          }} title="Go to home">
             <div className="hero-icon">
               <Compass size={32} />
             </div>
