@@ -905,12 +905,28 @@ const ComparisonDiffCard = ({ participants, myParticipantIndex = -1 }) => {
   );
 };
 
-const AxisBreakdownPanel = ({ x, y, archetype, isViewingOnly }) => {
+const AxisBreakdownPanel = ({ x, y, archetype, isViewingOnly, resultPoints }) => {
   const matches = calcPartyMatch(x, y);
   const econPct = Math.round(((x + 10) / 20) * 100);
   const socialPct = Math.round(((y + 10) / 20) * 100);
   const closest = calcClosestPolitician(x, y);
-  const closestIdeology = calcClosestIdeology(x, y);
+
+  // When multiple points exist, compute closest ideology per point and deduplicate.
+  // When single point, fall back to the averaged x/y.
+  const multiplePoints = resultPoints && resultPoints.length > 1;
+  const closestIdeologies = multiplePoints
+    ? (() => {
+        const seen = new Set();
+        return resultPoints
+          .map(p => calcClosestIdeology(p.x, p.y))
+          .filter(id => {
+            if (!id || seen.has(id.name)) return false;
+            seen.add(id.name);
+            return true;
+          });
+      })()
+    : null;
+  const closestIdeology = multiplePoints ? null : calcClosestIdeology(x, y);
   const gp = calcClosestGlobalParty(x, y);
   return (
     <div className="axis-breakdown-panel">
@@ -966,8 +982,30 @@ const AxisBreakdownPanel = ({ x, y, archetype, isViewingOnly }) => {
       {closest && (
         <p className="closest-politician alignment-closest">
           {isViewingOnly
-            ? <>{archetype || 'They'} {archetype ? 'is' : 'are'} closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>{closestIdeology ? <>, ideologically nearest to <strong>{closestIdeology.name}</strong></> : ''}.</>
-            : <>You're closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>{closestIdeology ? <>, ideologically nearest to <strong>{closestIdeology.name}</strong></> : ''}.</>}
+            ? <>
+                {archetype || 'They'} {archetype ? 'is' : 'are'} closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>
+                {closestIdeologies && closestIdeologies.length > 0
+                  ? <>, ideologically nearest to {closestIdeologies.map((id, i) => (
+                      <React.Fragment key={id.name}>
+                        {i > 0 && (i === closestIdeologies.length - 1 ? ' and ' : ', ')}
+                        <strong>{id.name}</strong>
+                      </React.Fragment>
+                    ))}</>
+                  : closestIdeology ? <>, ideologically nearest to <strong>{closestIdeology.name}</strong></> : ''}
+                .
+              </>
+            : <>
+                You're closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>
+                {closestIdeologies && closestIdeologies.length > 0
+                  ? <>, ideologically nearest to {closestIdeologies.map((id, i) => (
+                      <React.Fragment key={id.name}>
+                        {i > 0 && (i === closestIdeologies.length - 1 ? ' and ' : ', ')}
+                        <strong>{id.name}</strong>
+                      </React.Fragment>
+                    ))}</>
+                  : closestIdeology ? <>, ideologically nearest to <strong>{closestIdeology.name}</strong></> : ''}
+                .
+              </>}
         </p>
       )}
       {gp && (
@@ -3002,7 +3040,7 @@ export default function App() {
             )}
 
             <div className="compass-area">
-              <AxisBreakdownPanel x={result.x} y={result.y} archetype={result.archetype} isViewingOnly={isViewingOnly} />
+              <AxisBreakdownPanel x={result.x} y={result.y} archetype={result.archetype} isViewingOnly={isViewingOnly} resultPoints={resultPoints} />
               {comparison && Array.isArray(comparison.participants) && comparison.participants.length >= 2 && (
                 <ComparisonDiffCard participants={comparison.participants} myParticipantIndex={myComparisonParticipantIndex} />
               )}
