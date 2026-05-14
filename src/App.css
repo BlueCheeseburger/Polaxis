@@ -3369,6 +3369,7 @@
 
 /* ─── Debate Mode ─────────────────────────────────────────── */
 .debate-prompt {
+  margin-top: 18px;
   margin-bottom: 16px;
 }
 .debate-cta-btn {
