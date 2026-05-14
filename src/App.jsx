@@ -9,7 +9,29 @@ import './App.css';
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
 const CLIENT_ID_STORAGE_KEY = "political_compass_client_id_v1";
+const OWN_SHARES_STORAGE_KEY = "political_compass_own_shares_v1";
 const MAX_MULTI_POINTS = 4;
+
+/** Remember a share ID (bare 8-char prefix) that this user created. */
+const registerOwnShare = (bareId) => {
+  try {
+    const raw = localStorage.getItem(OWN_SHARES_STORAGE_KEY);
+    const set = new Set(raw ? JSON.parse(raw) : []);
+    set.add(bareId);
+    // Cap at 200 entries to avoid unbounded growth
+    const trimmed = [...set].slice(-200);
+    localStorage.setItem(OWN_SHARES_STORAGE_KEY, JSON.stringify(trimmed));
+  } catch { /* ignore */ }
+};
+
+/** Returns true if the bare share ID was created by this user. */
+const isOwnShare = (bareId) => {
+  try {
+    const raw = localStorage.getItem(OWN_SHARES_STORAGE_KEY);
+    if (!raw) return false;
+    return JSON.parse(raw).includes(bareId);
+  } catch { return false; }
+};
 const FIRST_SAVE_HINT_SESSION_KEY = "political_compass_first_save_hint_seen_v1";
 const LEGACY_SAVED_POINTS_STORAGE_KEY = "politicalCompass.savedPoints";
 const ANALYZING_MESSAGES = [
@@ -1591,6 +1613,7 @@ export default function App() {
   // Load incoming share from URL into the app on mount
   useEffect(() => {
     if (!activeShareId) return;
+    const ownShare = isOwnShare(activeShareId);
     const load = async () => {
       try {
         const res = await fetch(`${API_BASE}/api/shares/${encodeURIComponent(activeShareId)}`);
@@ -1600,6 +1623,7 @@ export default function App() {
         const pts = Array.isArray(share.groupedPoints) && share.groupedPoints.length > 0
           ? share.groupedPoints.map((p, i) => ({ ...p, id: p.id || `cluster-${i + 1}` }))
           : [{ id: 'cluster-1', label: share.archetype || 'Result', x: share.x, y: share.y, analysis: share.analysis || '' }];
+        const slugTail = share.archetype_slug ? `${activeShareId}-${share.archetype_slug}` : activeShareId;
         setResult({
           x: share.x,
           y: share.y,
@@ -1610,11 +1634,12 @@ export default function App() {
           hasSufficientData: true,
           isPoliticalInput: true,
           insufficiencyReason: '',
-          fromShare: true,
+          // Own shares reload as normal results; foreign shares are flagged incoming
+          fromShare: !ownShare,
+          fromGemini: false,
         });
-        const slugTail = share.archetype_slug ? `${activeShareId}-${share.archetype_slug}` : activeShareId;
         setCurrentShareId(slugTail);
-        setIsIncomingShare(true);
+        setIsIncomingShare(!ownShare);
         window.history.replaceState({}, '', `/share/${slugTail}`);
       } catch {
         // silently fail — show empty app
@@ -1767,6 +1792,7 @@ export default function App() {
         const id = data?.id;
         const slug = data?.slug || id;
         if (id && !cancelled) {
+          registerOwnShare(id); // mark this share as owned by this browser
           setCurrentShareId(slug);
           setIsIncomingShare(false);
           window.history.replaceState({}, '', `/share/${slug}`);
@@ -3326,6 +3352,7 @@ export default function App() {
         isDarkMode={isDarkMode}
         comparisonMode={isComparisonMode}
         historicalPoint={historicalPoint}
+        onShareCreated={(bareId) => registerOwnShare(bareId)}
       />
       {debateTarget && (
         <DebateMode

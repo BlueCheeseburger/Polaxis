@@ -338,7 +338,7 @@ const drawAxisSlider = (ctx, ox, oy, width, leftLabel, rightLabel, fraction, c) 
   ctx.stroke();
 };
 
-export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode, comparisonMode = false, historicalPoint = null }) => {
+export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode, comparisonMode = false, historicalPoint = null, onShareCreated }) => {
   const previewCanvasRef = useRef(null);
   const exportCanvasRef = useRef(null);
   const [activeTab, setActiveTab] = useState('link');
@@ -419,6 +419,7 @@ export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode,
       const data = await response.json();
       if (!data?.id) throw new Error('Server returned no share id');
       setShareId(data.slug || data.id);
+      if (typeof onShareCreated === 'function') onShareCreated(data.id);
     } catch (err) {
       setShareError(err.message || 'Failed to create share link.');
       requestedRef.current = false;
