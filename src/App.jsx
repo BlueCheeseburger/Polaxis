@@ -2497,10 +2497,10 @@ export default function App() {
       x: point.x,
       y: point.y,
       title: point.title || '',
-      archetype: '',
+      archetype: point.archetype || point.title || '',
       analysis: point.analysis || '',
       groupedPoints,
-      points: groupedPoints || [{ id: 'cluster-1', label: point.title || 'Point', x: point.x, y: point.y, analysis: point.analysis || '' }],
+      points: groupedPoints || [{ id: 'cluster-1', label: point.archetype || point.title || 'Point', x: point.x, y: point.y, analysis: point.analysis || '' }],
     });
     setShareModalOpen(true);
   };
