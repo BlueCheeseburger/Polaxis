@@ -52,9 +52,10 @@ const normalizeSavedPoint = (candidate) => {
   if (!candidate || typeof candidate !== "object") return null;
   const title = typeof candidate.title === "string" ? candidate.title.trim().slice(0, 60) : "";
   const analysis = typeof candidate.analysis === "string" ? candidate.analysis.trim().slice(0, 4000) : "";
+  const archetype = typeof candidate.archetype === "string" ? candidate.archetype.trim().slice(0, 60) : "";
   const x = Number(candidate.x);
   const y = Number(candidate.y);
-  if (!title || !Number.isFinite(x) || !Number.isFinite(y) || !analysis) return null;
+  if (!title || !Number.isFinite(x) || !Number.isFinite(y)) return null;
   if (x < -10 || x > 10 || y < -10 || y > 10) return null;
   const groupedPoints = Array.isArray(candidate.groupedPoints)
     ? candidate.groupedPoints.filter(g =>
@@ -81,6 +82,8 @@ const normalizeSavedPoint = (candidate) => {
     sourceBatchId: (typeof candidate.sourceBatchId === "string" || typeof candidate.sourceBatchId === "number")
       ? candidate.sourceBatchId
       : null,
+    pinned: typeof candidate.pinned === "boolean" ? candidate.pinned : false,
+    archetype,
     ...(groupedPoints && groupedPoints.length > 0 ? { groupedPoints } : {}),
   };
 };
@@ -103,14 +106,16 @@ const fetchSavedPointsFromDb = async (clientId) => {
   try {
     const { data, error } = await supabase
       .from("saved_points")
-      .select("id, title, analysis, x, y, created_at, title_pending, source_batch_id, grouped_points")
+      .select("id, title, analysis, archetype, x, y, created_at, title_pending, source_batch_id, grouped_points, pinned")
       .eq("client_id", clientId)
+      .order("pinned", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(MAX_SAVED_POINTS_PER_CLIENT);
     if (error) { console.error("Supabase fetch saved_points:", error.message); return null; }
     return data.map(r => ({
-      id: r.id, title: r.title, analysis: r.analysis, x: r.x, y: r.y,
+      id: r.id, title: r.title, analysis: r.analysis || "", archetype: r.archetype || "", x: r.x, y: r.y,
       createdAt: r.created_at, titlePending: r.title_pending, sourceBatchId: r.source_batch_id,
+      pinned: r.pinned === true,
       ...(Array.isArray(r.grouped_points) && r.grouped_points.length > 0 ? { groupedPoints: r.grouped_points } : {}),
     }));
   } catch (e) { console.error("Supabase exception fetchSavedPoints:", e.message); return null; }
@@ -121,8 +126,10 @@ const upsertSavedPointToDb = async (clientId, point) => {
   try {
     const { error } = await supabase.from("saved_points").upsert({
       id: point.id, client_id: clientId, title: point.title, analysis: point.analysis,
+      archetype: point.archetype || null,
       x: point.x, y: point.y, created_at: point.createdAt,
       title_pending: point.titlePending, source_batch_id: point.sourceBatchId || null,
+      pinned: point.pinned === true,
       grouped_points: Array.isArray(point.groupedPoints) ? point.groupedPoints : null,
     });
     if (error) { console.error("Supabase upsert saved_point:", error.message); return false; }
@@ -139,6 +146,22 @@ const updateSavedPointTitleInDb = async (clientId, pointId, newTitle) => {
     if (error) { console.error("Supabase update saved_point title:", error.message); return false; }
     return true;
   } catch (e) { console.error("Supabase exception updateSavedPointTitle:", e.message); return false; }
+};
+
+const updateSavedPointFieldsInDb = async (clientId, pointId, fields) => {
+  if (!supabase) return false;
+  try {
+    const update = {};
+    if (typeof fields.title === "string") { update.title = fields.title; update.title_pending = false; }
+    if (typeof fields.archetype === "string") update.archetype = fields.archetype;
+    if (typeof fields.pinned === "boolean") update.pinned = fields.pinned;
+    if (Object.keys(update).length === 0) return true;
+    const { error } = await supabase.from("saved_points")
+      .update(update)
+      .eq("id", pointId).eq("client_id", clientId);
+    if (error) { console.error("Supabase update saved_point fields:", error.message); return false; }
+    return true;
+  } catch (e) { console.error("Supabase exception updateSavedPointFields:", e.message); return false; }
 };
 
 const deleteSavedPointFromDb = async (clientId, pointId) => {
@@ -359,12 +382,26 @@ app.post("/api/saved-points", async (req, res) => {
 app.patch("/api/saved-points/:pointId", async (req, res) => {
   const clientId = getClientIdFromRequest(req);
   if (!clientId) return res.status(400).json({ error: "Missing X-Client-Id header" });
-  const nextTitle = typeof req.body?.title === "string" ? req.body.title.trim().slice(0, 60) : "";
-  if (!nextTitle) return res.status(400).json({ error: "Missing title" });
-  await updateSavedPointTitleInDb(clientId, req.params.pointId, nextTitle);
+  const body = req.body || {};
+  const fields = {};
+  if (typeof body.title === "string") {
+    const t = body.title.trim().slice(0, 60);
+    if (!t) return res.status(400).json({ error: "Empty title" });
+    fields.title = t;
+  }
+  if (typeof body.archetype === "string") {
+    fields.archetype = body.archetype.trim().slice(0, 60);
+  }
+  if (typeof body.pinned === "boolean") {
+    fields.pinned = body.pinned;
+  }
+  if (Object.keys(fields).length === 0) return res.status(400).json({ error: "Nothing to update" });
+  await updateSavedPointFieldsInDb(clientId, req.params.pointId, fields);
   const points = savedPointsByClient.get(clientId) || [];
   const updatedPoints = points.map((point) => (
-    point.id === req.params.pointId ? { ...point, title: nextTitle, titlePending: false } : point
+    point.id === req.params.pointId
+      ? { ...point, ...fields, ...(fields.title ? { titlePending: false } : {}) }
+      : point
   ));
   savedPointsByClient.set(clientId, updatedPoints);
   return res.json({ points: updatedPoints });

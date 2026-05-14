@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Compass, FileText, CheckSquare, AlertCircle, Send, RotateCcw, Moon, Sun, Bug, SlidersHorizontal, Globe2, Landmark, Flag, BookmarkPlus, Pencil, Trash2, Check, X, Bookmark, Share2 } from 'lucide-react';
+import { Compass, FileText, CheckSquare, AlertCircle, Send, RotateCcw, Moon, Sun, Bug, SlidersHorizontal, Globe2, Landmark, Flag, BookmarkPlus, Pencil, Trash2, Check, X, Bookmark, Share2, History, Pin, PinOff } from 'lucide-react';
 import PulsingCrosshairs from './PulsingCrosshairs';
 import { ShareModal, computePartyMatch } from './ShareFeature';
 import './App.css';
@@ -131,6 +131,17 @@ const renameSavedPointOnServer = async (pointId, title) => {
     method: "PATCH",
     headers: buildClientHeaders(),
     body: JSON.stringify({ title })
+  });
+  if (!response.ok) {
+    throw new Error(await extractApiErrorMessage(response));
+  }
+};
+
+const updateSavedPointOnServer = async (pointId, fields) => {
+  const response = await fetch(`${API_BASE}/api/saved-points/${encodeURIComponent(pointId)}`, {
+    method: "PATCH",
+    headers: buildClientHeaders(),
+    body: JSON.stringify(fields)
   });
   if (!response.ok) {
     throw new Error(await extractApiErrorMessage(response));
@@ -899,6 +910,7 @@ const AxisBreakdownPanel = ({ x, y, archetype, isViewingOnly }) => {
   const socialPct = Math.round(((y + 10) / 20) * 100);
   const closest = calcClosestPolitician(x, y);
   const closestIdeology = calcClosestIdeology(x, y);
+  const gp = calcClosestGlobalParty(x, y);
   return (
     <div className="axis-breakdown-panel">
       <div className="alignment-header">
@@ -956,6 +968,16 @@ const AxisBreakdownPanel = ({ x, y, archetype, isViewingOnly }) => {
             ? <>{archetype || 'They'} {archetype ? 'is' : 'are'} closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>{closestIdeology ? <>, ideologically nearest to <strong>{closestIdeology.name}</strong></> : ''}.</>
             : <>You're closest to <strong>{closest.flag ? `${closest.flag} ` : ''}{closest.name}</strong>{closestIdeology ? <>, ideologically nearest to <strong>{closestIdeology.name}</strong></> : ''}.</>}
         </p>
+      )}
+      {gp && (
+        <div className="global-party-block alignment-global-party">
+          <p className="global-party-match">
+            {isViewingOnly
+              ? <>{archetype || 'They'} align{archetype ? 's' : ''} most with <strong>{gp.flag} {gp.name}</strong> <span className="global-party-country">({gp.country})</span></>
+              : <>You align most with <strong>{gp.flag} {gp.name}</strong> <span className="global-party-country">({gp.country})</span></>}
+          </p>
+          <p className="global-party-reason">{gp.description}</p>
+        </div>
       )}
     </div>
   );
@@ -1423,6 +1445,7 @@ export default function App() {
   const [savedPoints, setSavedPoints] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState("");
+  const autoSavedBatchIdsRef = useRef(new Set());
   const [isSavedPanelOpen, setIsSavedPanelOpen] = useState(false);
   const [hasHydratedSavedPoints, setHasHydratedSavedPoints] = useState(false);
   const [isDebugBypassEnabled, setIsDebugBypassEnabled] = useState(false);
@@ -1714,6 +1737,26 @@ export default function App() {
     autoShare();
     return () => { cancelled = true; };
   }, [result]);
+
+  // Auto-save every real plotted result to history (skip debug, share, comparison).
+  useEffect(() => {
+    if (!result || !result.fromGemini) return;
+    if (result.fromShare || result.fromComparison) return;
+    if (isDebugPoint) return;
+    const batchId = result.sourceBatchId;
+    if (!batchId || typeof batchId === "string" && batchId.startsWith("debug-")) return;
+    if (autoSavedBatchIdsRef.current.has(batchId)) return;
+    if (!hasHydratedSavedPoints) return;
+    if (savedPoints.some(p => p.sourceBatchId === batchId)) {
+      autoSavedBatchIdsRef.current.add(batchId);
+      return;
+    }
+    const savedPoint = buildSavedPointFromResult(false);
+    if (!savedPoint) return;
+    autoSavedBatchIdsRef.current.add(batchId);
+    persistSavedPoint(savedPoint);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result?.sourceBatchId, result?.fromGemini, hasHydratedSavedPoints, isDebugPoint]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -2223,12 +2266,10 @@ export default function App() {
     return 'overlay-neutral';
   };
 
-  const handleSavePoint = async () => {
-    if (!result) return;
-    if (resultPoints.length === 0) return;
+  const buildSavedPointFromResult = (pinned = false) => {
+    if (!result || resultPoints.length === 0) return null;
     const timestamp = Date.now();
     const baseCount = savedPoints.length;
-
     const groupedPoints = resultPoints.length > 1
       ? resultPoints.map((point, index) => ({
           id: point.id || `cluster-${index + 1}`,
@@ -2238,33 +2279,47 @@ export default function App() {
           analysis: point.analysis || "",
         }))
       : undefined;
-
-    const savedPoint = {
+    return {
       id: `${timestamp}-${Math.random().toString(36).slice(2, 8)}`,
       title: (result.archetype?.trim()
         || result.title?.trim()
         || (resultPoints.length > 1 ? "Mixed Views" : resultPoints[0].label?.trim())
         || `Point ${baseCount + 1}`),
+      archetype: result.archetype?.trim() || "",
       x: typeof result.x === "number" ? result.x : resultPoints[0].x,
       y: typeof result.y === "number" ? result.y : resultPoints[0].y,
       analysis: result.analysis || resultPoints[0].analysis || "",
       createdAt: new Date().toISOString(),
       titlePending: !result.fromGemini,
       sourceBatchId: result.sourceBatchId || null,
+      pinned,
       groupedPoints,
     };
+  };
 
+  const persistSavedPoint = async (savedPoint) => {
     setSavedPoints((prev) => [savedPoint, ...prev]);
     try {
       const savedFromServer = await savePointToServer(savedPoint);
       setSavedPoints((prev) => {
         const remaining = prev.filter((point) => point.id !== savedPoint.id);
-        return [savedFromServer, ...remaining];
+        return [{ ...savedFromServer, pinned: savedPoint.pinned }, ...remaining];
       });
     } catch {
       setError("Saved locally, but cloud sync failed. We'll try again next time.");
     }
+  };
 
+  const handlePinPoint = async () => {
+    if (!result) return;
+    const existing = savedPoints.find(p => p.sourceBatchId && p.sourceBatchId === result.sourceBatchId);
+    if (existing) {
+      await handleTogglePin(existing.id, true);
+    } else {
+      const savedPoint = buildSavedPointFromResult(true);
+      if (!savedPoint) return;
+      await persistSavedPoint(savedPoint);
+    }
     setIsSavedPanelOpen(true);
     setShowSaveToast(true);
     if (typeof window !== "undefined") {
@@ -2273,6 +2328,20 @@ export default function App() {
         setShowSavedHintCue(true);
         window.sessionStorage.setItem(FIRST_SAVE_HINT_SESSION_KEY, "true");
       }
+    }
+  };
+
+  const handleTogglePin = async (pointId, forceValue) => {
+    const previousPoints = savedPoints;
+    const target = previousPoints.find(p => p.id === pointId);
+    if (!target) return;
+    const nextPinned = typeof forceValue === "boolean" ? forceValue : !target.pinned;
+    setSavedPoints((prev) => prev.map(p => p.id === pointId ? { ...p, pinned: nextPinned } : p));
+    try {
+      await updateSavedPointOnServer(pointId, { pinned: nextPinned });
+    } catch {
+      setSavedPoints(previousPoints);
+      setError("Could not update pin in cloud sync. Please try again.");
     }
   };
 
@@ -2511,7 +2580,7 @@ export default function App() {
         {showBypassToast && <div className="bypass-toast">API bypass enabled</div>}
         {showSixMonthDebugToast && <div className="bypass-toast">&#x1F41B; 6-month debug mode enabled</div>}
         {showSaveToast && <div className="save-toast">Point saved</div>}
-        {showSavedHintCue && <div className="saved-hint-cue">Saved points live in the top-right bookmark.</div>}
+        {showSavedHintCue && <div className="saved-hint-cue">Your history lives in the top-right clock icon.</div>}
       </div>
       <div className="top-controls">
         <button
@@ -2529,31 +2598,34 @@ export default function App() {
           <button
             onClick={() => setIsSavedPanelOpen((prev) => !prev)}
             className={`theme-toggle saved-toggle ${isSavedPanelOpen ? 'active' : ''}`}
-            aria-label="Toggle saved points"
-            title="Saved points"
+            aria-label="Toggle history"
+            title="History"
           >
-            <Bookmark size={20} />
+            <History size={20} />
           </button>
           {isSavedPanelOpen && (
             <div className="saved-menu">
               <div className="saved-menu-head">
-                <h3>Saved Points</h3>
+                <h3>History</h3>
                 <button
                   type="button"
-                  onClick={handleSavePoint}
+                  onClick={handlePinPoint}
                   disabled={!result}
                   className="saved-point-btn"
                 >
-                  <BookmarkPlus size={14} />
-                  Save Current
+                  <Pin size={14} />
+                  Pin Current
                 </button>
               </div>
               {savedPoints.length === 0 ? (
-                <p className="saved-points-empty">No saved points yet. Save your current placement to keep it.</p>
+                <p className="saved-points-empty">No history yet. Plot a point to start your history.</p>
               ) : (
                 <div className="saved-points-list">
-                  {savedPoints.map((point) => (
-                    <div className="saved-point-card" key={point.id}>
+                  {[...savedPoints].sort((a, b) => {
+                    if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+                    return (b.createdAt || "").localeCompare(a.createdAt || "");
+                  }).map((point) => (
+                    <div className={`saved-point-card${point.pinned ? ' pinned' : ''}`} key={point.id}>
                       <div className="saved-point-head">
                         {editingId === point.id ? (
                           <input
@@ -2564,7 +2636,7 @@ export default function App() {
                             maxLength={60}
                           />
                         ) : (
-                          <h4>{point.title}{point.titlePending ? " (title pending)" : ""}</h4>
+                          <h4>{point.pinned ? '📌 ' : ''}{point.title}{point.titlePending ? " (title pending)" : ""}</h4>
                         )}
                         <p className="saved-point-meta">
                           Economic: {point.x.toFixed(2)} | Social: {point.y.toFixed(2)}
@@ -2592,6 +2664,14 @@ export default function App() {
                             <Pencil size={14} />
                           </button>
                         )}
+                        <button
+                          type="button"
+                          className="saved-point-btn icon"
+                          onClick={() => handleTogglePin(point.id)}
+                          title={point.pinned ? "Unpin point" : "Pin to top"}
+                        >
+                          {point.pinned ? <PinOff size={14} /> : <Pin size={14} />}
+                        </button>
                         <button type="button" className="saved-point-btn icon danger" onClick={() => handleDeletePoint(point.id)} title="Delete point">
                           <Trash2 size={14} />
                         </button>
@@ -2998,19 +3078,6 @@ export default function App() {
               ) : !isDebugPoint && !isAnalysisPending ? (
                 <p>"{result.analysis}"</p>
               ) : null}
-              {!isDebugPoint && !isAnalysisPending && (() => {
-                const gp = calcClosestGlobalParty(result.x, result.y);
-                return gp ? (
-                  <div className="global-party-block">
-                    <p className="global-party-match">
-                      {isViewingOnly
-                        ? <>{result.archetype || 'They'} align{result.archetype ? 's' : ''} most with <strong>{gp.flag} {gp.name}</strong> <span className="global-party-country">({gp.country})</span></>
-                        : <>You align most with <strong>{gp.flag} {gp.name}</strong> <span className="global-party-country">({gp.country})</span></>}
-                    </p>
-                    <p className="global-party-reason">{gp.description}</p>
-                  </div>
-                ) : null;
-              })()}
             </div>
             {!isViewingOnly && !isDebugPoint && !isAnalysisPending && !isRefineMode && (() => {
               const totalQuestions = REFINEMENT_CLUSTERS.reduce((sum, c) => sum + c.questions.length, 0);
@@ -3153,12 +3220,12 @@ export default function App() {
               <div className="result-actions">
                 <button
                   type="button"
-                  onClick={handleSavePoint}
+                  onClick={handlePinPoint}
                   disabled={!result}
                   className="secondary-btn"
                 >
-                  <BookmarkPlus size={18} />
-                  Save Point
+                  <Pin size={18} />
+                  Pin Point
                 </button>
                 <button
                   onClick={reset}

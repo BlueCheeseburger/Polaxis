@@ -678,7 +678,7 @@
 
 .result-header h2 {
   margin-top: 0;
-  margin-bottom: 10px;
+  margin-bottom: 0;
   font-size: clamp(1.4rem, 3.5vw, 2rem);
   display: flex;
   align-items: center;
@@ -1366,6 +1366,16 @@
 
 .app-shell.dark .alignment-closest {
   border-top-color: rgba(71, 85, 105, 0.4);
+}
+
+.alignment-global-party {
+  margin-top: 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  padding-top: 12px;
+}
+
+.app-shell.dark .alignment-global-party {
+  border-top-color: rgba(148, 163, 184, 0.15);
 }
 
 .global-party-block {
