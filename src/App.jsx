@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Compass, FileText, CheckSquare, AlertCircle, Send, RotateCcw, Moon, Sun, Bug, SlidersHorizontal, Globe2, Landmark, Flag, BookmarkPlus, Pencil, Trash2, Check, X, Bookmark, Share2, History, Pin, PinOff } from 'lucide-react';
+import { Compass, FileText, CheckSquare, AlertCircle, Send, RotateCcw, Moon, Sun, Bug, SlidersHorizontal, Globe2, Landmark, Flag, BookmarkPlus, Pencil, Trash2, Check, X, Bookmark, Share2, History, Pin, PinOff, Swords } from 'lucide-react';
 import PulsingCrosshairs from './PulsingCrosshairs';
 import { ShareModal, computePartyMatch } from './ShareFeature';
+import DebateMode from './DebateMode';
 import './App.css';
 
 /** Production: set VITE_API_BASE_URL on Vercel (e.g. https://your-api.onrender.com). Local dev: omit so /api is proxied to the backend. */
@@ -1504,6 +1505,8 @@ export default function App() {
   const [myComparisonParticipantIndex, setMyComparisonParticipantIndex] = useState(-1);
   // Whether the friend on a /compare/ page has clicked "Add My Point" to reveal the input
   const [compareFriendWantsToJoin, setCompareFriendWantsToJoin] = useState(false);
+  const [debateOpen, setDebateOpen] = useState(false);
+  const [debateTarget, setDebateTarget] = useState(null);
   const [showSixMonthBanner, setShowSixMonthBanner] = useState(false);
   const [historicalPoint, setHistoricalPoint] = useState(null);
   const [isComparisonMode, setIsComparisonMode] = useState(false);
@@ -2125,6 +2128,8 @@ export default function App() {
     setShowSixMonthDebugToast(false);
     setCurrentShareId(null);
     setIsIncomingShare(false);
+    setDebateOpen(false);
+    setDebateTarget(null);
     if (typeof window !== 'undefined' && window.history?.replaceState) {
       window.history.replaceState({}, '', '/');
     }
@@ -2699,7 +2704,7 @@ export default function App() {
           </div>
         )}
         <header className="hero">
-          <div className="hero-icon-wrap">
+          <div className="hero-icon-wrap" style={{ cursor: 'pointer' }} onClick={() => { sessionStorage.removeItem('landing_dismissed'); setShowLanding(true); }} title="Go to home">
             <div className="hero-icon">
               <Compass size={32} />
             </div>
@@ -3227,6 +3232,25 @@ export default function App() {
                   <Pin size={18} />
                   Pin Point
                 </button>
+                {result?.fromGemini && !isDebugPoint && !activeComparisonId && (
+                  <button
+                    type="button"
+                    className="secondary-btn debate-trigger-btn"
+                    onClick={() => {
+                      setDebateTarget({
+                        x: result.x,
+                        y: result.y,
+                        archetype: result.archetype || '',
+                        analysis: result.analysis || '',
+                        sourceBatchId: result.sourceBatchId || null,
+                      });
+                      setDebateOpen(true);
+                    }}
+                  >
+                    <Swords size={18} />
+                    Debate
+                  </button>
+                )}
                 <button
                   onClick={reset}
                   className="secondary-btn"
@@ -3249,6 +3273,20 @@ export default function App() {
         comparisonMode={isComparisonMode}
         historicalPoint={historicalPoint}
       />
+      {debateTarget && (
+        <DebateMode
+          open={debateOpen}
+          onClose={() => setDebateOpen(false)}
+          userX={debateTarget.x}
+          userY={debateTarget.y}
+          userArchetype={debateTarget.archetype}
+          userAnalysis={debateTarget.analysis}
+          sourceBatchId={debateTarget.sourceBatchId}
+          isDarkMode={isDarkMode}
+          apiBase={API_BASE}
+          buildHeaders={buildClientHeaders}
+        />
+      )}
     </div>
   );
 }

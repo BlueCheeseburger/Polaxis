@@ -17,10 +17,14 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const DAILY_CLIENT_LIMIT = 5;
 const DAILY_IP_LIMIT = 25;
 const DAILY_SHARE_CLIENT_LIMIT = 20;
+const DAILY_CHAT_CLIENT_LIMIT = 20;
+const DAILY_CHAT_IP_LIMIT = 60;
 const MAX_SAVED_POINTS_PER_CLIENT = 100;
 const dailyClientUsage = new Map();
 const dailyIpUsage = new Map();
 const dailyShareUsage = new Map();
+const dailyChatClientUsage = new Map();
+const dailyChatIpUsage = new Map();
 const savedPointsByClient = new Map();
 const sharesById = new Map();
 const comparisonsById = new Map();
@@ -793,6 +797,127 @@ app.post("/api/gemini-json", async (req, res) => {
     }
 
     return res.json(parsed);
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "Server error" });
+  }
+});
+
+app.post("/api/gemini-chat", async (req, res) => {
+  try {
+    if (!GEMINI_API_KEY) {
+      return res.status(500).json({ error: "Missing GEMINI_API_KEY on server" });
+    }
+
+    const { userX, userY, userArchetype, userAnalysis, history, userMessage } = req.body || {};
+
+    if (!Number.isFinite(Number(userX)) || !Number.isFinite(Number(userY))) {
+      return res.status(400).json({ error: "Missing or invalid userX/userY" });
+    }
+
+    const clientId = getClientIdFromRequest(req);
+    if (!clientId) {
+      return res.status(400).json({ error: "Missing X-Client-Id header" });
+    }
+
+    const dateKey = getDateKey();
+    const ip = getClientIp(req);
+    const clientKey = `chat:${dateKey}:${clientId}`;
+    const ipKey = `chat:${dateKey}:${ip}`;
+
+    const clientLimitResult = incrementOrRejectDailyLimit({
+      store: dailyChatClientUsage,
+      key: clientKey,
+      limit: DAILY_CHAT_CLIENT_LIMIT,
+    });
+    if (clientLimitResult.blocked) {
+      return res.status(429).json({ error: "Daily debate limit reached. Try again tomorrow." });
+    }
+
+    const ipLimitResult = incrementOrRejectDailyLimit({
+      store: dailyChatIpUsage,
+      key: ipKey,
+      limit: DAILY_CHAT_IP_LIMIT,
+    });
+    if (ipLimitResult.blocked) {
+      return res.status(429).json({ error: "Daily network debate limit reached. Try again tomorrow." });
+    }
+
+    const ax = clampCompassValue(-Number(userX));
+    const ay = clampCompassValue(-Number(userY));
+
+    let ideologyLabel;
+    if (ax >= 4 && ay >= 4) ideologyLabel = "authoritarian nationalist";
+    else if (ax <= -4 && ay >= 4) ideologyLabel = "authoritarian collectivist";
+    else if (ax >= 4 && ay <= -4) ideologyLabel = "free-market libertarian";
+    else if (ax <= -4 && ay <= -4) ideologyLabel = "libertarian socialist";
+    else if (ax >= 1.5) ideologyLabel = "right-leaning centrist";
+    else if (ax <= -1.5) ideologyLabel = "left-leaning centrist";
+    else if (ay >= 1.5) ideologyLabel = "centrist authoritarian";
+    else if (ay <= -1.5) ideologyLabel = "centrist libertarian";
+    else ideologyLabel = "pragmatic centrist";
+
+    const archetype = typeof userArchetype === "string" && userArchetype.trim()
+      ? userArchetype.trim() : "this worldview";
+    const analysis = typeof userAnalysis === "string" && userAnalysis.trim()
+      ? userAnalysis.trim().slice(0, 1200) : "";
+
+    const isOpening = !userMessage;
+
+    const systemInstruction = `You are playing the role of a political adversary at compass coordinates (Economic: ${ax.toFixed(1)}, Social: ${ay.toFixed(1)}) — an ${ideologyLabel}. You are debating the worldview labelled "${archetype}" which sits at the opposite position (Economic: ${Number(userX).toFixed(1)}, Social: ${Number(userY).toFixed(1)}).
+
+THE WORLDVIEW YOU MUST ATTACK (and only this): "${analysis}"
+
+RULES:
+1. Attack ONLY the ideas in that analysis above — do not invent positions the user didn't take
+2. Argue from your own ideological position (${ideologyLabel}) — genuinely, not as parody
+3. Be sharp and combative — this is a debate, not a conversation
+4. Attack IDEAS only — never personal insults, slurs, or threats
+5. Never break character; you genuinely hold your position
+6. STAY ON TOPIC — if the user goes off-topic, redirect to the debate
+
+STRICT FORMAT RULES — follow these exactly:
+- Use bullet points (•) or numbered lists (1. 2. 3.) whenever making multiple arguments
+- Each bullet or numbered point: 1-2 sentences max
+- No single paragraph longer than 3 sentences
+- Total response: 3-5 tight points or paragraphs
+- NO walls of text under any circumstances`;
+
+    const contents = [];
+    if (Array.isArray(history)) {
+      for (const msg of history) {
+        if (msg.role === "user" && typeof msg.text === "string") {
+          contents.push({ role: "user", parts: [{ text: msg.text.slice(0, 2000) }] });
+        } else if (msg.role === "bot" && typeof msg.text === "string") {
+          contents.push({ role: "model", parts: [{ text: msg.text.slice(0, 2000) }] });
+        }
+      }
+    }
+
+    contents.push({
+      role: "user",
+      parts: [{ text: isOpening ? "Open the debate — attack my worldview directly." : String(userMessage).slice(0, 2000) }]
+    });
+
+    const payload = {
+      contents,
+      systemInstruction: { parts: [{ text: systemInstruction }] },
+      generationConfig: { temperature: 0.9, maxOutputTokens: 512 }
+    };
+
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }
+    );
+
+    const data = await r.json();
+    if (!r.ok) {
+      return res.status(r.status).json({ error: data?.error?.message || "Gemini request failed" });
+    }
+
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) return res.status(502).json({ error: "No reply from Gemini" });
+
+    return res.json({ reply: text.trim() });
   } catch (err) {
     return res.status(500).json({ error: err.message || "Server error" });
   }
