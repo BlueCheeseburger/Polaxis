@@ -3368,21 +3368,73 @@
 }
 
 /* ─── Debate Mode ─────────────────────────────────────────── */
-.debate-trigger-btn {
-  border-color: rgba(239, 68, 68, 0.35) !important;
-  color: #dc2626 !important;
+.debate-prompt {
+  margin-bottom: 16px;
 }
-.debate-trigger-btn:hover {
-  background: rgba(239, 68, 68, 0.08) !important;
-  border-color: rgba(239, 68, 68, 0.6) !important;
+.debate-cta-btn {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.12) 0%, rgba(239, 68, 68, 0.07) 100%);
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  border-radius: 14px;
+  padding: 16px 20px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  color: inherit;
 }
-.app-shell.dark .debate-trigger-btn {
-  color: #fca5a5 !important;
-  border-color: rgba(252, 165, 165, 0.35) !important;
+.debate-cta-btn:hover {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(239, 68, 68, 0.12) 100%);
+  border-color: rgba(220, 38, 38, 0.6);
+  box-shadow: 0 4px 20px rgba(220, 38, 38, 0.12);
 }
-.app-shell.dark .debate-trigger-btn:hover {
-  background: rgba(252, 165, 165, 0.08) !important;
-  border-color: rgba(252, 165, 165, 0.6) !important;
+.app-shell.dark .debate-cta-btn {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(185, 28, 28, 0.08) 100%);
+  border-color: rgba(239, 68, 68, 0.28);
+}
+.app-shell.dark .debate-cta-btn:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(185, 28, 28, 0.14) 100%);
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 4px 24px rgba(239, 68, 68, 0.15);
+}
+.debate-cta-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(220, 38, 38, 0.15);
+  border-radius: 10px;
+  color: #dc2626;
+  flex-shrink: 0;
+}
+.app-shell.dark .debate-cta-icon {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+.debate-cta-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.debate-cta-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #dc2626;
+  line-height: 1.2;
+}
+.app-shell.dark .debate-cta-title {
+  color: #f87171;
+}
+.debate-cta-sub {
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+.app-shell.dark .debate-cta-sub {
+  color: #475569;
 }
 
 .debate-overlay {

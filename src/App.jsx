@@ -3087,40 +3087,46 @@ export default function App() {
                 <p>"{result.analysis}"</p>
               ) : null}
             </div>
-            {!isViewingOnly && !isDebugPoint && !isAnalysisPending && !isRefineMode && (() => {
-              const totalQuestions = REFINEMENT_CLUSTERS.reduce((sum, c) => sum + c.questions.length, 0);
-              return (
-                <div className="refine-prompt">
-                  {refineDelta ? (
-                    <div className="refine-delta-card">
-                      <h3>Placement refined</h3>
-                      <p>
-                        Based on {refineDelta.answeredCount} additional {refineDelta.answeredCount === 1 ? 'answer' : 'answers'}, your placement shifted{' '}
-                        <strong>
-                          {Math.abs(refineDelta.dx) < 0.05 ? 'no change economically' : `${Math.abs(refineDelta.dx).toFixed(1)} ${refineDelta.dx < 0 ? 'left' : 'right'} economically`}
-                        </strong>
-                        {' '}and{' '}
-                        <strong>
-                          {Math.abs(refineDelta.dy) < 0.05 ? 'no change socially' : `${Math.abs(refineDelta.dy).toFixed(1)} ${refineDelta.dy < 0 ? 'libertarian' : 'authoritarian'}`}
-                        </strong>.
-                      </p>
-                      <button type="button" onClick={handleStartRefinement} className="refine-btn refine-btn-secondary">
-                        <SlidersHorizontal size={16} />
-                        Refine again
-                      </button>
-                    </div>
-                  ) : (
-                    <button type="button" onClick={handleStartRefinement} className="refine-btn">
-                      <span className="refine-btn-icon"><SlidersHorizontal size={20} /></span>
-                      <span className="refine-btn-content">
-                        <span className="refine-btn-title">Refine my placement</span>
-                        <span className="refine-btn-sub">{totalQuestions} optional questions · skip any cluster · sharpen your dot</span>
-                      </span>
-                    </button>
-                  )}
-                </div>
-              );
-            })()}
+            {!isViewingOnly && !isDebugPoint && !isAnalysisPending && !isRefineMode && result?.fromGemini && !activeComparisonId && (
+              <div className="debate-prompt">
+                <button
+                  type="button"
+                  className="debate-cta-btn"
+                  onClick={() => {
+                    setDebateTarget({
+                      x: result.x,
+                      y: result.y,
+                      archetype: result.archetype || '',
+                      analysis: result.analysis || '',
+                      sourceBatchId: result.sourceBatchId || null,
+                    });
+                    setDebateOpen(true);
+                  }}
+                >
+                  <span className="debate-cta-icon"><Swords size={20} /></span>
+                  <span className="debate-cta-content">
+                    <span className="debate-cta-title">Debate the Opposite</span>
+                    <span className="debate-cta-sub">Gemini embodies your political mirror and ruthlessly attacks your worldview</span>
+                  </span>
+                </button>
+              </div>
+            )}
+
+            {!isViewingOnly && !isDebugPoint && !isAnalysisPending && !isRefineMode && refineDelta && (
+              <div className="refine-delta-card">
+                <h3>Placement refined</h3>
+                <p>
+                  Based on {refineDelta.answeredCount} additional {refineDelta.answeredCount === 1 ? 'answer' : 'answers'}, your placement shifted{' '}
+                  <strong>
+                    {Math.abs(refineDelta.dx) < 0.05 ? 'no change economically' : `${Math.abs(refineDelta.dx).toFixed(1)} ${refineDelta.dx < 0 ? 'left' : 'right'} economically`}
+                  </strong>
+                  {' '}and{' '}
+                  <strong>
+                    {Math.abs(refineDelta.dy) < 0.05 ? 'no change socially' : `${Math.abs(refineDelta.dy).toFixed(1)} ${refineDelta.dy < 0 ? 'libertarian' : 'authoritarian'}`}
+                  </strong>.
+                </p>
+              </div>
+            )}
 
             <p className="reference-note">
               {overlayPreset === 'ideologies'
@@ -3235,23 +3241,14 @@ export default function App() {
                   <Pin size={18} />
                   Pin Point
                 </button>
-                {result?.fromGemini && !isDebugPoint && !activeComparisonId && (
+                {!isDebugPoint && !isAnalysisPending && !isRefineMode && (
                   <button
                     type="button"
-                    className="secondary-btn debate-trigger-btn"
-                    onClick={() => {
-                      setDebateTarget({
-                        x: result.x,
-                        y: result.y,
-                        archetype: result.archetype || '',
-                        analysis: result.analysis || '',
-                        sourceBatchId: result.sourceBatchId || null,
-                      });
-                      setDebateOpen(true);
-                    }}
+                    onClick={handleStartRefinement}
+                    className="secondary-btn"
                   >
-                    <Swords size={18} />
-                    Debate
+                    <SlidersHorizontal size={18} />
+                    {refineDelta ? 'Refine Again' : 'Refine'}
                   </button>
                 )}
                 <button
