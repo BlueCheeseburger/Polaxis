@@ -53,10 +53,33 @@
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
 }
 
+.dev-mode-badge {
+  position: fixed;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid rgba(234, 179, 8, 0.55);
+  background: rgba(254, 252, 232, 0.97);
+  color: #92400e;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+  white-space: nowrap;
+}
+
 .app-shell.dark .debug-badge {
   border-color: rgba(239, 68, 68, 0.6);
   background: rgba(127, 29, 29, 0.85);
   color: #fca5a5;
+}
+
+.app-shell.dark .dev-mode-badge {
+  border-color: rgba(234, 179, 8, 0.6);
+  background: rgba(78, 51, 0, 0.88);
+  color: #fde68a;
 }
 
 .incoming-share-banner {

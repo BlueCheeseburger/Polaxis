@@ -1512,7 +1512,7 @@ export default function App() {
   const [hasHydratedSavedPoints, setHasHydratedSavedPoints] = useState(false);
   const [isDebugBypassEnabled, setIsDebugBypassEnabled] = useState(false);
   const [isDebugPoint, setIsDebugPoint] = useState(false);
-  const [showBypassToast, setShowBypassToast] = useState(false);
+  const [devModeToast, setDevModeToast] = useState(null); // 'enabled' | 'disabled' | null
   const [isAnalysisPending, setIsAnalysisPending] = useState(false);
   const [hasGeminiQuizResult, setHasGeminiQuizResult] = useState(false);
   const [showSaveToast, setShowSaveToast] = useState(false);
@@ -1897,10 +1897,10 @@ export default function App() {
   }, [savedPoints, hasHydratedSavedPoints]);
 
   useEffect(() => {
-    if (!showBypassToast) return undefined;
-    const timer = window.setTimeout(() => setShowBypassToast(false), 1800);
+    if (devModeToast !== 'disabled') return undefined;
+    const timer = window.setTimeout(() => setDevModeToast(null), 1800);
     return () => window.clearTimeout(timer);
-  }, [showBypassToast]);
+  }, [devModeToast]);
 
   useEffect(() => {
     if (!showSaveToast) return undefined;
@@ -2206,7 +2206,7 @@ export default function App() {
 
   const enableDebugBypass = () => {
     setIsDebugBypassEnabled(true);
-    setShowBypassToast(true);
+    setDevModeToast('enabled');
   };
 
   const showDebugPoint = ({ enableBypass = false } = {}) => {
@@ -2252,6 +2252,7 @@ export default function App() {
     if (event?.altKey) {
       if (isDebugBypassEnabled) {
         setIsDebugBypassEnabled(false);
+        setDevModeToast('disabled');
       } else {
         enableDebugBypass();
       }
@@ -2640,6 +2641,7 @@ export default function App() {
   return (
     <div className={`app-shell ${isDarkMode ? 'dark' : ''} ${getOverlayThemeClass()}`}>
       {isDebugPoint && <div className="debug-badge">Debug mode</div>}
+      {isDebugBypassEnabled && <div className="dev-mode-badge">Dev mode</div>}
       {isIncomingShare && result && !activeComparisonId && (
         <div className="incoming-share-banner">
           <span>{result.archetype ? `${result.archetype} shared their compass with you` : 'Someone shared their compass with you'}</span>
@@ -2651,7 +2653,7 @@ export default function App() {
         </div>
       )}
       <div className="toast-stack">
-        {showBypassToast && <div className="bypass-toast">Dev mode enabled</div>}
+        {devModeToast === 'disabled' && <div className="bypass-toast">Dev mode disabled</div>}
         {showSixMonthDebugToast && <div className="bypass-toast">&#x1F41B; 6-month debug mode enabled</div>}
         {showSaveToast && <div className="save-toast">Point saved</div>}
         {showSavedHintCue && <div className="saved-hint-cue">Your history lives in the top-right clock icon.</div>}
