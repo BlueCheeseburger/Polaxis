@@ -158,12 +158,15 @@ const drawShareImage = (canvas, { archetype, x, y, points, partyMatch, appUrl, d
   drawAxisSlider(ctx, slidersCardX + 36, slidersCardY + 20, slidersCardW - 72, 'LEFT', 'RIGHT', ((x + 10) / 20), c);
   drawAxisSlider(ctx, slidersCardX + 36, slidersCardY + 72, slidersCardW - 72, 'LIB', 'AUTH', ((y + 10) / 20), c);
 
-  // Footer URL
-  const urlY = SHARE_IMAGE_H - 56;
-  ctx.fillStyle = c.url;
-  ctx.font = '26px sans-serif';
+  // Footer — Polaxis wordmark + URL
+  const footerY = SHARE_IMAGE_H - 72;
   ctx.textAlign = 'center';
-  ctx.fillText(appUrl, SHARE_IMAGE_W / 2, urlY);
+  ctx.font = 'bold 30px sans-serif';
+  ctx.fillStyle = '#f97316';
+  ctx.fillText('Polaxis', SHARE_IMAGE_W / 2, footerY);
+  ctx.font = '22px sans-serif';
+  ctx.fillStyle = c.url;
+  ctx.fillText(appUrl, SHARE_IMAGE_W / 2, footerY + 34);
 };
 
 const drawCompass = (ctx, ox, oy, size, points, c, historicalPoint = null) => {
@@ -615,6 +618,7 @@ export const ShareView = ({ shareId, apiBase, onTakeQuiz }) => {
     <div className={`share-view-shell${isDark ? ' dark' : ''}`}>
       <div className="share-view-card">
         <div className="share-view-topbar">
+          <span className="share-view-brand">Polaxis</span>
           <button
             type="button"
             className="share-view-theme-toggle"

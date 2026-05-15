@@ -2237,6 +2237,7 @@ export default function App() {
     setDebateTarget(null);
     setDebateChoiceOpen(false);
     setPeerDebateOpen(false);
+    setIsDebugPoint(false);
     if (typeof window !== 'undefined' && window.history?.replaceState) {
       window.history.replaceState({}, '', '/');
     }
@@ -2631,6 +2632,7 @@ export default function App() {
                 <Compass size={36} />
               </div>
             </div>
+            <span className="landing-wordmark">Polaxis</span>
             <h1 className="landing-title">Where Do Your Beliefs<br />Actually Land?</h1>
             <p className="landing-subtitle">
               Find your position on a political compass using AI analysis or a structured quiz. No labels. No judgment.
@@ -2693,8 +2695,12 @@ export default function App() {
 
   return (
     <div className={`app-shell ${isDarkMode ? 'dark' : ''} ${getOverlayThemeClass()}`}>
-      {isDebugPoint && <div className="debug-badge">Debug mode</div>}
-      {isDebugBypassEnabled && <div className="dev-mode-badge">Dev mode</div>}
+      {(isDebugPoint || isDebugBypassEnabled) && (
+        <div className="badge-stack">
+          {isDebugPoint && <div className="debug-badge">Debug mode</div>}
+          {isDebugBypassEnabled && <div className="dev-mode-badge">Dev mode</div>}
+        </div>
+      )}
       {isIncomingShare && result && !activeComparisonId && (
         <div className="incoming-share-banner">
           <span>{result.archetype ? `${result.archetype} shared their compass with you` : 'Someone shared their compass with you'}</span>
