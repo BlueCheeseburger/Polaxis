@@ -3154,6 +3154,69 @@
   color: #94a3b8;
 }
 
+.landing-features-divider {
+  height: 1px;
+  background: rgba(148, 163, 184, 0.25);
+  margin: 4px 0;
+}
+.app-shell.dark .landing-features-divider {
+  background: rgba(71, 85, 105, 0.4);
+}
+
+.landing-feature-icon-new {
+  background: linear-gradient(135deg, rgba(220,38,38,0.13), rgba(239,68,68,0.1));
+  color: #ef4444;
+}
+.app-shell.dark .landing-feature-icon-new {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.landing-feature-icon-coming {
+  background: linear-gradient(135deg, rgba(99,102,241,0.13), rgba(139,92,246,0.1));
+  color: #8b5cf6;
+}
+.app-shell.dark .landing-feature-icon-coming {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+}
+
+.landing-new-badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: rgba(220, 38, 38, 0.14);
+  color: #dc2626;
+  padding: 2px 7px;
+  border-radius: 999px;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+.app-shell.dark .landing-new-badge {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
+
+.landing-coming-badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: rgba(99, 102, 241, 0.13);
+  color: #6366f1;
+  padding: 2px 7px;
+  border-radius: 999px;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+.app-shell.dark .landing-coming-badge {
+  background: rgba(139, 92, 246, 0.18);
+  color: #a78bfa;
+}
+
 .landing-disclaimer {
   margin: 0;
   font-size: 0.75rem;

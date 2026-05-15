@@ -2627,8 +2627,23 @@ export default function App() {
             <div className="landing-feature">
               <span className="landing-feature-icon"><Share2 size={20} /></span>
               <div>
-                <strong>Share Your Result</strong>
-                <p>Share your compass placement as a link or image — compare with friends.</p>
+                <strong>Share &amp; Compare</strong>
+                <p>Share your compass as a link and compare placements with friends side by side.</p>
+              </div>
+            </div>
+            <div className="landing-features-divider" />
+            <div className="landing-feature">
+              <span className="landing-feature-icon landing-feature-icon-new"><Swords size={20} /></span>
+              <div>
+                <strong>Debate AI <span className="landing-new-badge">New</span></strong>
+                <p>Gemini embodies your political mirror and attacks your worldview. Defend your position.</p>
+              </div>
+            </div>
+            <div className="landing-feature">
+              <span className="landing-feature-icon landing-feature-icon-coming"><Users size={20} /></span>
+              <div>
+                <strong>Live Peer Debate <span className="landing-coming-badge">Coming Soon</span></strong>
+                <p>Get matched with a real person whose views are most opposed to yours — debate live.</p>
               </div>
             </div>
           </div>
