@@ -2651,7 +2651,7 @@ export default function App() {
         </div>
       )}
       <div className="toast-stack">
-        {showBypassToast && <div className="bypass-toast">API bypass enabled</div>}
+        {showBypassToast && <div className="bypass-toast">Dev mode enabled</div>}
         {showSixMonthDebugToast && <div className="bypass-toast">&#x1F41B; 6-month debug mode enabled</div>}
         {showSaveToast && <div className="save-toast">Point saved</div>}
         {showSavedHintCue && <div className="saved-hint-cue">Your history lives in the top-right clock icon.</div>}
@@ -3417,24 +3417,36 @@ export default function App() {
                 <span className="debate-choice-desc">Gemini embodies your political mirror and attacks your worldview.</span>
               </span>
             </button>
-            <button
-              type="button"
-              className="debate-choice-option"
-              onClick={() => { setDebateChoiceOpen(false); setPeerDebateOpen(true); }}
-            >
-              <span className="debate-choice-icon"><Users size={22} /></span>
-              <span className="debate-choice-body">
-                <span className="debate-choice-name">
-                  Debate another user
-                  {isDebugBypassEnabled && <span className="peer-debug-pill">DEBUG</span>}
+            <div className={`debate-choice-peer-wrap${isDebugBypassEnabled ? '' : ' debate-choice-coming-soon'}`}>
+              <button
+                type="button"
+                className="debate-choice-option"
+                onClick={() => {
+                  if (!isDebugBypassEnabled) return;
+                  setDebateChoiceOpen(false);
+                  setPeerDebateOpen(true);
+                }}
+                disabled={!isDebugBypassEnabled}
+              >
+                <span className="debate-choice-icon"><Users size={22} /></span>
+                <span className="debate-choice-body">
+                  <span className="debate-choice-name">
+                    Debate another user
+                    {isDebugBypassEnabled && <span className="peer-debug-pill">DEV</span>}
+                  </span>
+                  <span className="debate-choice-desc">
+                    {isDebugBypassEnabled
+                      ? 'Dev mode on — matches whoever is available, any distance.'
+                      : 'Live match with a real person whose views are most opposed to yours.'}
+                  </span>
                 </span>
-                <span className="debate-choice-desc">
-                  {isDebugBypassEnabled
-                    ? 'Debug bypass on — matches whoever is available, any distance.'
-                    : 'Live match with a real person whose views are most opposed to yours.'}
-                </span>
-              </span>
-            </button>
+              </button>
+              {!isDebugBypassEnabled && (
+                <div className="debate-coming-soon-banner" aria-hidden="true">
+                  <span className="debate-coming-soon-text">Coming soon</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

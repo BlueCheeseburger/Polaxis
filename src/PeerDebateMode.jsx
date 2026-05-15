@@ -160,7 +160,7 @@ export default function PeerDebateMode({
               {phase === 'debating' || phase === 'matched' || phase === 'rules' ? 'Live Debate' : 'Find an Opponent'}
             </span>
             {bypassMatchmaker && (
-              <span className="peer-debug-pill" title="Matchmaker bypass — matches anyone available">DEBUG</span>
+              <span className="peer-debug-pill" title="Dev mode — matchmaker bypass enabled">DEV</span>
             )}
           </div>
           <div className="debate-header-actions">
@@ -184,7 +184,7 @@ export default function PeerDebateMode({
             <p className="peer-state-title">Finding your opponent…</p>
             <p className="peer-state-sub">
               {bypassMatchmaker
-                ? 'Debug mode — matching with whoever is available'
+                ? 'Dev mode — matching with whoever is available'
                 : 'Pairing you with someone whose views are most opposed to yours'}
             </p>
             <div className="peer-state-meta">

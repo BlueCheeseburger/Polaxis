@@ -4148,3 +4148,36 @@
   border-radius: 999px;
   margin-left: 6px;
 }
+
+/* Coming soon overlay on peer debate option */
+.debate-choice-peer-wrap {
+  position: relative;
+}
+.debate-choice-coming-soon .debate-choice-option {
+  opacity: 0.45;
+  pointer-events: none;
+  user-select: none;
+  cursor: default;
+}
+.debate-coming-soon-banner {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+.debate-coming-soon-text {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  padding: 5px 14px;
+  border-radius: 999px;
+}
