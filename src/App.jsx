@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Compass, FileText, CheckSquare, AlertCircle, Send, RotateCcw, Moon, Sun, Bug, SlidersHorizontal, Globe2, Landmark, Flag, BookmarkPlus, Pencil, Trash2, Check, X, Bookmark, Share2, History, Pin, PinOff, Swords } from 'lucide-react';
+import { Compass, FileText, CheckSquare, AlertCircle, Send, RotateCcw, Moon, Sun, Bug, SlidersHorizontal, Globe2, Landmark, Flag, BookmarkPlus, Pencil, Trash2, Check, X, Bookmark, Share2, History, Pin, PinOff, Swords, Users } from 'lucide-react';
 import PulsingCrosshairs from './PulsingCrosshairs';
 import { ShareModal, computePartyMatch } from './ShareFeature';
 import DebateMode from './DebateMode';
+import PeerDebateMode from './PeerDebateMode';
 import './App.css';
 
 /** Production: set VITE_API_BASE_URL on Vercel (e.g. https://your-api.onrender.com). Local dev: omit so /api is proxied to the backend. */
@@ -1567,6 +1568,8 @@ export default function App() {
   const [compareFriendWantsToJoin, setCompareFriendWantsToJoin] = useState(false);
   const [debateOpen, setDebateOpen] = useState(false);
   const [debateTarget, setDebateTarget] = useState(null);
+  const [debateChoiceOpen, setDebateChoiceOpen] = useState(false);
+  const [peerDebateOpen, setPeerDebateOpen] = useState(false);
   const [showSixMonthBanner, setShowSixMonthBanner] = useState(false);
   const [historicalPoint, setHistoricalPoint] = useState(null);
   const [isComparisonMode, setIsComparisonMode] = useState(false);
@@ -2194,6 +2197,8 @@ export default function App() {
     setIsIncomingShare(false);
     setDebateOpen(false);
     setDebateTarget(null);
+    setDebateChoiceOpen(false);
+    setPeerDebateOpen(false);
     if (typeof window !== 'undefined' && window.history?.replaceState) {
       window.history.replaceState({}, '', '/');
     }
@@ -3180,13 +3185,13 @@ export default function App() {
                       analysis: result.analysis || '',
                       sourceBatchId: result.sourceBatchId || null,
                     });
-                    setDebateOpen(true);
+                    setDebateChoiceOpen(true);
                   }}
                 >
                   <span className="debate-cta-icon"><Swords size={20} /></span>
                   <span className="debate-cta-content">
-                    <span className="debate-cta-title">Debate the Opposite</span>
-                    <span className="debate-cta-sub">Gemini embodies your political mirror and ruthlessly attacks your worldview</span>
+                    <span className="debate-cta-title">Debate</span>
+                    <span className="debate-cta-sub">Defend your worldview against an AI adversary — or a real person whose views oppose yours</span>
                   </span>
                 </button>
               </div>
@@ -3366,7 +3371,72 @@ export default function App() {
           isDarkMode={isDarkMode}
           apiBase={API_BASE}
           buildHeaders={buildClientHeaders}
+          bypassLimit={isDebugBypassEnabled}
         />
+      )}
+      {debateTarget && (
+        <PeerDebateMode
+          open={peerDebateOpen}
+          onClose={() => setPeerDebateOpen(false)}
+          userX={debateTarget.x}
+          userY={debateTarget.y}
+          userArchetype={debateTarget.archetype}
+          isDarkMode={isDarkMode}
+          apiBase={API_BASE}
+          bypassMatchmaker={isDebugBypassEnabled}
+        />
+      )}
+      {debateChoiceOpen && debateTarget && (
+        <div
+          className={`debate-choice-overlay${isDarkMode ? ' dark' : ''}`}
+          onClick={(e) => { if (e.target === e.currentTarget) setDebateChoiceOpen(false); }}
+        >
+          <div className="debate-choice-sheet" role="dialog" aria-modal="true">
+            <div className="debate-choice-header">
+              <div>
+                <h3 className="debate-choice-title">Who do you want to debate?</h3>
+                <p className="debate-choice-sub">Pick your adversary.</p>
+              </div>
+              <button
+                type="button"
+                className="debate-close-btn"
+                onClick={() => setDebateChoiceOpen(false)}
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <button
+              type="button"
+              className="debate-choice-option"
+              onClick={() => { setDebateChoiceOpen(false); setDebateOpen(true); }}
+            >
+              <span className="debate-choice-icon"><Swords size={22} /></span>
+              <span className="debate-choice-body">
+                <span className="debate-choice-name">Debate AI</span>
+                <span className="debate-choice-desc">Gemini embodies your political mirror and attacks your worldview.</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              className="debate-choice-option"
+              onClick={() => { setDebateChoiceOpen(false); setPeerDebateOpen(true); }}
+            >
+              <span className="debate-choice-icon"><Users size={22} /></span>
+              <span className="debate-choice-body">
+                <span className="debate-choice-name">
+                  Debate another user
+                  {isDebugBypassEnabled && <span className="peer-debug-pill">DEBUG</span>}
+                </span>
+                <span className="debate-choice-desc">
+                  {isDebugBypassEnabled
+                    ? 'Debug bypass on — matches whoever is available, any distance.'
+                    : 'Live match with a real person whose views are most opposed to yours.'}
+                </span>
+              </span>
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

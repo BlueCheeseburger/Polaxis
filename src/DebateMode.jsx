@@ -75,7 +75,7 @@ const formatDebateText = (text) => {
   return elements;
 };
 
-export default function DebateMode({ open, onClose, userX, userY, userArchetype, userAnalysis, sourceBatchId, isDarkMode, apiBase, buildHeaders }) {
+export default function DebateMode({ open, onClose, userX, userY, userArchetype, userAnalysis, sourceBatchId, isDarkMode, apiBase, buildHeaders, bypassLimit = false }) {
   const persona = getAdversaryPersona(userX, userY);
   const storageKey = DEBATE_STORAGE_PREFIX + (sourceBatchId || `${userX}_${userY}`);
 
@@ -132,7 +132,7 @@ export default function DebateMode({ open, onClose, userX, userY, userArchetype,
     try {
       const response = await fetch(`${apiBase}/api/gemini-chat`, {
         method: 'POST',
-        headers: buildHeaders(),
+        headers: buildHeaders({ bypassLimit }),
         body: JSON.stringify({
           userX,
           userY,

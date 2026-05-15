@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { createHash, randomUUID } from "crypto";
+import { createServer } from "http";
+import { Server as SocketIOServer } from "socket.io";
 import { createClient } from "@supabase/supabase-js";
 
 dotenv.config();
@@ -819,27 +821,31 @@ app.post("/api/gemini-chat", async (req, res) => {
       return res.status(400).json({ error: "Missing X-Client-Id header" });
     }
 
-    const dateKey = getDateKey();
-    const ip = getClientIp(req);
-    const clientKey = `chat:${dateKey}:${clientId}`;
-    const ipKey = `chat:${dateKey}:${ip}`;
+    const bypassLimit = req.header("X-Debug-Bypass") === "true";
 
-    const clientLimitResult = incrementOrRejectDailyLimit({
-      store: dailyChatClientUsage,
-      key: clientKey,
-      limit: DAILY_CHAT_CLIENT_LIMIT,
-    });
-    if (clientLimitResult.blocked) {
-      return res.status(429).json({ error: "Daily debate limit reached. Try again tomorrow." });
-    }
+    if (!bypassLimit) {
+      const dateKey = getDateKey();
+      const ip = getClientIp(req);
+      const clientKey = `chat:${dateKey}:${clientId}`;
+      const ipKey = `chat:${dateKey}:${ip}`;
 
-    const ipLimitResult = incrementOrRejectDailyLimit({
-      store: dailyChatIpUsage,
-      key: ipKey,
-      limit: DAILY_CHAT_IP_LIMIT,
-    });
-    if (ipLimitResult.blocked) {
-      return res.status(429).json({ error: "Daily network debate limit reached. Try again tomorrow." });
+      const clientLimitResult = incrementOrRejectDailyLimit({
+        store: dailyChatClientUsage,
+        key: clientKey,
+        limit: DAILY_CHAT_CLIENT_LIMIT,
+      });
+      if (clientLimitResult.blocked) {
+        return res.status(429).json({ error: "Daily debate limit reached. Try again tomorrow." });
+      }
+
+      const ipLimitResult = incrementOrRejectDailyLimit({
+        store: dailyChatIpUsage,
+        key: ipKey,
+        limit: DAILY_CHAT_IP_LIMIT,
+      });
+      if (ipLimitResult.blocked) {
+        return res.status(429).json({ error: "Daily network debate limit reached. Try again tomorrow." });
+      }
     }
 
     const ax = clampCompassValue(-Number(userX));
@@ -883,9 +889,8 @@ LANGUAGE — this matters:
 
 FORMAT — strict:
 - Lead with your strongest point
-- Use bullets (•) or numbers (1. 2. 3.) for multiple arguments
-- Each bullet: ONE sentence, max 20 words
-- 3-4 total bullets per response — no more
+- Speak in plain sentences by default — like a real debate, not a listicle
+- Only use bullets or a numbered list when you genuinely have 3+ separate points that don't flow naturally in prose; never just to look organised
 - Zero filler ("That's interesting," "Great point," "Let me be clear")
 - Total response under 100 words`;
 
@@ -930,7 +935,199 @@ FORMAT — strict:
   }
 });
 
+// --- Peer Debate (Socket.io) ---
+// In-memory queue of users waiting for a match.
+// Map<socketId, { x, y, archetype, socket, bypass }>
+const peerMatchQueue = new Map();
+// Map<debateId, { p1: socketId, p2: socketId, messageCounts: Map<socketId, number> }>
+const activePeerDebates = new Map();
+// Map<socketId, debateId> — reverse lookup so either side knows their active debate
+const socketToDebate = new Map();
+const PEER_MESSAGE_LIMIT = 40;
+const PEER_MESSAGE_MAX_LEN = 600;
+
+const generateConversationStarter = async ({ archetypeA, archetypeB, axA, ayA, axB, ayB }) => {
+  const fallback = `Here's the question to debate: which of you would more reliably protect ordinary people from the abuses of concentrated power — and what does each side get wrong about how that power actually works?`;
+  if (!GEMINI_API_KEY) return fallback;
+
+  const sysInstruction = `You write a single pointed debate-opening question that forces two opposing worldviews to clash on their core disagreement. Output ONLY the question itself — no preamble, no "Here's a question:", no quotes. One sentence, under 35 words. The question must be specific (reference a real policy area or trade-off), not vague.`;
+
+  const prompt = `Two people are about to debate live:
+Person A: "${archetypeA || 'left-leaning'}" at compass (Economic ${axA.toFixed(1)}, Social ${ayA.toFixed(1)}).
+Person B: "${archetypeB || 'right-leaning'}" at compass (Economic ${axB.toFixed(1)}, Social ${ayB.toFixed(1)}).
+
+Write ONE sharp question that forces them to defend their starkest disagreement — a real-world policy choice or moral trade-off where their values point opposite directions. Avoid "should government...?" — be specific.`;
+
+  try {
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          systemInstruction: { parts: [{ text: sysInstruction }] },
+          generationConfig: {
+            temperature: 0.9,
+            maxOutputTokens: 800,
+            thinkingConfig: { thinkingBudget: 0 }
+          }
+        })
+      }
+    );
+    const data = await r.json();
+    if (!r.ok) return fallback;
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) return fallback;
+    return text.trim().replace(/^["']|["']$/g, "").replace(/^["']|["']$/g, "");
+  } catch {
+    return fallback;
+  }
+};
+
+const findBestMatch = (newEntry) => {
+  // newEntry is the socketId. Scan all other entries.
+  let best = null;
+  let bestDist = -1;
+  const me = peerMatchQueue.get(newEntry);
+  if (!me) return null;
+  for (const [sid, entry] of peerMatchQueue) {
+    if (sid === newEntry) continue;
+    // If either side has bypass, accept immediately at any distance.
+    if (me.bypass || entry.bypass) {
+      return sid;
+    }
+    const dx = me.x - entry.x;
+    const dy = me.y - entry.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > bestDist) {
+      bestDist = dist;
+      best = sid;
+    }
+  }
+  return best;
+};
+
+const httpServer = createServer(app);
+const io = new SocketIOServer(httpServer, {
+  cors: { origin: "*", methods: ["GET", "POST"] },
+});
+
+io.on("connection", (socket) => {
+  socket.on("join_queue", async (payload = {}) => {
+    const x = Number(payload.x);
+    const y = Number(payload.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || x < -10 || x > 10 || y < -10 || y > 10) {
+      socket.emit("queue_error", { error: "Invalid compass coordinates" });
+      return;
+    }
+    const archetype = typeof payload.archetype === "string" ? payload.archetype.slice(0, 80) : "";
+    const bypass = payload.bypassMatchmaker === true;
+
+    peerMatchQueue.set(socket.id, { x, y, archetype, socket, bypass });
+
+    const partnerSid = findBestMatch(socket.id);
+    if (!partnerSid) {
+      socket.emit("queue_status", { waiting: true, queueSize: peerMatchQueue.size });
+      return;
+    }
+
+    const partner = peerMatchQueue.get(partnerSid);
+    const me = peerMatchQueue.get(socket.id);
+    peerMatchQueue.delete(partnerSid);
+    peerMatchQueue.delete(socket.id);
+
+    const debateId = randomUUID().slice(0, 8);
+    activePeerDebates.set(debateId, {
+      p1: socket.id,
+      p2: partnerSid,
+      messageCounts: new Map([[socket.id, 0], [partnerSid, 0]]),
+    });
+    socketToDebate.set(socket.id, debateId);
+    socketToDebate.set(partnerSid, debateId);
+
+    socket.join(`debate:${debateId}`);
+    partner.socket.join(`debate:${debateId}`);
+
+    const dx = me.x - partner.x;
+    const dy = me.y - partner.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    const conversationStarter = await generateConversationStarter({
+      archetypeA: me.archetype,
+      archetypeB: partner.archetype,
+      axA: me.x, ayA: me.y,
+      axB: partner.x, ayB: partner.y,
+    });
+
+    socket.emit("matched", {
+      debateId,
+      opponent: { x: partner.x, y: partner.y, archetype: partner.archetype },
+      distance,
+      conversationStarter,
+    });
+    partner.socket.emit("matched", {
+      debateId,
+      opponent: { x: me.x, y: me.y, archetype: me.archetype },
+      distance,
+      conversationStarter,
+    });
+  });
+
+  socket.on("leave_queue", () => {
+    peerMatchQueue.delete(socket.id);
+    socket.emit("queue_left");
+  });
+
+  socket.on("send_message", ({ debateId, content } = {}) => {
+    if (typeof debateId !== "string" || !debateId) return;
+    const debate = activePeerDebates.get(debateId);
+    if (!debate) {
+      socket.emit("debate_error", { error: "Debate session not found" });
+      return;
+    }
+    if (debate.p1 !== socket.id && debate.p2 !== socket.id) {
+      return;
+    }
+    const text = typeof content === "string" ? content.trim().slice(0, PEER_MESSAGE_MAX_LEN) : "";
+    if (!text) return;
+
+    const count = debate.messageCounts.get(socket.id) || 0;
+    if (count >= PEER_MESSAGE_LIMIT) {
+      socket.emit("debate_error", { error: "You've reached the message limit for this debate." });
+      return;
+    }
+    debate.messageCounts.set(socket.id, count + 1);
+
+    const timestamp = Date.now();
+    // Echo to sender so both sides have synchronized state.
+    socket.emit("new_message", { content: text, fromSelf: true, timestamp });
+    socket.to(`debate:${debateId}`).emit("new_message", { content: text, fromSelf: false, timestamp });
+  });
+
+  const tearDownDebate = (notifyPeer) => {
+    const debateId = socketToDebate.get(socket.id);
+    if (!debateId) return;
+    const debate = activePeerDebates.get(debateId);
+    if (debate) {
+      const peerId = debate.p1 === socket.id ? debate.p2 : debate.p1;
+      socketToDebate.delete(peerId);
+      if (notifyPeer) io.to(peerId).emit("opponent_left");
+    }
+    socketToDebate.delete(socket.id);
+    activePeerDebates.delete(debateId);
+    socket.leave(`debate:${debateId}`);
+  };
+
+  socket.on("leave_debate", () => tearDownDebate(true));
+
+  socket.on("disconnect", () => {
+    peerMatchQueue.delete(socket.id);
+    tearDownDebate(true);
+  });
+});
+
 const PORT = process.env.PORT || 8787;
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`Backend listening on http://localhost:${PORT}`);
 });
