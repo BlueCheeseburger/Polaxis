@@ -97,7 +97,7 @@ const drawShareImage = (canvas, { archetype, x, y, points, partyMatch, appUrl, d
   ctx.fillStyle = c.heading;
   ctx.font = 'bold 78px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(archetype || 'The Political Compass', SHARE_IMAGE_W / 2, 130);
+  ctx.fillText(archetype || 'Polaxis', SHARE_IMAGE_W / 2, 130);
 
   ctx.fillStyle = c.sub;
   ctx.font = '32px sans-serif';
@@ -352,13 +352,13 @@ export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode,
 
   const x = typeof result?.x === 'number' ? result.x : 0;
   const y = typeof result?.y === 'number' ? result.y : 0;
-  const archetype = (result?.archetype && result.archetype.trim()) || 'The Political Compass';
+  const archetype = (result?.archetype && result.archetype.trim()) || 'Polaxis';
   const partyMatch = useMemo(() => computePartyMatch(x, y), [x, y]);
   const safePoints = useMemo(() => (
     Array.isArray(points) && points.length > 0 ? points : [{ id: 'cluster-1', label: archetype, x, y }]
   ), [points, archetype, x, y]);
 
-  const appUrl = (typeof window !== 'undefined' && window.location?.origin) ? window.location.origin.replace(/^https?:\/\//, '') : 'political-compass';
+  const appUrl = (typeof window !== 'undefined' && window.location?.origin) ? window.location.origin.replace(/^https?:\/\//, '') : 'polaxis.app';
   const shareLink = existingComparisonUrl
     ? existingComparisonUrl
     : (shareId && typeof window !== 'undefined'
@@ -467,7 +467,7 @@ export const ShareModal = ({ open, onClose, result, points, apiBase, isDarkMode,
       const a = document.createElement('a');
       a.href = url;
       const slug = archetype.replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'compass';
-      a.download = `political-compass-${slug}.png`;
+      a.download = `polaxis-${slug}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -601,7 +601,7 @@ export const ShareView = ({ shareId, apiBase, onTakeQuiz }) => {
       : computePartyMatch(share.x, share.y);
     const appUrl = (typeof window !== 'undefined' && window.location?.origin) ? window.location.origin.replace(/^https?:\/\//, '') : '';
     drawShareImage(canvas, {
-      archetype: share.archetype || 'The Political Compass',
+      archetype: share.archetype || 'Polaxis',
       x: share.x,
       y: share.y,
       points: sharePoints,
@@ -635,7 +635,7 @@ export const ShareView = ({ shareId, apiBase, onTakeQuiz }) => {
           <>
             <div className="share-view-header">
               <p className="share-view-eyebrow">Someone shared their result</p>
-              <h2>{share.archetype || 'The Political Compass'}</h2>
+              <h2>{share.archetype || 'Polaxis'}</h2>
               {share.analysis && <p className="share-view-analysis">"{share.analysis}"</p>}
             </div>
             <div className="share-view-canvas-wrap">

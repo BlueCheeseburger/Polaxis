@@ -544,6 +544,7 @@ const OVERLAY_PRESETS = {
   republican: {
     label: "Republican",
     points: [
+      // Q1 — Auth-Right (existing)
       { name: "Donald Trump", x: 4.5, y: 4.0, description: "Right-populist mix of nationalism and conservative governance." },
       { name: "Marco Rubio", x: 4.0, y: 2.8, description: "Conservative economics and hawkish institutional Republican profile." },
       { name: "Nick Fuentes", x: 8.6, y: 9.0, description: "Placed far-authoritarian-right for explicit extremist rhetoric." },
@@ -555,20 +556,53 @@ const OVERLAY_PRESETS = {
       { name: "Ronald Reagan", x: 6.1, y: 3.4, description: "Free-market conservatism with anti-big-government branding." },
       { name: "Charlie Kirk", x: 7.4, y: 5.9, description: "Movement conservatism with strong culture-war emphasis." },
       { name: "Abraham Lincoln", x: 1.6, y: 5.6, description: "Historically placed as institution-forward wartime executive leadership." },
+      // Q1 — Auth-Right (new)
+      { name: "Pat Buchanan", x: 5.5, y: 6.8, description: "Paleoconservative populist with hard nationalist and protectionist positions." },
+      { name: "J.D. Vance", x: 5.0, y: 5.5, description: "MAGA nationalist with working-class economic populism and cultural conservatism." },
+      { name: "Mike Pence", x: 4.8, y: 3.5, description: "Establishment social-conservative with strong institutional and religious-right orientation." },
+      { name: "Newt Gingrich", x: 5.8, y: 4.5, description: "Contract with America architect; culture-war conservative with sharp partisan edge." },
+      // Q3 — Lib-Left (new — progressive-era and moderate Republicans)
+      { name: "Teddy Roosevelt", x: -2.5, y: -1.5, description: "Trust-busting Progressive Republican; anti-monopoly, pro-conservation, skeptical of big capital." },
+      { name: "Bob La Follette Sr.", x: -4.0, y: -2.5, description: "Progressive Republican senator; labor rights, anti-war, and anti-corporate platform." },
+      { name: "Lincoln Chafee", x: -1.5, y: -1.8, description: "Liberal Republican senator from Rhode Island; later left the party over cultural direction." },
+      { name: "Olympia Snowe", x: -0.8, y: -1.2, description: "Moderate Maine Republican; consistently crossed the aisle on social and fiscal issues." },
+      // Q4 — Lib-Right (new)
+      { name: "Rand Paul", x: 7.0, y: -4.5, description: "Libertarian-leaning Republican senator; anti-interventionist and fiscal hawk." },
+      { name: "Barry Goldwater", x: 7.2, y: -3.0, description: "Father of modern conservatism; free-market economics with strong individual liberty." },
+      { name: "Gary Johnson", x: 6.5, y: -4.0, description: "Libertarian-minded former Republican governor; small government and personal freedom." },
+      { name: "John McCain", x: 3.0, y: -0.5, description: "Maverick Republican senator; institutionalist with moderate social positions and hawkish foreign policy." },
     ],
   },
   democratic: {
     label: "Democratic",
     points: [
-      { name: "Joe Biden", x: 0.6, y: 1.8, description: "Center-left policy direction with institutional bipartisan framing." },
-      { name: "Barack Obama", x: -1.5, y: -1.5, description: "Liberal social positioning with moderate center-left economics." },
-      { name: "Dean Withers", x: -2.8, y: -4.2, description: "Placed in libertarian-left for online progressive civil-liberties positioning." },
-      { name: "John F. Kennedy", x: -0.8, y: 0.3, description: "Mid-century liberal anti-poverty agenda with moderate state posture." },
-      { name: "Piers Morgan", x: 2.4, y: 1.9, description: "Centrist-right media voice with law-and-order leaning rhetoric." },
-      { name: "Bernie Sanders", x: -6.5, y: -1.5, description: "Democratic socialist platform with strong labor and anti-corporate positioning." },
-      { name: "AOC", x: -7.2, y: -2.8, description: "Progressive-left economics with civil liberties and green new deal focus." },
+      // Q2 — Auth-Left (existing)
       { name: "Hillary Clinton", x: -1.2, y: 1.5, description: "Center-left institutionalist with hawkish foreign policy and establishment framing." },
       { name: "Franklin D. Roosevelt", x: -4.2, y: 2.7, description: "Strong economic intervention and institutional federal expansion." },
+      // Q1 — Auth-Right (existing)
+      { name: "Joe Biden", x: 0.6, y: 1.8, description: "Center-left policy direction with institutional bipartisan framing." },
+      { name: "John F. Kennedy", x: -0.8, y: 0.3, description: "Mid-century liberal anti-poverty agenda with moderate state posture." },
+      { name: "Piers Morgan", x: 2.4, y: 1.9, description: "Centrist-right media voice with law-and-order leaning rhetoric." },
+      // Q1 — Auth-Right (new)
+      { name: "Joe Manchin", x: 3.5, y: 2.5, description: "Conservative West Virginia Democrat; pro-coal, hawkish, and fiercely anti-progressive." },
+      { name: "Rahm Emanuel", x: 2.2, y: 2.0, description: "Centrist Chicago mayor and Clinton-era operative; fiscally hawkish with a hard-edge institutional style." },
+      { name: "Eric Adams", x: 2.0, y: 3.5, description: "NYC mayor; socially conservative Democrat with tough-on-crime and pro-business positions." },
+      { name: "Al Gore", x: 0.8, y: 1.2, description: "Centrist Clinton-era VP; technocratic institutionalism with moderate economic positioning." },
+      // Q3 — Lib-Left (existing)
+      { name: "Barack Obama", x: -1.5, y: -1.5, description: "Liberal social positioning with moderate center-left economics." },
+      { name: "Dean Withers", x: -2.8, y: -4.2, description: "Placed in libertarian-left for online progressive civil-liberties positioning." },
+      { name: "Bernie Sanders", x: -6.5, y: -1.5, description: "Democratic socialist platform with strong labor and anti-corporate positioning." },
+      { name: "AOC", x: -7.2, y: -2.8, description: "Progressive-left economics with civil liberties and green new deal focus." },
+      // Q3 — Lib-Left (new)
+      { name: "Elizabeth Warren", x: -5.5, y: -1.2, description: "Progressive economic senator; anti-corporate with strong consumer and civil-liberties focus." },
+      { name: "Pete Buttigieg", x: -1.5, y: -1.5, description: "Moderate progressive; institutionalist with center-left social policy." },
+      { name: "Jimmy Carter", x: -2.5, y: -1.8, description: "Post-presidency humanitarian Democrat; modest government, civil liberties, and anti-war positioning." },
+      { name: "Tulsi Gabbard", x: -2.5, y: -3.0, description: "Anti-interventionist Democrat; civil libertarian with populist cross-party appeal." },
+      // Q4 — Lib-Right (new)
+      { name: "Andrew Yang", x: 4.0, y: -2.0, description: "Tech-forward UBI advocate; market-friendly Democrat with post-partisan libertarian undertones." },
+      { name: "Michael Bloomberg", x: 4.5, y: -1.5, description: "Market-oriented mega-donor mayor; socially liberal but strongly pro-business and deregulatory." },
+      { name: "Bill Clinton", x: 2.0, y: -0.8, description: "Third Way Democrat; NAFTA, welfare reform, and market-friendly economics under centrist branding." },
+      { name: "John Kerry", x: 1.5, y: -0.5, description: "Institutionalist center-left senator; moderate economics with multilateral foreign policy emphasis." },
     ],
   },
   ideologies: {
@@ -1076,6 +1110,7 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, s
   const [hoveredUserPoint, setHoveredUserPoint] = useState(null);
   const [hoveredUserPosition, setHoveredUserPosition] = useState(null);
   const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+  const touchJustFiredRef = useRef(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1228,7 +1263,7 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, s
         const isHovered = hoveredReference?.name === person.name;
 
         ctx.beginPath();
-        ctx.arc(refX, refY, isHovered ? 6 : (isMobile ? 7 : 4), 0, 2 * Math.PI);
+        ctx.arc(refX, refY, isHovered ? 7 : (isMobile ? 9 : 4), 0, 2 * Math.PI);
         ctx.fillStyle = isHovered ? (isDarkMode ? 'rgba(248, 250, 252, 0.95)' : 'rgba(15, 23, 42, 0.9)') : referenceDotColor;
         ctx.fill();
 
@@ -1353,6 +1388,7 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, s
   };
 
   const handleMouseLeave = () => {
+    if (touchJustFiredRef.current) return;
     setHoveredReference(null);
     setHoverPosition(null);
     setHoveredUserPoint(null);
@@ -1361,6 +1397,8 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, s
 
   const handleTouchStart = (event) => {
     event.preventDefault();
+    touchJustFiredRef.current = true;
+    setTimeout(() => { touchJustFiredRef.current = false; }, 300);
     const canvas = canvasRef.current;
     if (!canvas) return;
     const touch = event.touches?.[0];
@@ -1412,7 +1450,7 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, s
       });
     }
 
-    const threshold = overlayPreset === 'ideologies' ? 6 : 20;
+    const threshold = overlayPreset === 'ideologies' ? 6 : (isMobile ? 32 : 20);
     const hit = !!(nearest && nearestDist <= threshold);
     if (hit) {
       if (!hasDismissedCue) setHasDismissedCue(true);
@@ -2814,7 +2852,7 @@ export default function App() {
               <Compass size={32} />
             </div>
           </div>
-          <h1>The Political Compass</h1>
+          <h1>Polaxis</h1>
           <p className="hero-subtitle">
             {(activeComparisonId && compareFriendWantsToJoin && !hasAddedComparisonPoint && !comparisonLoadError)
               ? `Add your point below to compare with ${comparison?.participants?.[0]?.archetype || 'the primary user'}`

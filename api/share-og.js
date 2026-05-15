@@ -18,7 +18,7 @@ const escapeJsString = (raw) => String(raw == null ? '' : raw)
   .replace(/</g, '\\u003C');
 
 const buildHtml = ({ archetype, analysis, shareId, baseUrl }) => {
-  const safeArchetype = escapeHtml(archetype || 'The Political Compass');
+  const safeArchetype = escapeHtml(archetype || 'Polaxis');
   const safeDescription = escapeHtml(analysis || 'See where your political beliefs land — and where this person ended up.');
   const safeUrl = `${baseUrl}/share/${escapeHtml(shareId)}`;
   const redirectId = escapeJsString(shareId);
@@ -27,14 +27,14 @@ const buildHtml = ({ archetype, analysis, shareId, baseUrl }) => {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>${safeArchetype} · The Political Compass</title>
+<title>${safeArchetype} · Polaxis</title>
 <meta name="description" content="${safeDescription}" />
-<meta property="og:title" content="${safeArchetype} · The Political Compass" />
+<meta property="og:title" content="${safeArchetype} · Polaxis" />
 <meta property="og:description" content="${safeDescription}" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="${safeUrl}" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="${safeArchetype} · The Political Compass" />
+<meta name="twitter:title" content="${safeArchetype} · Polaxis" />
 <meta name="twitter:description" content="${safeDescription}" />
 <style>
 body{font-family:system-ui,-apple-system,sans-serif;background:#0f172a;color:#f8fafc;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;text-align:center}
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
   // Use the actual stored ID for the redirect so the URL stays canonical
   const canonicalId = share?.id || rawId;
   const html = buildHtml({
-    archetype: share?.archetype || 'The Political Compass',
+    archetype: share?.archetype || 'Polaxis',
     analysis: share?.analysis || '',
     shareId: canonicalId,
     baseUrl,

@@ -1,5 +1,5 @@
 {
-  "appId": "com.yourname.politicalcompass",
-  "appName": "Political Compass",
+  "appId": "app.polaxis.polaxis",
+  "appName": "Polaxis",
   "webDir": "dist"
 }
