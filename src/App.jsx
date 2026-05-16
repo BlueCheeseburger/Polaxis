@@ -861,20 +861,20 @@ const OVERLAY_PRESETS = {
       { name: "Militarist", x: 8, y: 1.6, description: "Believes military strength is central to national policy." },
       { name: "Likes Ronald Reagan", x: 9.5, y: 1.6, description: "Admires Ronald Reagan and 1980s American conservatism." },
 
-      // Row 7 (y ≈ 0, just above axis — left half)
-      { name: "Capitalism is selfish", x: -9, y: 0.2, description: "Believes capitalism rewards greed at society's expense." },
-      { name: "Wants to keep funding planned parenthood", x: -7.3, y: 0.2, description: "Supports continued public funding for Planned Parenthood." },
-      { name: "Wants free college", x: -5.5, y: 0.2, description: "Believes higher education should be tuition-free." },
-      { name: "Supports BLM", x: -4, y: 0.2, description: "Supports the Black Lives Matter movement." },
-      { name: "Pro-LGBT", x: -2.3, y: 0.2, description: "Supports LGBTQ+ rights and visibility." },
-      { name: "Uses discord", x: -1, y: 0.2, description: "Spends meaningful time in Discord communities." },
-      // Row 7 right half (y ≈ -0.2)
-      { name: "Gamer", x: 1.5, y: -0.2, description: "Self-identifies as a gamer; gaming culture shapes worldview." },
-      { name: "Pro free-speech", x: 3, y: -0.2, description: "Strong defender of broad free-speech rights." },
-      { name: "'Socially liberal, fiscally conservative'", x: 4.5, y: -0.2, description: "Classic centrist-libertarian framing — liberal on cultural issues, right on economics." },
-      { name: "Anti-communist/socialist", x: 6, y: -0.2, description: "Opposes all forms of socialism and communism on principle." },
-      { name: "Free-trade", x: 8, y: -0.2, description: "Supports unrestricted international trade." },
-      { name: "Flat earther / thinks evolution is fake", x: 9.5, y: -0.2, description: "Rejects mainstream scientific consensus on cosmology or biology." },
+      // Row 7 — just below the horizontal axis, clearly in the libertarian half.
+      // (Source image places this row's labels in the lib quadrants, not auth.)
+      { name: "Capitalism is selfish", x: -9, y: -0.8, description: "Believes capitalism rewards greed at society's expense." },
+      { name: "Wants to keep funding planned parenthood", x: -7.3, y: -0.8, description: "Supports continued public funding for Planned Parenthood." },
+      { name: "Wants free college", x: -5.5, y: -0.8, description: "Believes higher education should be tuition-free." },
+      { name: "Supports BLM", x: -4, y: -0.8, description: "Supports the Black Lives Matter movement." },
+      { name: "Pro-LGBT", x: -2.3, y: -0.8, description: "Supports LGBTQ+ rights and visibility." },
+      { name: "Uses discord", x: -1, y: -0.8, description: "Spends meaningful time in Discord communities." },
+      { name: "Gamer", x: 1.5, y: -0.8, description: "Self-identifies as a gamer; gaming culture shapes worldview." },
+      { name: "Pro free-speech", x: 3, y: -0.8, description: "Strong defender of broad free-speech rights." },
+      { name: "'Socially liberal, fiscally conservative'", x: 4.5, y: -0.8, description: "Classic centrist-libertarian framing — liberal on cultural issues, right on economics." },
+      { name: "Anti-communist/socialist", x: 6, y: -0.8, description: "Opposes all forms of socialism and communism on principle." },
+      { name: "Free-trade", x: 8, y: -0.8, description: "Supports unrestricted international trade." },
+      { name: "Flat earther / thinks evolution is fake", x: 9.5, y: -0.8, description: "Rejects mainstream scientific consensus on cosmology or biology." },
 
       // Row 8 (y ≈ -1.6)
       { name: "Actual Communalist", x: -9, y: -1.6, description: "Adheres to Bookchin-style libertarian municipalism." },
@@ -1413,8 +1413,18 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, s
       // Compute layout with greedy vertical staggering. Labels processed in
       // input order; each label tries its base position first, then alternating
       // small offsets until it doesn't overlap any already-placed label box.
+      // Offsets extend up to ±7 line-heights so dense clusters still find a slot.
       const placed = [];
-      const offsets = [0, -LINE_H, LINE_H, -2 * LINE_H, 2 * LINE_H, -3 * LINE_H, 3 * LINE_H, -4 * LINE_H, 4 * LINE_H];
+      const offsets = [
+        0,
+        -LINE_H, LINE_H,
+        -2 * LINE_H, 2 * LINE_H,
+        -3 * LINE_H, 3 * LINE_H,
+        -4 * LINE_H, 4 * LINE_H,
+        -5 * LINE_H, 5 * LINE_H,
+        -6 * LINE_H, 6 * LINE_H,
+        -7 * LINE_H, 7 * LINE_H,
+      ];
       for (const person of referencePoints) {
         const display = truncate(person.name);
         const textW = ctx.measureText(display).width;
@@ -1436,28 +1446,36 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, s
       }
       ideologyLayoutRef.current = placed;
 
+      // Map a rendered cy back to compass y so labels are colored by where
+      // they actually appear after staggering — not by the data's intent.
+      // This stops axis-adjacent labels from getting the wrong quadrant color
+      // when stagger pushes them across the horizontal axis.
+      const cyToY = (cy) => 10 - (cy / height) * 20;
+
       // Draw non-hovered labels first
       const bgFill = isDarkMode ? 'rgba(15, 23, 42, 0.55)' : 'rgba(255, 255, 255, 0.6)';
       for (const item of placed) {
         if (hoveredReference?.name === item.person.name) continue;
+        const displayY = cyToY(item.cy);
         ctx.fillStyle = bgFill;
         ctx.fillRect(item.cx - item.w / 2, item.cy - item.h / 2, item.w, item.h);
-        ctx.fillStyle = quadrantColor(item.person.x, item.person.y, false);
+        ctx.fillStyle = quadrantColor(item.person.x, displayY, false);
         ctx.fillText(item.display, item.cx, item.cy);
       }
       // Draw hovered label last with stronger styling and full (untruncated) name
       if (hoveredReference) {
         const item = placed.find(p => p.person.name === hoveredReference.name);
         if (item) {
+          const displayY = cyToY(item.cy);
           ctx.font = 'bold 11px sans-serif';
           const fullW = ctx.measureText(hoveredReference.name).width + 10;
           const fullH = 17;
           ctx.fillStyle = isDarkMode ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255, 255, 255, 0.97)';
           ctx.fillRect(item.cx - fullW / 2, item.cy - fullH / 2, fullW, fullH);
-          ctx.strokeStyle = quadrantColor(hoveredReference.x, hoveredReference.y, true);
+          ctx.strokeStyle = quadrantColor(hoveredReference.x, displayY, true);
           ctx.lineWidth = 1.5;
           ctx.strokeRect(item.cx - fullW / 2, item.cy - fullH / 2, fullW, fullH);
-          ctx.fillStyle = quadrantColor(hoveredReference.x, hoveredReference.y, true);
+          ctx.fillStyle = quadrantColor(hoveredReference.x, displayY, true);
           ctx.fillText(hoveredReference.name, item.cx, item.cy);
         }
       }
