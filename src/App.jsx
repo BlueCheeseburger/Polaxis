@@ -2858,12 +2858,12 @@ export default function App() {
         <div className="landing-page">
           <div className="landing-hero">
             <div className="landing-icon-wrap">
-              <div className="hero-icon">
+              <div className="hero-icon landing-hero-icon">
                 <Compass size={36} />
               </div>
             </div>
-            <span className="landing-wordmark">Polaxis</span>
-            <h1 className="landing-title">Where Do Your Beliefs<br />Actually Land?</h1>
+            <h1 className="landing-app-name">Polaxis</h1>
+            <p className="landing-title">Where do your beliefs actually land?</p>
             <p className="landing-subtitle">
               Find your position on a political compass using AI analysis or a structured quiz. No labels. No judgment.
             </p>

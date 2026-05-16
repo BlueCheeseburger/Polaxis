@@ -3108,33 +3108,38 @@
 }
 
 .landing-icon-wrap {
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
-.landing-wordmark {
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #f97316;
-  background: rgba(249, 115, 22, 0.1);
-  border: 1px solid rgba(249, 115, 22, 0.25);
-  padding: 4px 14px;
-  border-radius: 999px;
-  margin-top: -4px;
+.landing-hero-icon {
+  background: linear-gradient(145deg, #f97316, #ea580c) !important;
+  box-shadow: 0 12px 24px rgba(249, 115, 22, 0.35) !important;
+}
+
+.landing-app-name {
+  margin: 0;
+  font-size: clamp(3rem, 10vw, 5rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .landing-title {
   margin: 0;
-  font-size: clamp(2rem, 6vw, 3rem);
-  font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  font-size: clamp(1.1rem, 3vw, 1.4rem);
+  font-weight: 600;
+  line-height: 1.3;
+  color: inherit;
+  opacity: 0.75;
 }
 
 .landing-subtitle {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 0.98rem;
   color: #475569;
   max-width: 420px;
   line-height: 1.6;
@@ -3142,6 +3147,10 @@
 
 .app-shell.dark .landing-subtitle {
   color: #94a3b8;
+}
+
+.app-shell.dark .landing-title {
+  opacity: 0.6;
 }
 
 .landing-ctas {
