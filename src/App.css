@@ -1210,6 +1210,56 @@
   color: #fde68a;
 }
 
+.overlay-traits .party-badge,
+.overlay-traits .filter-toggle,
+.overlay-traits .filter-option.active {
+  border-color: rgba(20, 184, 166, 0.55);
+}
+
+.overlay-traits .party-badge {
+  background: rgba(204, 251, 241, 0.88);
+  color: #0f766e;
+}
+
+.app-shell.dark.overlay-traits .party-badge {
+  background: rgba(19, 78, 74, 0.45);
+  color: #99f6e4;
+}
+
+/* Traits "New!" indicators use a teal hue to distinguish from the purple
+   ideologies indicators. */
+.new-bubble-traits {
+  background: #0d9488;
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);
+}
+
+.new-bubble-traits::after {
+  border-top-color: #0d9488;
+}
+
+.new-badge-traits {
+  background: #0d9488;
+}
+
+.app-shell.dark .new-bubble-traits {
+  background: #14b8a6;
+  box-shadow: 0 4px 14px rgba(20, 184, 166, 0.4);
+}
+
+.app-shell.dark .new-bubble-traits::after {
+  border-top-color: #14b8a6;
+}
+
+.app-shell.dark .new-badge-traits {
+  background: #14b8a6;
+}
+
+.alignment-trait {
+  margin-top: 4px;
+  opacity: 0.85;
+  font-style: italic;
+}
+
 .analysis-card {
   padding: 18px;
   border-radius: 14px;
@@ -3595,6 +3645,75 @@
   }
 }
 
+/* Light mode debate panel */
+.debate-overlay:not(.dark) .debate-panel {
+  background: #ffffff;
+  border-color: rgba(239, 68, 68, 0.2);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(239, 68, 68, 0.1);
+}
+.debate-overlay:not(.dark) .debate-header {
+  background: rgba(239, 68, 68, 0.04);
+  border-bottom-color: rgba(239, 68, 68, 0.12);
+}
+.debate-overlay:not(.dark) .debate-header-title { color: #0f172a; }
+.debate-overlay:not(.dark) .debate-reset-btn { border-color: rgba(100, 116, 139, 0.3); color: #64748b; }
+.debate-overlay:not(.dark) .debate-reset-btn:hover { border-color: #94a3b8; color: #334155; }
+.debate-overlay:not(.dark) .debate-close-btn { color: #94a3b8; }
+.debate-overlay:not(.dark) .debate-close-btn:hover { color: #0f172a; }
+.debate-overlay:not(.dark) .debate-persona-card { background: rgba(239, 68, 68, 0.03); }
+.debate-overlay:not(.dark) .debate-vs-you .debate-vs-name { color: #4338ca; }
+.debate-overlay:not(.dark) .debate-vs-enemy .debate-vs-name { color: #dc2626; }
+.debate-overlay:not(.dark) .debate-vs-coords { color: #64748b; }
+.debate-overlay:not(.dark) .debate-disclaimer { color: #64748b; }
+.debate-overlay:not(.dark) .debate-msg-body {
+  background: rgba(241, 245, 249, 0.9);
+  border-color: rgba(239, 68, 68, 0.2);
+  border-left-color: rgba(239, 68, 68, 0.5);
+  color: #1e293b;
+}
+.debate-overlay:not(.dark) .debate-msg-user .debate-msg-body {
+  background: rgba(238, 242, 255, 0.9);
+  border-color: rgba(99, 102, 241, 0.3);
+  border-right-color: rgba(99, 102, 241, 0.7);
+  color: #312e81;
+}
+.debate-overlay:not(.dark) .debate-msg-sender { color: #dc2626; }
+.debate-overlay:not(.dark) .debate-input {
+  background: #f8fafc;
+  border-color: rgba(100, 116, 139, 0.3);
+  color: #0f172a;
+}
+.debate-overlay:not(.dark) .debate-input::placeholder { color: #94a3b8; }
+.debate-overlay:not(.dark) .debate-input:focus { border-color: rgba(239, 68, 68, 0.4); }
+.debate-overlay:not(.dark) .debate-input-row { border-top-color: rgba(100, 116, 139, 0.15); background: #f8fafc; }
+.debate-overlay:not(.dark) .debate-error {
+  background: rgba(254, 226, 226, 0.9);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #991b1b;
+}
+.debate-overlay:not(.dark) .dsummary-scores-row {
+  background: #f8fafc;
+  border-color: rgba(99, 102, 241, 0.15);
+}
+.debate-overlay:not(.dark) .dsummary-scores-name { color: #475569; }
+.debate-overlay:not(.dark) .dsummary-scores-vs { color: #94a3b8; }
+.debate-overlay:not(.dark) .dsummary-score-num { color: #1e293b; }
+.debate-overlay:not(.dark) .dsummary-score-denom { color: #94a3b8; }
+.debate-overlay:not(.dark) .dsummary-score-bar-track { background: rgba(0,0,0,0.07); }
+.debate-overlay:not(.dark) .dsummary-section {
+  background: #f8fafc;
+  border-color: rgba(100, 116, 139, 0.15);
+}
+.debate-overlay:not(.dark) .dsummary-verdict { border-color: rgba(99, 102, 241, 0.2); }
+.debate-overlay:not(.dark) .dsummary-section-label { color: #94a3b8; }
+.debate-overlay:not(.dark) .dsummary-section-text { color: #334155; }
+.debate-overlay:not(.dark) .dsummary-strength-card { background: #f8fafc; }
+.debate-overlay:not(.dark) .dsummary-strength-text { color: #475569; }
+.debate-overlay:not(.dark) .dsummary-loading { color: #94a3b8; }
+.debate-overlay:not(.dark) .debate-summary { background: #ffffff; }
+.debate-overlay:not(.dark) .debate-messages { background: #ffffff; }
+.debate-overlay:not(.dark) .debate-para { color: #1e293b; }
+
 .debate-header {
   display: flex;
   align-items: center;
@@ -3623,6 +3742,28 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+.debate-end-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.debate-end-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #fca5a5;
+}
+.debate-end-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 .debate-reset-btn {
   background: none;
@@ -3736,6 +3877,152 @@
   font-style: italic;
 }
 
+/* --- Debate Summary --- */
+.debate-summary {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.dsummary-scores-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.dsummary-scores-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dsummary-scores-side-right {
+  align-items: flex-end;
+}
+.dsummary-scores-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.dsummary-scores-vs {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #475569;
+  letter-spacing: 0.08em;
+}
+.dsummary-score-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.dsummary-score-bar-wrap.dsummary-score-bar-adversary {
+  flex-direction: row-reverse;
+}
+.dsummary-score-bar-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.dsummary-score-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s ease;
+}
+.dsummary-score-bar-fill-user {
+  background: linear-gradient(90deg, #6366f1, #818cf8);
+}
+.dsummary-score-bar-fill-adversary {
+  background: linear-gradient(90deg, #ef4444, #f87171);
+  margin-left: auto;
+}
+.dsummary-score-num {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+.dsummary-score-denom {
+  font-size: 0.65rem;
+  color: #64748b;
+}
+.dsummary-section {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.dsummary-verdict {
+  border-color: rgba(99, 102, 241, 0.2);
+}
+.dsummary-section-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+.dsummary-section-text {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #cbd5e1;
+  line-height: 1.55;
+}
+.dsummary-strengths-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.dsummary-strength-card {
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.dsummary-strength-user {
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-left: 3px solid rgba(99, 102, 241, 0.6);
+}
+.dsummary-strength-adversary {
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-right: 3px solid rgba(239, 68, 68, 0.5);
+}
+.dsummary-strength-label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+}
+.dsummary-strength-user .dsummary-strength-label { color: #818cf8; }
+.dsummary-strength-adversary .dsummary-strength-label { color: #f87171; }
+.dsummary-strength-text {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+.dsummary-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #64748b;
+  font-size: 0.8rem;
+  padding: 8px 0;
+}
+/* --- end Debate Summary --- */
+
 .debate-messages {
   flex: 1;
   overflow-y: auto;
@@ -3818,6 +4105,10 @@
 }
 .debate-typing span:nth-child(2) { animation-delay: 0.2s; }
 .debate-typing span:nth-child(3) { animation-delay: 0.4s; }
+.debate-overlay:not(.dark) .debate-typing {
+  background: rgba(241, 245, 249, 0.9);
+  border-color: rgba(239, 68, 68, 0.2);
+}
 @keyframes debate-bounce {
   0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
   40% { transform: translateY(-5px); opacity: 1; }
@@ -3905,6 +4196,25 @@
   padding: 20px;
   box-shadow: 0 -8px 48px rgba(239, 68, 68, 0.12), 0 0 0 1px rgba(239, 68, 68, 0.1);
 }
+.debate-choice-overlay:not(.dark) .debate-choice-sheet {
+  background: #ffffff;
+  border-color: rgba(239, 68, 68, 0.18);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
+}
+.debate-choice-overlay:not(.dark) .debate-choice-title { color: #0f172a; }
+.debate-choice-overlay:not(.dark) .debate-choice-sub { color: #64748b; }
+.debate-choice-overlay:not(.dark) .debate-choice-option {
+  background: #f8fafc;
+  border-color: rgba(148, 163, 184, 0.25);
+}
+.debate-choice-overlay:not(.dark) .debate-choice-option:hover {
+  background: #f1f5f9;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+.debate-choice-overlay:not(.dark) .debate-choice-name { color: #0f172a; }
+.debate-choice-overlay:not(.dark) .debate-choice-desc { color: #64748b; }
+.debate-choice-overlay:not(.dark) .debate-choice-close-btn { color: #64748b; }
+.debate-choice-overlay:not(.dark) .debate-choice-close-btn:hover { color: #0f172a; }
 @media (min-width: 600px) {
   .debate-choice-sheet {
     border-radius: 18px;
@@ -3982,6 +4292,38 @@
   color: #94a3b8;
   line-height: 1.4;
 }
+
+/* --- Peer debate light mode --- */
+.debate-overlay:not(.dark) .peer-state-title { color: #0f172a; }
+.debate-overlay:not(.dark) .peer-state-sub { color: #64748b; }
+.debate-overlay:not(.dark) .peer-state-error { color: #dc2626; }
+.debate-overlay:not(.dark) .peer-state-meta { color: #64748b; }
+.debate-overlay:not(.dark) .peer-meta-sep { color: #94a3b8; }
+.debate-overlay:not(.dark) .peer-pulse-ring { background: rgba(99, 102, 241, 0.1); }
+.debate-overlay:not(.dark) .peer-primary-btn { background: #4f46e5; }
+.debate-overlay:not(.dark) .peer-secondary-btn {
+  background: #f1f5f9;
+  border-color: rgba(100, 116, 139, 0.3);
+  color: #475569;
+}
+.debate-overlay:not(.dark) .peer-secondary-btn:hover { background: #e2e8f0; border-color: #94a3b8; }
+.debate-overlay:not(.dark) .peer-vs-you .peer-vs-name { color: #4338ca; }
+.debate-overlay:not(.dark) .peer-vs-enemy .peer-vs-name { color: #dc2626; }
+.debate-overlay:not(.dark) .peer-vs-label { color: #64748b; }
+.debate-overlay:not(.dark) .peer-vs-coords { color: #64748b; }
+.debate-overlay:not(.dark) .peer-matched-card {
+  background: #f8fafc;
+  border-color: rgba(99, 102, 241, 0.2);
+}
+.debate-overlay:not(.dark) .peer-matched-badge { background: rgba(99, 102, 241, 0.1); color: #4338ca; }
+.debate-overlay:not(.dark) .peer-apart-badge { background: rgba(245, 158, 11, 0.12); color: #92400e; }
+.debate-overlay:not(.dark) .peer-apart-respectful { color: #64748b; }
+.debate-overlay:not(.dark) .peer-starter-card {
+  background: rgba(99, 102, 241, 0.06);
+  border-color: rgba(99, 102, 241, 0.18);
+}
+.debate-overlay:not(.dark) .peer-starter-label { color: #6366f1; }
+.debate-overlay:not(.dark) .peer-starter-text { color: #334155; }
 
 /* --- Peer debate states --- */
 .peer-debate-panel {
@@ -4219,6 +4561,15 @@
   height: 6px;
   border-radius: 50%;
   background: #6366f1;
+}
+
+.peer-rules-disclaimer {
+  font-size: 0.72rem;
+  color: #64748b;
+  text-align: center;
+  margin: 4px 0 0;
+  line-height: 1.5;
+  max-width: 320px;
 }
 
 .peer-persona-card {

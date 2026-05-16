@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Compass, FileText, CheckSquare, AlertCircle, Send, RotateCcw, Moon, Sun, Bug, SlidersHorizontal, Globe2, Landmark, Flag, BookmarkPlus, Pencil, Trash2, Check, X, Bookmark, Share2, History, Pin, PinOff, Swords, Users } from 'lucide-react';
+import { Compass, FileText, CheckSquare, AlertCircle, Send, RotateCcw, Moon, Sun, Bug, SlidersHorizontal, Globe2, Landmark, Flag, BookmarkPlus, Pencil, Trash2, Check, X, Bookmark, Share2, History, Pin, PinOff, Swords, Users, Smile } from 'lucide-react';
 import PulsingCrosshairs from './PulsingCrosshairs';
 import { ShareModal, computePartyMatch } from './ShareFeature';
 import DebateMode from './DebateMode';
@@ -774,11 +774,184 @@ const OVERLAY_PRESETS = {
       { name: "Anarcho-Frontierism", x: 1.7, y: -9.5, description: "Stateless self-reliance modeled on frontier settler life." },
     ],
   },
+  traits: {
+    label: "Traits",
+    points: [
+      // Row 1 (y ≈ 9.3) — far authoritarian top
+      { name: "Likes Stalin", x: -9, y: 9.3, description: "Open admiration for Joseph Stalin and Soviet-era authoritarian socialism." },
+      { name: "Hates free-speech", x: -7.5, y: 9.3, description: "Believes speech should be tightly restricted to protect ideology or order." },
+      { name: "Supports North Korea", x: -6, y: 9.3, description: "Defends the DPRK regime against Western criticism." },
+      { name: "Defends the CCP", x: -4.5, y: 9.3, description: "Reflexively defends the Chinese Communist Party's actions and policies." },
+      { name: "Likes Strasser", x: -3, y: 9.3, description: "Sympathetic to Strasserite 'left' Nazism — anti-capitalist nationalism." },
+      { name: "Nazbol", x: -1.5, y: 9.3, description: "Identifies with National Bolshevism — fusion of far-left economics and far-right ethno-nationalism." },
+      { name: "Prefers their own race over others", x: 1.5, y: 9.3, description: "Explicit ethnic or racial preference; ethno-nationalist instinct." },
+      { name: "'Hitler wasn't THAT bad'", x: 3, y: 9.3, description: "Holocaust minimization or apologia for the Third Reich." },
+      { name: "Ethno-nationalist", x: 4.5, y: 9.3, description: "Believes the nation should be defined by ethnicity or race." },
+      { name: "Holocaust denier", x: 6, y: 9.3, description: "Denies or minimizes the historical reality of the Holocaust." },
+      { name: "Does Roman salute in the mirror", x: 8, y: 9.3, description: "Performs fascist iconography in private — aesthetic fascism." },
+      { name: "Wants a theocracy", x: 9.5, y: 9.3, description: "Believes religious law should be the law of the state." },
+
+      // Row 2 (y ≈ 7.7)
+      { name: "Likes Mao", x: -9, y: 7.7, description: "Open admiration for Mao Zedong and Maoist revolution." },
+      { name: "Wants the Soviet Union back", x: -7.5, y: 7.7, description: "Nostalgic for the USSR; wants its reconstitution." },
+      { name: "Always complains about 'the west'", x: -5.8, y: 7.7, description: "Frames every problem as a product of Western imperialism or decadence." },
+      { name: "Thinks gulags were justified", x: -4, y: 7.7, description: "Defends Soviet labor camps as necessary state discipline." },
+      { name: "Stans China", x: -2.5, y: 7.7, description: "Uncritical fan of the Chinese state and its governance model." },
+      { name: "Censorship is good", x: -1, y: 7.7, description: "Believes state censorship is a positive social tool." },
+      { name: "Has called someone a degenerate", x: 1.5, y: 7.7, description: "Uses reactionary moral vocabulary to condemn lifestyles." },
+      { name: "Wants the Roman Empire back", x: 3, y: 7.7, description: "Romanticizes imperial Rome as a model for modern governance." },
+      { name: "Uses 13/50 as an argument", x: 4.5, y: 7.7, description: "Cites a racist statistical meme to justify racial views." },
+      { name: "'White pride / white lives matter'", x: 6, y: 7.7, description: "Adopts white-identitarian framing in response to anti-racist movements." },
+      { name: "Thinks torture is justified", x: 8, y: 7.7, description: "Believes torture is acceptable when serving state security." },
+      { name: "Likes Pinochet", x: 9.5, y: 7.7, description: "Admires Augusto Pinochet's military rule of Chile." },
+
+      // Row 3 (y ≈ 6.2)
+      { name: "Wants some type of revolution", x: -9, y: 6.2, description: "Believes the current system needs overthrow, not reform." },
+      { name: "Has been on a government watchlist", x: -7.3, y: 6.2, description: "Activism intense enough to draw state attention." },
+      { name: "Communist", x: -5.8, y: 6.2, description: "Identifies as a communist seeking abolition of class society." },
+      { name: "Wants the USA to fall", x: -4, y: 6.2, description: "Believes the collapse of American hegemony would be a net good." },
+      { name: "Would have been a loyalist in the 1700s", x: -2.3, y: 6.2, description: "Instinctively defends established authority over insurgents." },
+      { name: "'State capitalism is good'", x: -1, y: 6.2, description: "Endorses state-controlled capitalism as a developmental model." },
+      { name: "Supports the death penalty", x: 1.5, y: 6.2, description: "Believes the state should execute serious criminals." },
+      { name: "Has been banned from a website", x: 3, y: 6.2, description: "Online behavior crossed a platform's content policy." },
+      { name: "Pro-Russia", x: 4.5, y: 6.2, description: "Sympathetic to the Russian state and its foreign policy." },
+      { name: "Uses 4chan", x: 6, y: 6.2, description: "Regularly browses 4chan and absorbs its political subculture." },
+      { name: "Likes Bolsonaro", x: 8, y: 6.2, description: "Admires Brazil's far-right former president." },
+      { name: "Has a negative view towards Judaism", x: 9.5, y: 6.2, description: "Harbors antisemitic attitudes toward Jewish people or religion." },
+
+      // Row 4 (y ≈ 4.7)
+      { name: "Likes Lenin", x: -9, y: 4.7, description: "Admires Vladimir Lenin and the Bolshevik revolution." },
+      { name: "'From each according to ability, to each according to need'", x: -7.3, y: 4.7, description: "Quotes Marx's core distributive principle approvingly." },
+      { name: "'Not real socialism/communism'", x: -5.8, y: 4.7, description: "Argues that historical socialist states weren't truly socialist." },
+      { name: "Atheist/antitheist", x: -4, y: 4.7, description: "Rejects religion, often vocally opposed to it." },
+      { name: "Constantly involved in political infighting", x: -2.3, y: 4.7, description: "Spends more time fighting fellow leftists than the right." },
+      { name: "Tanks are cool", x: -1, y: 4.7, description: "Aesthetic appreciation for military hardware — 'tankie' lean." },
+      { name: "Police should be armed", x: 1.5, y: 4.7, description: "Supports an armed police force as necessary for order." },
+      { name: "Thinks flag burning should be banned", x: 3, y: 4.7, description: "Believes desecration of national symbols should be illegal." },
+      { name: "'Reject modernity, embrace tradition'", x: 4.5, y: 4.7, description: "Reactionary meme endorsing a return to traditional social order." },
+      { name: "MAGA", x: 6, y: 4.7, description: "Supports the Make America Great Again political movement." },
+      { name: "Iraq/Gulf/Vietnam wars were justified", x: 8, y: 4.7, description: "Defends major US military interventions of the 20th–21st centuries." },
+      { name: "Likes Reaganomics", x: 9.5, y: 4.7, description: "Endorses Reagan-era supply-side economics and deregulation." },
+
+      // Row 5 (y ≈ 3.2)
+      { name: "Likes Trotsky", x: -9, y: 3.2, description: "Sympathetic to Leon Trotsky and permanent revolution." },
+      { name: "Likes Gorbachev", x: -7.3, y: 3.2, description: "Admires Gorbachev's reformist late-Soviet leadership." },
+      { name: "Wants slavery reparations", x: -5.5, y: 3.2, description: "Supports financial reparations for the descendants of enslaved people." },
+      { name: "Socialist", x: -4, y: 3.2, description: "Identifies as a socialist favoring collective ownership." },
+      { name: "Agnostic", x: -2.3, y: 3.2, description: "Uncertain about the existence of god(s)." },
+      { name: "Uses reddit", x: -1, y: 3.2, description: "Active redditor — terminally online lean." },
+      { name: "'Based'", x: 1.5, y: 3.2, description: "Uses the slang 'based' to approve of edgy or contrarian takes." },
+      { name: "Nationalist", x: 3, y: 3.2, description: "Strong loyalty to nation above other forms of identity." },
+      { name: "Troll", x: 4.5, y: 3.2, description: "Provokes online arguments for amusement rather than persuasion." },
+      { name: "Pro-life", x: 6, y: 3.2, description: "Opposes abortion access on moral or religious grounds." },
+      { name: "Watches Fox News", x: 8, y: 3.2, description: "Gets news primarily from Fox News and its commentators." },
+      { name: "Believes in QAnon", x: 9.5, y: 3.2, description: "Believes the QAnon conspiracy theory's claims about a hidden cabal." },
+
+      // Row 6 (y ≈ 1.6)
+      { name: "Hates landlords", x: -9, y: 1.6, description: "Believes landlordism is parasitic on workers." },
+      { name: "Calls everyone they disagree with a reactionary", x: -7.3, y: 1.6, description: "Reflexive labeling of opponents as reactionary." },
+      { name: "Watches CNN", x: -5.5, y: 1.6, description: "Gets news primarily from CNN and similar mainstream outlets." },
+      { name: "Likes Bernie Sanders", x: -4, y: 1.6, description: "Supports Bernie Sanders and democratic-socialist policies." },
+      { name: "Uses twitter", x: -2.3, y: 1.6, description: "Heavy Twitter/X user — politics shaped by the timeline." },
+      { name: "Healthcare is a human right", x: -1, y: 1.6, description: "Believes access to healthcare should be guaranteed to all." },
+      { name: "Likes Biden", x: 1.5, y: 1.6, description: "Supports Joe Biden and centrist-Democratic governance." },
+      { name: "Religious", x: 3, y: 1.6, description: "Holds active religious beliefs and practices." },
+      { name: "Pro-Israel", x: 4.5, y: 1.6, description: "Supports Israel's right to exist and defend itself militarily." },
+      { name: "Likes Ben Shapiro", x: 6, y: 1.6, description: "Follows Ben Shapiro and conservative commentary." },
+      { name: "Militarist", x: 8, y: 1.6, description: "Believes military strength is central to national policy." },
+      { name: "Likes Ronald Reagan", x: 9.5, y: 1.6, description: "Admires Ronald Reagan and 1980s American conservatism." },
+
+      // Row 7 (y ≈ 0, just above axis — left half)
+      { name: "Capitalism is selfish", x: -9, y: 0.2, description: "Believes capitalism rewards greed at society's expense." },
+      { name: "Wants to keep funding planned parenthood", x: -7.3, y: 0.2, description: "Supports continued public funding for Planned Parenthood." },
+      { name: "Wants free college", x: -5.5, y: 0.2, description: "Believes higher education should be tuition-free." },
+      { name: "Supports BLM", x: -4, y: 0.2, description: "Supports the Black Lives Matter movement." },
+      { name: "Pro-LGBT", x: -2.3, y: 0.2, description: "Supports LGBTQ+ rights and visibility." },
+      { name: "Uses discord", x: -1, y: 0.2, description: "Spends meaningful time in Discord communities." },
+      // Row 7 right half (y ≈ -0.2)
+      { name: "Gamer", x: 1.5, y: -0.2, description: "Self-identifies as a gamer; gaming culture shapes worldview." },
+      { name: "Pro free-speech", x: 3, y: -0.2, description: "Strong defender of broad free-speech rights." },
+      { name: "'Socially liberal, fiscally conservative'", x: 4.5, y: -0.2, description: "Classic centrist-libertarian framing — liberal on cultural issues, right on economics." },
+      { name: "Anti-communist/socialist", x: 6, y: -0.2, description: "Opposes all forms of socialism and communism on principle." },
+      { name: "Free-trade", x: 8, y: -0.2, description: "Supports unrestricted international trade." },
+      { name: "Flat earther / thinks evolution is fake", x: 9.5, y: -0.2, description: "Rejects mainstream scientific consensus on cosmology or biology." },
+
+      // Row 8 (y ≈ -1.6)
+      { name: "Actual Communalist", x: -9, y: -1.6, description: "Adheres to Bookchin-style libertarian municipalism." },
+      { name: "Pro-Palestine", x: -7.3, y: -1.6, description: "Supports Palestinian self-determination against Israeli occupation." },
+      { name: "Thinks 'fatphobia' is a real issue", x: -5.5, y: -1.6, description: "Views anti-fat discrimination as a meaningful social problem." },
+      { name: "Pro-Ukraine", x: -4, y: -1.6, description: "Supports Ukraine's defense against Russian invasion." },
+      { name: "Uses tiktok", x: -2.3, y: -1.6, description: "Heavy TikTok user; politics shaped by short-form video." },
+      { name: "Doesn't hate furries", x: -1, y: -1.6, description: "Tolerant of furry subculture — live and let live." },
+      { name: "Takes the polcomp test every day", x: 1.5, y: -1.6, description: "Refreshes their political-compass placement obsessively." },
+      { name: "Was political at the age of 10", x: 3, y: -1.6, description: "Developed strong political identity unusually early." },
+      { name: "'Capitalism is the best system so far'", x: 4.5, y: -1.6, description: "Endorses capitalism as the least bad option available." },
+      { name: "Elon Musk fan", x: 6, y: -1.6, description: "Admires Elon Musk and treats his views as authoritative." },
+      { name: "Watches the Daily Wire", x: 8, y: -1.6, description: "Consumes Daily Wire content for political commentary." },
+      { name: "'It's the poor's fault that they're poor'", x: 9.5, y: -1.6, description: "Believes poverty is primarily a result of individual failure." },
+
+      // Row 9 (y ≈ -3.1)
+      { name: "Supports unions/syndicates", x: -9, y: -3.1, description: "Believes organized labor is essential to worker power." },
+      { name: "Calls anyone they disagree with a Nazi", x: -7.3, y: -3.1, description: "Reflexive labeling of opponents as fascist." },
+      { name: "Likes Lula", x: -5.5, y: -3.1, description: "Supports Brazil's left-wing president Lula da Silva." },
+      { name: "LGBTQ", x: -4, y: -3.1, description: "Identifies as part of the LGBTQ+ community." },
+      { name: "Hates Trump", x: -2.3, y: -3.1, description: "Strong personal opposition to Donald Trump." },
+      { name: "Plays ROBLOX", x: -1, y: -3.1, description: "Spends time in the Roblox gaming platform." },
+      { name: "Very pro 2nd-amendment", x: 1.5, y: -3.1, description: "Strong defender of broad civilian gun rights." },
+      { name: "Patriotic", x: 3, y: -3.1, description: "Loves their country and expresses national pride openly." },
+      { name: "Wants China to fall", x: 4.5, y: -3.1, description: "Hopes for the collapse of the Chinese Communist Party." },
+      { name: "Wants to own a business", x: 6, y: -3.1, description: "Aspires to entrepreneurship and self-employment." },
+      { name: "Hates taxes", x: 8, y: -3.1, description: "Believes taxation is theft or excessive." },
+      { name: "Ayn Rand fan", x: 9.5, y: -3.1, description: "Admires Ayn Rand's objectivist philosophy." },
+
+      // Row 10 (y ≈ -4.6)
+      { name: "'Animals deserve certain universal rights'", x: -9, y: -4.6, description: "Believes non-human animals are entitled to protection." },
+      { name: "Vegan", x: -7.3, y: -4.6, description: "Avoids all animal products on ethical or environmental grounds." },
+      { name: "Furry", x: -5.5, y: -4.6, description: "Participates in the furry subculture." },
+      { name: "Pro-choice", x: -4, y: -4.6, description: "Supports abortion access as a matter of bodily autonomy." },
+      { name: "Satanist", x: -2.3, y: -4.6, description: "Identifies with Satanism, often as symbolic anti-authoritarianism." },
+      { name: "Weeb", x: -1, y: -4.6, description: "Devoted fan of Japanese anime and manga culture." },
+      { name: "Wants marijuana to be legalized", x: 1.5, y: -4.6, description: "Supports legal recreational cannabis." },
+      { name: "Wants to own a gun", x: 3, y: -4.6, description: "Wants the personal right to own firearms." },
+      { name: "'Shall not be infringed'", x: 4.5, y: -4.6, description: "Cites the Second Amendment absolutist phrase." },
+      { name: "Has said 'Commies'", x: 6, y: -4.6, description: "Uses 'commies' as a casual pejorative for the left." },
+      { name: "Stock enthusiast", x: 8, y: -4.6, description: "Actively trades or follows stock markets." },
+      { name: "'Free market discourages racism'", x: 9.5, y: -4.6, description: "Argues that profit-seeking erodes discrimination over time." },
+
+      // Row 11 (y ≈ -6.1)
+      { name: "Likes Kropotkin", x: -9, y: -6.1, description: "Admires Peter Kropotkin and anarcho-communist mutual aid." },
+      { name: "Pacifist", x: -7.3, y: -6.1, description: "Opposes violence and war on principle." },
+      { name: "Supports ANTIFA", x: -5.5, y: -6.1, description: "Supports militant anti-fascist organizing." },
+      { name: "'Nudity is natural'", x: -4, y: -6.1, description: "Sees the human body as unremarkable and non-shameful." },
+      { name: "'UwU'", x: -2.3, y: -6.1, description: "Uses the cutesy internet emoticon — soft online aesthetic." },
+      { name: "Nihilist", x: -1, y: -6.1, description: "Believes life lacks inherent meaning or value." },
+      { name: "Wants all drugs to be legalized", x: 1.5, y: -6.1, description: "Supports full drug legalization and personal-use freedom." },
+      { name: "Makes new emails to evade free trials", x: 3, y: -6.1, description: "Routinely circumvents free-trial limits with throwaway accounts." },
+      { name: "Uses incognito mode frequently", x: 4.5, y: -6.1, description: "Prefers private browsing as a default privacy posture." },
+      { name: "Crypto enthusiast", x: 6, y: -6.1, description: "Believes in cryptocurrency as money, technology, or both." },
+      { name: "Thinks poverty isn't a real issue", x: 8, y: -6.1, description: "Downplays poverty as a serious social problem." },
+      { name: "No government involvement in the economy whatsoever", x: 9.5, y: -6.1, description: "Wants the state out of all economic activity." },
+
+      // Row 12 (y ≈ -7.6)
+      { name: "Thinks humanity's existence is harmful", x: -9, y: -7.6, description: "Antinatalist or efilist tendencies — humans do more harm than good." },
+      { name: "Thinks AnCap is an oxymoron", x: -7.3, y: -7.6, description: "Believes anarcho-capitalism is internally contradictory." },
+      { name: "Hates the police", x: -5.5, y: -7.6, description: "Views the police as an oppressive institution to be abolished." },
+      { name: "Anarchist", x: -4, y: -7.6, description: "Believes in stateless self-organized society." },
+      { name: "Hates authority", x: -2.3, y: -7.6, description: "Reflexively rejects hierarchical authority of any kind." },
+      { name: "Egoist", x: -1, y: -7.6, description: "Follows Stirner's radical individualism centered on the self." },
+      { name: "Individualist", x: 1.5, y: -7.6, description: "Prioritizes individual freedom and responsibility above group." },
+      { name: "Uses a VPN", x: 3, y: -7.6, description: "Routes traffic through a VPN for privacy or geo-shifting." },
+      { name: "Wants to lower the age of consent", x: 4.5, y: -7.6, description: "Holds an edgy and widely condemned position on age-of-consent law." },
+      { name: "Supports counter economics", x: 6, y: -7.6, description: "Engages in agorist black/grey-market activity to bypass the state." },
+      { name: "Supports a complete free market", x: 8, y: -7.6, description: "Wants markets unrestrained by regulation or state intervention." },
+      { name: "'The market shall decide all'", x: 9.5, y: -7.6, description: "Believes markets are the optimal arbiter of every social question." },
+    ],
+  },
 };
 const calcClosestPolitician = (x, y) => {
-  // Exclude the ideologies preset — those are concepts, not politicians.
+  // Exclude the ideologies and traits presets — those aren't politicians.
   const allPoints = Object.entries(OVERLAY_PRESETS)
-    .filter(([key]) => key !== 'ideologies')
+    .filter(([key]) => key !== 'ideologies' && key !== 'traits')
     .flatMap(([, preset]) => preset.points);
   const seen = new Set();
   const unique = allPoints.filter(p => {
@@ -799,6 +972,16 @@ const calcClosestIdeology = (x, y) => {
   let closest = null;
   let minDist = Infinity;
   for (const p of OVERLAY_PRESETS.ideologies.points) {
+    const d = Math.hypot(x - p.x, y - p.y);
+    if (d < minDist) { minDist = d; closest = p; }
+  }
+  return closest;
+};
+
+const calcClosestTrait = (x, y) => {
+  let closest = null;
+  let minDist = Infinity;
+  for (const p of OVERLAY_PRESETS.traits.points) {
     const d = Math.hypot(x - p.x, y - p.y);
     if (d < minDist) { minDist = d; closest = p; }
   }
@@ -968,7 +1151,7 @@ const AxisBreakdownPanel = ({ x, y, archetype, isViewingOnly, resultPoints }) =>
   const socialPct = Math.round(((y + 10) / 20) * 100);
   const closest = calcClosestPolitician(x, y);
 
-  // When multiple points exist, compute closest ideology per point and deduplicate.
+  // When multiple points exist, compute closest ideology / trait per point and deduplicate.
   // When single point, fall back to the averaged x/y.
   const multiplePoints = resultPoints && resultPoints.length > 1;
   const closestIdeologies = multiplePoints
@@ -984,6 +1167,19 @@ const AxisBreakdownPanel = ({ x, y, archetype, isViewingOnly, resultPoints }) =>
       })()
     : null;
   const closestIdeology = multiplePoints ? null : calcClosestIdeology(x, y);
+  const closestTraits = multiplePoints
+    ? (() => {
+        const seen = new Set();
+        return resultPoints
+          .map(p => calcClosestTrait(p.x, p.y))
+          .filter(t => {
+            if (!t || seen.has(t.name)) return false;
+            seen.add(t.name);
+            return true;
+          });
+      })()
+    : null;
+  const closestTrait = multiplePoints ? null : calcClosestTrait(x, y);
   const gp = calcClosestGlobalParty(x, y);
   return (
     <div className="axis-breakdown-panel">
@@ -1063,6 +1259,20 @@ const AxisBreakdownPanel = ({ x, y, archetype, isViewingOnly, resultPoints }) =>
                   : closestIdeology ? <>, ideologically nearest to <strong>{closestIdeology.name}</strong></> : ''}
                 .
               </>}
+        </p>
+      )}
+      {(closestTrait || (closestTraits && closestTraits.length > 0)) && (
+        <p className="closest-politician alignment-closest alignment-trait">
+          {isViewingOnly ? (archetype ? `${archetype}'s` : 'Their') : 'Your'} stereotypical trait{closestTraits && closestTraits.length > 1 ? 's' : ''}:{' '}
+          {closestTraits && closestTraits.length > 0
+            ? closestTraits.map((t, i) => (
+                <React.Fragment key={t.name}>
+                  {i > 0 && (i === closestTraits.length - 1 ? ' and ' : ', ')}
+                  <strong>{t.name}</strong>
+                </React.Fragment>
+              ))
+            : <strong>{closestTrait.name}</strong>}
+          .
         </p>
       )}
       {gp && (
@@ -1181,8 +1391,8 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, s
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
 
-    if (overlayPreset === 'ideologies') {
-      // Render ideology names as small text labels colored by quadrant.
+    if (overlayPreset === 'ideologies' || overlayPreset === 'traits') {
+      // Render ideology/trait names as small text labels colored by quadrant.
       // Greedy collision-aware staggering nudges overlapping labels vertically;
       // each label gets a faint background pill so residual overlap stays readable.
       const quadrantColor = (x, y, hovered) => {
@@ -1354,7 +1564,7 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, s
 
     let nearest = null;
     let nearestDist = Infinity;
-    if (overlayPreset === 'ideologies' && ideologyLayoutRef.current) {
+    if ((overlayPreset === 'ideologies' || overlayPreset === 'traits') && ideologyLayoutRef.current) {
       // Hit-test against the laid-out label rectangles (after staggering)
       // so hovering matches what the user actually sees.
       for (const item of ideologyLayoutRef.current) {
@@ -1375,7 +1585,7 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, s
       });
     }
 
-    const refHitThreshold = overlayPreset === 'ideologies' ? 4 : 12;
+    const refHitThreshold = (overlayPreset === 'ideologies' || overlayPreset === 'traits') ? 4 : 12;
     if (nearest && nearestDist <= refHitThreshold) {
       if (!hasDismissedCue) setHasDismissedCue(true);
       setHoveredReference(nearest);
@@ -1431,7 +1641,7 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, s
 
     let nearest = null;
     let nearestDist = Infinity;
-    if (overlayPreset === 'ideologies' && ideologyLayoutRef.current) {
+    if ((overlayPreset === 'ideologies' || overlayPreset === 'traits') && ideologyLayoutRef.current) {
       for (const item of ideologyLayoutRef.current) {
         const dx = Math.max(0, Math.abs(xPos - item.cx) - item.w / 2);
         const dy = Math.max(0, Math.abs(yPos - item.cy) - item.h / 2);
@@ -1450,7 +1660,7 @@ const CompassPlot = ({ userPoints, isDarkMode, referencePoints, overlayPreset, s
       });
     }
 
-    const threshold = overlayPreset === 'ideologies' ? 6 : (isMobile ? 32 : 20);
+    const threshold = (overlayPreset === 'ideologies' || overlayPreset === 'traits') ? 6 : (isMobile ? 32 : 20);
     const hit = !!(nearest && nearestDist <= threshold);
     if (hit) {
       if (!hasDismissedCue) setHasDismissedCue(true);
@@ -1521,6 +1731,9 @@ export default function App() {
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('theme_preference');
+      if (saved === 'dark') return true;
+      if (saved === 'light') return false;
       return window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
     return false;
@@ -1536,6 +1749,9 @@ export default function App() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [showIdeologiesNew, setShowIdeologiesNew] = useState(
     () => sessionStorage.getItem('ideologies_new_seen') !== '1'
+  );
+  const [showTraitsNew, setShowTraitsNew] = useState(
+    () => sessionStorage.getItem('traits_new_seen') !== '1'
   );
   const [isRefineMode, setIsRefineMode] = useState(false);
   const [refineAnswers, setRefineAnswers] = useState({});
@@ -1628,6 +1844,7 @@ export default function App() {
     } else {
       document.documentElement.classList.remove('dark');
     }
+    try { localStorage.setItem('theme_preference', isDarkMode ? 'dark' : 'light'); } catch { /* ignore */ }
   }, [isDarkMode]);
 
   useEffect(() => {
@@ -1963,6 +2180,19 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto-dismiss "New: Traits Map" bubble after ~4.5 s
+  useEffect(() => {
+    if (!showTraitsNew) return undefined;
+    // Don't show traits bubble until ideologies one has dismissed
+    if (showIdeologiesNew) return undefined;
+    const timer = window.setTimeout(() => {
+      setShowTraitsNew(false);
+      sessionStorage.setItem('traits_new_seen', '1');
+    }, 4500);
+    return () => window.clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showIdeologiesNew]);
+
   useEffect(() => {
     if (mode !== 'text') return undefined;
     if (textInput.trim()) return undefined;
@@ -2291,7 +2521,6 @@ export default function App() {
     if (event?.altKey) {
       if (isDebugBypassEnabled) {
         setIsDebugBypassEnabled(false);
-        setDevModeToast('disabled');
       } else {
         enableDebugBypass();
       }
@@ -2377,6 +2606,7 @@ export default function App() {
     if (overlayPreset === 'republican') return 'overlay-republican';
     if (overlayPreset === 'democratic') return 'overlay-democratic';
     if (overlayPreset === 'ideologies') return 'overlay-ideologies';
+    if (overlayPreset === 'traits') return 'overlay-traits';
     return 'overlay-neutral';
   };
 
@@ -2712,7 +2942,6 @@ export default function App() {
         </div>
       )}
       <div className="toast-stack">
-        {devModeToast === 'disabled' && <div className="bypass-toast">Dev mode disabled</div>}
         {showSixMonthDebugToast && <div className="bypass-toast">&#x1F41B; 6-month debug mode enabled</div>}
         {showSaveToast && <div className="save-toast">Point saved</div>}
         {showSavedHintCue && <div className="saved-hint-cue">Your history lives in the top-right clock icon.</div>}
@@ -3149,6 +3378,11 @@ export default function App() {
                     ✨ New: Ideology Map
                   </div>
                 )}
+                {!showIdeologiesNew && showTraitsNew && !isFilterOpen && (
+                  <div className="new-bubble new-bubble-traits">
+                    ✨ New: Traits Map
+                  </div>
+                )}
                 <button
                   type="button"
                   className="filter-toggle"
@@ -3196,6 +3430,19 @@ export default function App() {
                       <Compass size={15} />
                       Ideologies
                       {showIdeologiesNew && <span className="new-badge">New!</span>}
+                    </button>
+                    <button
+                      type="button"
+                      className={`filter-option ${overlayPreset === 'traits' ? 'active' : ''}`}
+                      onClick={() => {
+                        setOverlayPreset('traits');
+                        setShowTraitsNew(false);
+                        sessionStorage.setItem('traits_new_seen', '1');
+                      }}
+                    >
+                      <Smile size={15} />
+                      Traits
+                      {showTraitsNew && <span className="new-badge new-badge-traits">New!</span>}
                     </button>
                   </div>
                 )}
@@ -3277,6 +3524,8 @@ export default function App() {
             <p className="reference-note">
               {overlayPreset === 'ideologies'
                 ? `Ideology positions are approximate. Your dot shows where your views land — the labeled ideologies nearby are the closest conceptual match, not a label for who you are.`
+                : overlayPreset === 'traits'
+                ? `Trait positions are approximate and intentionally tongue-in-cheek. The labels near your dot are common behaviors associated with that quadrant — not actual claims about you.`
                 : `Faint reference dots are approximate and currently set to the ${OVERLAY_PRESETS[overlayPreset].label} overlay.`}
             </p>
 
