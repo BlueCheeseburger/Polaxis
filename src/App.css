@@ -116,18 +116,18 @@
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
-  background: #4f46e5;
+  background: #f97316;
   color: #fff;
   white-space: nowrap;
   transition: background 0.15s ease;
 }
 
-.incoming-share-cta:hover { background: #4338ca; }
+.incoming-share-cta:hover { background: #ea580c; }
 
 .app-shell.dark .incoming-share-cta {
-  background: #6366f1;
+  background: #f97316;
 }
-.app-shell.dark .incoming-share-cta:hover { background: #818cf8; }
+.app-shell.dark .incoming-share-cta:hover { background: #fb923c; }
 
 .app-shell.dark .incoming-share-banner {
   border-color: rgba(99, 102, 241, 0.5);
@@ -321,11 +321,11 @@
   width: 64px;
   height: 64px;
   border-radius: 999px;
-  background: linear-gradient(145deg, #3b82f6, #6366f1);
+  background: linear-gradient(145deg, #f97316, #ea580c);
   color: #fff;
   display: grid;
   place-items: center;
-  box-shadow: 0 12px 24px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 12px 24px rgba(249, 115, 22, 0.3);
 }
 
 .hero h1 {
@@ -393,8 +393,8 @@
 }
 
 .mode-tab.active {
-  color: #1d4ed8;
-  background: rgba(191, 219, 254, 0.4);
+  color: #f97316;
+  background: rgba(249, 115, 22, 0.10);
 }
 
 .mode-tab:first-child {
@@ -415,8 +415,8 @@
 }
 
 .app-shell.dark .mode-tab.active {
-  color: #93c5fd;
-  background: rgba(30, 64, 175, 0.28);
+  color: #fb923c;
+  background: rgba(249, 115, 22, 0.15);
 }
 
 .panel-body {
@@ -471,8 +471,8 @@
 }
 
 .belief-textarea:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.25);
 }
 
 .app-shell.dark .belief-textarea {
@@ -536,9 +536,9 @@
 }
 
 .option-chip.selected {
-  background: #2563eb;
+  background: #f97316;
   color: #fff;
-  border-color: #2563eb;
+  border-color: #f97316;
 }
 
 .app-shell.dark .option-chip {
@@ -554,9 +554,9 @@
 }
 
 .app-shell.dark .option-chip.selected {
-  background: #2563eb;
+  background: #f97316;
   color: #fff;
-  border-color: #2563eb;
+  border-color: #f97316;
 }
 
 .analyze-wrap,
@@ -594,13 +594,13 @@
 }
 
 .analyze-btn {
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: linear-gradient(135deg, #f97316, #ea580c);
   color: #fff;
 }
 
 .analyze-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #1d4ed8, #4338ca);
-  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.4);
+  background: linear-gradient(135deg, #ea580c, #c2410c);
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.3);
 }
 
 .analyze-btn:disabled {
@@ -855,14 +855,14 @@
 }
 
 .confidence-pip.filled {
-  background: #6366f1;
-  border-color: #6366f1;
+  background: #f97316;
+  border-color: #f97316;
 }
 
 .confidence-score {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #6366f1;
+  color: #f97316;
 }
 
 .score-pills {
@@ -1067,13 +1067,13 @@
 }
 
 .filter-option.active {
-  background: rgba(37, 99, 235, 0.14);
-  color: #1d4ed8;
+  background: rgba(249, 115, 22, 0.10);
+  color: #f97316;
 }
 
 .app-shell.dark .filter-option.active {
-  color: #93c5fd;
-  background: rgba(37, 99, 235, 0.2);
+  color: #fb923c;
+  background: rgba(249, 115, 22, 0.15);
 }
 
 .party-badge {
@@ -1311,7 +1311,7 @@
 .chat-bubble.user {
   margin-left: auto;
   max-width: 86%;
-  border: 1px solid rgba(59, 130, 246, 0.4);
+  border: 1px solid rgba(249, 115, 22, 0.25);
   background: rgba(219, 234, 254, 0.6);
 }
 
@@ -1343,20 +1343,20 @@
 
 .chat-option:hover:not(:disabled):not(.selected) {
   background: rgba(255, 255, 255, 1);
-  border-color: rgba(37, 99, 235, 0.4);
-  color: #1d4ed8;
+  border-color: rgba(249, 115, 22, 0.25);
+  color: #f97316;
 }
 
 .app-shell.dark .chat-option:hover:not(:disabled):not(.selected) {
   background: rgba(15, 23, 42, 0.9);
-  border-color: rgba(99, 102, 241, 0.5);
-  color: #a5b4fc;
+  border-color: rgba(249, 115, 22, 0.45);
+  color: #fb923c;
 }
 
 .chat-option.selected {
-  border-color: #2563eb;
-  background: rgba(37, 99, 235, 0.16);
-  color: #1d4ed8;
+  border-color: #f97316;
+  background: rgba(249, 115, 22, 0.10);
+  color: #f97316;
 }
 
 .chat-option:disabled {
@@ -1370,7 +1370,7 @@
 }
 
 .app-shell.dark .chat-option.selected {
-  color: #93c5fd;
+  color: #fb923c;
 }
 
 .refinement-card {
@@ -1912,12 +1912,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #6366f1;
+  color: #f97316;
   vertical-align: middle;
 }
 
 .app-shell.dark .pulsing-crosshairs {
-  color: #a5b4fc;
+  color: #fb923c;
 }
 
 .pulsing-crosshairs svg {
@@ -3165,20 +3165,20 @@
   padding: 14px 40px;
   border-radius: 999px;
   border: none;
-  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  background: linear-gradient(135deg, #f97316, #ea580c);
   color: #fff;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
-  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.35);
   letter-spacing: 0.01em;
 }
 
 .landing-cta-primary:hover {
   opacity: 0.92;
   transform: translateY(-1px);
-  box-shadow: 0 12px 28px rgba(99, 102, 241, 0.45);
+  box-shadow: 0 12px 28px rgba(249, 115, 22, 0.45);
 }
 
 .landing-cta-primary:active {
@@ -3212,16 +3212,16 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(99,102,241,0.12));
-  color: #6366f1;
+  background: rgba(249, 115, 22, 0.10);
+  color: #f97316;
   display: grid;
   place-items: center;
   flex-shrink: 0;
 }
 
 .app-shell.dark .landing-feature-icon {
-  background: rgba(99, 102, 241, 0.15);
-  color: #818cf8;
+  background: rgba(249, 115, 22, 0.15);
+  color: #fb923c;
 }
 
 .landing-feature strong {
@@ -3512,7 +3512,7 @@
   left: 50%;
   transform: translateX(-50%);
   white-space: nowrap;
-  background: #4338ca;
+  background: #ea580c;
   color: #fff;
   font-size: 0.75rem;
   padding: 6px 10px;
@@ -3528,13 +3528,13 @@
   left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-top-color: #4338ca;
+  border-top-color: #ea580c;
 }
 .app-shell.dark .share-nudge-tooltip {
-  background: #6366f1;
+  background: #f97316;
 }
 .app-shell.dark .share-nudge-tooltip::after {
-  border-top-color: #6366f1;
+  border-top-color: #f97316;
 }
 @keyframes nudge-fade-in {
   from { opacity: 0; transform: translateX(-50%) translateY(4px); }
