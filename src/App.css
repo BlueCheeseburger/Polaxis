@@ -1260,6 +1260,149 @@
   font-style: italic;
 }
 
+/* Pulsing ring on the Overlay button until user first opens it */
+@keyframes overlay-ring-pulse {
+  0%   { box-shadow: 0 0 0 0px rgba(124, 58, 237, 0.55); }
+  65%  { box-shadow: 0 0 0 9px rgba(124, 58, 237, 0); }
+  100% { box-shadow: 0 0 0 0px rgba(124, 58, 237, 0); }
+}
+
+.filter-toggle--pulse {
+  animation: overlay-ring-pulse 2s ease-out infinite;
+}
+
+/* First-result overlay discovery nudge */
+.overlay-nudge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(124, 58, 237, 0.07);
+  border: 1px solid rgba(124, 58, 237, 0.22);
+  font-size: 0.82rem;
+  color: #4c1d95;
+  flex-wrap: wrap;
+}
+
+.app-shell.dark .overlay-nudge {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.28);
+  color: #c4b5fd;
+}
+
+.overlay-nudge-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.overlay-nudge-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.overlay-nudge-btn {
+  background: #7c3aed;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.overlay-nudge-btn:hover {
+  background: #6d28d9;
+}
+
+.overlay-nudge-btn-traits {
+  background: #0d9488;
+}
+
+.overlay-nudge-btn-traits:hover {
+  background: #0f766e;
+}
+
+.overlay-nudge-dismiss {
+  background: none;
+  border: none;
+  color: inherit;
+  opacity: 0.5;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  line-height: 1;
+}
+
+.overlay-nudge-dismiss:hover {
+  opacity: 1;
+}
+
+/* "View on Map" links at the bottom of the Alignment panel */
+.overlay-map-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.overlay-map-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  color: #6d28d9;
+  border-radius: 8px;
+  padding: 5px 11px;
+  font-size: 0.77rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.overlay-map-link:hover {
+  background: rgba(124, 58, 237, 0.15);
+  border-color: rgba(124, 58, 237, 0.45);
+}
+
+.overlay-map-link-traits {
+  background: rgba(13, 148, 136, 0.08);
+  border-color: rgba(13, 148, 136, 0.25);
+  color: #0f766e;
+}
+
+.overlay-map-link-traits:hover {
+  background: rgba(13, 148, 136, 0.15);
+  border-color: rgba(13, 148, 136, 0.45);
+}
+
+.app-shell.dark .overlay-map-link {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: #a78bfa;
+}
+
+.app-shell.dark .overlay-map-link:hover {
+  background: rgba(139, 92, 246, 0.2);
+}
+
+.app-shell.dark .overlay-map-link-traits {
+  background: rgba(20, 184, 166, 0.1);
+  border-color: rgba(20, 184, 166, 0.3);
+  color: #5eead4;
+}
+
+.app-shell.dark .overlay-map-link-traits:hover {
+  background: rgba(20, 184, 166, 0.2);
+}
+
 .analysis-card {
   padding: 18px;
   border-radius: 14px;

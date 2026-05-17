@@ -1145,7 +1145,7 @@ const ComparisonDiffCard = ({ participants, myParticipantIndex = -1 }) => {
   );
 };
 
-const AxisBreakdownPanel = ({ x, y, archetype, isViewingOnly, resultPoints }) => {
+const AxisBreakdownPanel = ({ x, y, archetype, isViewingOnly, resultPoints, onSetOverlay }) => {
   const matches = calcPartyMatch(x, y);
   const econPct = Math.round(((x + 10) / 20) * 100);
   const socialPct = Math.round(((y + 10) / 20) * 100);
@@ -1283,6 +1283,16 @@ const AxisBreakdownPanel = ({ x, y, archetype, isViewingOnly, resultPoints }) =>
               : <>You align most with <strong>{gp.flag} {gp.name}</strong></>}
           </p>
           <p className="global-party-reason">{gp.description}</p>
+        </div>
+      )}
+      {!isViewingOnly && onSetOverlay && (
+        <div className="overlay-map-links">
+          <button type="button" className="overlay-map-link" onClick={() => onSetOverlay('ideologies')}>
+            <Compass size={12} /> View Ideologies Map
+          </button>
+          <button type="button" className="overlay-map-link overlay-map-link-traits" onClick={() => onSetOverlay('traits')}>
+            <Smile size={12} /> View Traits Map
+          </button>
         </div>
       )}
     </div>
@@ -1765,6 +1775,12 @@ export default function App() {
   const [sourcePrompt, setSourcePrompt] = useState("");
   const [overlayPreset, setOverlayPreset] = useState('global');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [hasOpenedOverlay, setHasOpenedOverlay] = useState(
+    () => sessionStorage.getItem('overlay_opened') === '1'
+  );
+  const [showOverlayNudge, setShowOverlayNudge] = useState(
+    () => sessionStorage.getItem('overlay_nudge_seen') !== '1'
+  );
   const [showIdeologiesNew, setShowIdeologiesNew] = useState(
     () => sessionStorage.getItem('ideologies_new_seen') !== '1'
   );
@@ -3379,7 +3395,7 @@ export default function App() {
             )}
 
             <div className="compass-area">
-              <AxisBreakdownPanel x={result.x} y={result.y} archetype={result.archetype} isViewingOnly={isViewingOnly} resultPoints={resultPoints} />
+              <AxisBreakdownPanel x={result.x} y={result.y} archetype={result.archetype} isViewingOnly={isViewingOnly} resultPoints={resultPoints} onSetOverlay={isViewingOnly ? null : (preset) => { setOverlayPreset(preset); setShowOverlayNudge(false); sessionStorage.setItem('overlay_nudge_seen', '1'); }} />
               {comparison && Array.isArray(comparison.participants) && comparison.participants.length >= 2 && (
                 <ComparisonDiffCard participants={comparison.participants} myParticipantIndex={myComparisonParticipantIndex} />
               )}
@@ -3403,8 +3419,14 @@ export default function App() {
                 )}
                 <button
                   type="button"
-                  className="filter-toggle"
-                  onClick={() => setIsFilterOpen((prev) => !prev)}
+                  className={`filter-toggle${!hasOpenedOverlay && !isFilterOpen ? ' filter-toggle--pulse' : ''}`}
+                  onClick={() => {
+                    setIsFilterOpen((prev) => !prev);
+                    if (!hasOpenedOverlay) {
+                      setHasOpenedOverlay(true);
+                      sessionStorage.setItem('overlay_opened', '1');
+                    }
+                  }}
                   aria-expanded={isFilterOpen}
                 >
                   <SlidersHorizontal size={16} />
@@ -3470,6 +3492,50 @@ export default function App() {
               <div className="party-badge">
                 <img className="party-icon" src={overlayPreset === 'republican' ? '/images/republican.png' : '/images/democrat.png'} alt={overlayPreset === 'republican' ? 'Republican' : 'Democrat'} />
                 <span className="party-label">{overlayPreset === 'republican' ? 'Republican Overlay' : 'Democratic Overlay'}</span>
+              </div>
+            )}
+
+            {/* Overlay discovery nudge — shown once after first result, only when default overlay is active */}
+            {showOverlayNudge && !isViewingOnly && overlayPreset === 'global' && result && (
+              <div className="overlay-nudge">
+                <span className="overlay-nudge-text">
+                  🗺️ See where you fall on the <strong>Ideology</strong> or <strong>Traits</strong> map
+                </span>
+                <div className="overlay-nudge-actions">
+                  <button
+                    type="button"
+                    className="overlay-nudge-btn"
+                    onClick={() => {
+                      setOverlayPreset('ideologies');
+                      setShowOverlayNudge(false);
+                      sessionStorage.setItem('overlay_nudge_seen', '1');
+                    }}
+                  >
+                    Ideologies →
+                  </button>
+                  <button
+                    type="button"
+                    className="overlay-nudge-btn overlay-nudge-btn-traits"
+                    onClick={() => {
+                      setOverlayPreset('traits');
+                      setShowOverlayNudge(false);
+                      sessionStorage.setItem('overlay_nudge_seen', '1');
+                    }}
+                  >
+                    Traits →
+                  </button>
+                  <button
+                    type="button"
+                    className="overlay-nudge-dismiss"
+                    onClick={() => {
+                      setShowOverlayNudge(false);
+                      sessionStorage.setItem('overlay_nudge_seen', '1');
+                    }}
+                    aria-label="Dismiss"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
             )}
 
