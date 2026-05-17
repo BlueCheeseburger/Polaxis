@@ -4825,22 +4825,15 @@
 
 /* ── Fixed footer ── */
 .app-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 80;
   height: 32px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   padding: 0 16px;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(8px);
   border-top: 1px solid rgba(0, 0, 0, 0.07);
+  margin-top: 40px;
 }
 .app-footer.dark {
-  background: rgba(15, 23, 42, 0.82);
   border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 .app-footer-copy {
@@ -4856,14 +4849,14 @@
   padding: 0;
   cursor: pointer;
   font-size: 0.72rem;
-  color: #f97316;
-  font-weight: 500;
+  color: #94a3b8;
+  font-weight: 400;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.app-footer-feedback-btn:hover { color: #ea580c; }
-.app-footer.dark .app-footer-feedback-btn { color: #fb923c; }
-.app-footer.dark .app-footer-feedback-btn:hover { color: #f97316; }
+.app-footer-feedback-btn:hover { color: #64748b; }
+.app-footer.dark .app-footer-feedback-btn { color: #64748b; }
+.app-footer.dark .app-footer-feedback-btn:hover { color: #94a3b8; }
 
 /* ── Feedback modal ── */
 .feedback-overlay {
