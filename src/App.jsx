@@ -3534,50 +3534,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Overlay discovery nudge — shown once after first result, only when default overlay is active */}
-            {showOverlayNudge && !isViewingOnly && overlayPreset === 'global' && result && (
-              <div className="overlay-nudge">
-                <span className="overlay-nudge-text">
-                  🗺️ See where you fall on the <strong>Ideology</strong> or <strong>Traits</strong> map
-                </span>
-                <div className="overlay-nudge-actions">
-                  <button
-                    type="button"
-                    className="overlay-nudge-btn"
-                    onClick={() => {
-                      setOverlayPreset('ideologies');
-                      setShowOverlayNudge(false);
-                      sessionStorage.setItem('overlay_nudge_seen', '1');
-                    }}
-                  >
-                    Ideologies →
-                  </button>
-                  <button
-                    type="button"
-                    className="overlay-nudge-btn overlay-nudge-btn-traits"
-                    onClick={() => {
-                      setOverlayPreset('traits');
-                      setShowOverlayNudge(false);
-                      sessionStorage.setItem('overlay_nudge_seen', '1');
-                    }}
-                  >
-                    Traits →
-                  </button>
-                  <button
-                    type="button"
-                    className="overlay-nudge-dismiss"
-                    onClick={() => {
-                      setShowOverlayNudge(false);
-                      sessionStorage.setItem('overlay_nudge_seen', '1');
-                    }}
-                    aria-label="Dismiss"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* Hide primary user's analysis from friends who haven't added their own point */}
             <div className="analysis-card" style={isViewingOnly ? { display: 'none' } : {}}>
               <h3>Analysis</h3>
