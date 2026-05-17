@@ -3447,7 +3447,7 @@ export default function App() {
                     >
                       <Compass size={15} />
                       Ideologies
-                      {showIdeologiesNew && <span className="new-badge">New!</span>}
+                      <span className="new-badge">New!</span>
                     </button>
                     <button
                       type="button"
@@ -3460,7 +3460,7 @@ export default function App() {
                     >
                       <Smile size={15} />
                       Traits
-                      {showTraitsNew && <span className="new-badge new-badge-traits">New!</span>}
+                      <span className="new-badge new-badge-traits">New!</span>
                     </button>
                   </div>
                 )}
