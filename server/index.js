@@ -5,6 +5,7 @@ import { createHash, randomUUID } from "crypto";
 import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { createClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
 
 dotenv.config();
 
@@ -16,6 +17,9 @@ app.use(express.json({ limit: "1mb" }));
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const FEEDBACK_TO_EMAIL = process.env.FEEDBACK_TO_EMAIL || "theinternetclub123@gmail.com";
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 const DAILY_CLIENT_LIMIT = 5;
 const DAILY_IP_LIMIT = 25;
 const DAILY_SHARE_CLIENT_LIMIT = 20;
@@ -740,7 +744,7 @@ app.post("/api/gemini-json", async (req, res) => {
     };
 
     const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -879,6 +883,7 @@ DEBATE RULES:
 3. Argue from your position (${ideologyLabel}) with conviction
 4. Be sharp and direct, but never personal insults, slurs, or threats
 5. Stay in character; if they go off-topic, snap back
+6. Use real-world examples whenever they strengthen your point — name actual countries, policies, leaders, or historical events. Don't invent examples.
 
 LANGUAGE — this matters:
 - Write like a smart friend, not a political science professor
@@ -935,6 +940,76 @@ FORMAT — strict:
   }
 });
 
+// --- Debate Summary ---
+app.post("/api/debate-summary", async (req, res) => {
+  try {
+    if (!GEMINI_API_KEY) return res.status(500).json({ error: "Missing GEMINI_API_KEY on server" });
+
+    const { userArchetype, adversaryLabel, history } = req.body || {};
+    if (!Array.isArray(history) || history.length === 0) {
+      return res.status(400).json({ error: "No debate history provided" });
+    }
+
+    const clientId = getClientIdFromRequest(req);
+    if (!clientId) return res.status(400).json({ error: "Missing X-Client-Id header" });
+
+    const bypassLimit = req.header("X-Debug-Bypass") === "true";
+    if (!bypassLimit) {
+      const dateKey = getDateKey();
+      const clientKey = `chat:${dateKey}:${clientId}`;
+      const ip = getClientIp(req);
+      const ipKey = `chat:${dateKey}:${ip}`;
+      const clientResult = incrementOrRejectDailyLimit({ store: dailyChatClientUsage, key: clientKey, limit: DAILY_CHAT_CLIENT_LIMIT });
+      if (clientResult.blocked) return res.status(429).json({ error: "Daily debate limit reached. Try again tomorrow." });
+      const ipResult = incrementOrRejectDailyLimit({ store: dailyChatIpUsage, key: ipKey, limit: DAILY_CHAT_IP_LIMIT });
+      if (ipResult.blocked) return res.status(429).json({ error: "Daily network debate limit reached. Try again tomorrow." });
+    }
+
+    const transcript = history.map(m =>
+      `${m.role === 'user' ? (userArchetype || 'User') : (adversaryLabel || 'Adversary')}: ${m.text}`
+    ).join('\n\n');
+
+    const prompt = `You just watched a political debate between "${userArchetype || 'the user'}" and "${adversaryLabel || 'the adversary'}". Analyse it honestly and return a JSON object with exactly these fields:
+
+{
+  "keyClash": "One sentence naming the core disagreement.",
+  "userStrength": "One sentence on the user's strongest argument.",
+  "adversaryStrength": "One sentence on the adversary's strongest argument.",
+  "verdict": "2-3 sentences. Who argued more effectively and why? Be direct — pick a side or call it even with a reason. Plain language, no jargon.",
+  "userScore": <integer 1-10>,
+  "adversaryScore": <integer 1-10>
+}
+
+TRANSCRIPT:
+${transcript}
+
+Return only the JSON object. No markdown, no extra text.`;
+
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.4, maxOutputTokens: 600 }
+        })
+      }
+    );
+
+    const data = await r.json();
+    if (!r.ok) return res.status(r.status).json({ error: data?.error?.message || "Gemini request failed" });
+
+    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return res.status(502).json({ error: "Could not parse summary" });
+
+    return res.json(JSON.parse(jsonMatch[0]));
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "Server error" });
+  }
+});
+
 // --- Peer Debate (Socket.io) ---
 // In-memory queue of users waiting for a match.
 // Map<socketId, { x, y, archetype, socket, bypass }>
@@ -960,7 +1035,7 @@ Write ONE sharp question that forces them to defend their starkest disagreement 
 
   try {
     const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1007,6 +1082,31 @@ const findBestMatch = (newEntry) => {
   }
   return best;
 };
+
+app.post("/api/feedback", async (req, res) => {
+  const { type, message, email } = req.body || {};
+  if (!message || typeof message !== "string" || !message.trim()) {
+    return res.status(400).json({ error: "message required" });
+  }
+  const label = type === "bug" ? "Bug Report" : "Feedback";
+  const replyLine = email ? `\nReply to: ${email}` : "";
+  if (resend) {
+    try {
+      await resend.emails.send({
+        from: "Polaxis Feedback <onboarding@resend.dev>",
+        to: [FEEDBACK_TO_EMAIL],
+        subject: `[Polaxis ${label}] ${message.trim().slice(0, 60)}`,
+        text: `Type: ${label}\n\n${message.trim()}${replyLine}\n\nSent: ${new Date().toISOString()}`,
+      });
+    } catch (err) {
+      console.error("Resend error:", err);
+      return res.status(500).json({ error: "email failed" });
+    }
+  } else {
+    console.log(`[FEEDBACK – ${label}]`, message.trim(), replyLine);
+  }
+  res.json({ ok: true });
+});
 
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer, {

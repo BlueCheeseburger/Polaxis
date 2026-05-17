@@ -1932,6 +1932,14 @@ export default function App() {
   const [isComparisonMode, setIsComparisonMode] = useState(false);
   const [sixMonthBannerDismissed, setSixMonthBannerDismissed] = useState(false);
   const [showSixMonthDebugToast, setShowSixMonthDebugToast] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackType, setFeedbackType] = useState('feedback');
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackEmail, setFeedbackEmail] = useState('');
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [feedbackError, setFeedbackError] = useState(null);
+  const [feedbackSent, setFeedbackSent] = useState(false);
+  const [feedbackSentType, setFeedbackSentType] = useState('feedback');
   const submitRequestRef = useRef(0);
   const debugHoldTimerRef = useRef(null);
   const ignoreNextDebugClickRef = useRef(false);
@@ -2755,6 +2763,37 @@ export default function App() {
       });
     } catch {
       setError("Saved locally, but cloud sync failed. We'll try again next time.");
+    }
+  };
+
+  const closeFeedback = () => {
+    setFeedbackOpen(false);
+    setFeedbackText('');
+    setFeedbackEmail('');
+    setFeedbackError(null);
+    setFeedbackType('feedback');
+  };
+
+  const closeFeedbackSent = () => setFeedbackSent(false);
+
+  const submitFeedback = async () => {
+    if (!feedbackText.trim()) { setFeedbackError('Please write something before sending.'); return; }
+    setFeedbackSubmitting(true);
+    setFeedbackError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: feedbackType, message: feedbackText.trim(), email: feedbackEmail.trim() }),
+      });
+      if (!res.ok) throw new Error('server error');
+      setFeedbackSentType(feedbackType === 'bug' ? 'bug report' : 'feedback');
+      closeFeedback();
+      setFeedbackSent(true);
+    } catch {
+      setFeedbackError('Something went wrong. Please try again.');
+    } finally {
+      setFeedbackSubmitting(false);
     }
   };
 
@@ -3844,6 +3883,68 @@ export default function App() {
           </div>
         </div>
       )}
+      {feedbackOpen && (
+        <div
+          className={`feedback-overlay${isDarkMode ? ' dark' : ''}`}
+          onClick={(e) => { if (e.target === e.currentTarget) closeFeedback(); }}
+        >
+          <div className="feedback-sheet" role="dialog" aria-modal="true" aria-label="Send feedback">
+            <div className="feedback-header">
+              <h3 className="feedback-title">Send feedback</h3>
+              <button type="button" className="feedback-close-btn" onClick={closeFeedback} aria-label="Close"><X size={18} /></button>
+            </div>
+            <div className="feedback-type-row">
+              <button
+                type="button"
+                className={`feedback-type-btn${feedbackType === 'feedback' ? ' active' : ''}`}
+                onClick={() => setFeedbackType('feedback')}
+              >Feedback</button>
+              <button
+                type="button"
+                className={`feedback-type-btn${feedbackType === 'bug' ? ' active' : ''}`}
+                onClick={() => setFeedbackType('bug')}
+              >Bug report</button>
+            </div>
+            <textarea
+              className="feedback-textarea"
+              placeholder={feedbackType === 'bug' ? 'Describe the bug — what happened and what you expected…' : 'Share your thoughts, ideas, or suggestions…'}
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+              rows={5}
+            />
+            <input
+              type="email"
+              className="feedback-email-input"
+              placeholder="Your email (optional, so we can follow up)"
+              value={feedbackEmail}
+              onChange={(e) => setFeedbackEmail(e.target.value)}
+            />
+            {feedbackError && <p className="feedback-error">{feedbackError}</p>}
+            <div className="feedback-footer-row">
+              <button type="button" className="feedback-cancel-btn" onClick={closeFeedback}>Cancel</button>
+              <button
+                type="button"
+                className="feedback-submit-btn"
+                onClick={submitFeedback}
+                disabled={feedbackSubmitting}
+              >{feedbackSubmitting ? 'Sending…' : 'Send'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {feedbackSent && (
+        <div className={`feedback-overlay${isDarkMode ? ' dark' : ''}`} onClick={closeFeedbackSent}>
+          <div className="feedback-sheet feedback-sheet--success" role="dialog" aria-modal="true">
+            <div className="feedback-success-icon">✓</div>
+            <p className="feedback-success-text">Thanks! We got your {feedbackSentType}.</p>
+            <button type="button" className="feedback-submit-btn" onClick={closeFeedbackSent}>Done</button>
+          </div>
+        </div>
+      )}
+      <footer className={`app-footer${isDarkMode ? ' dark' : ''}`}>
+        <span className="app-footer-copy">© 2026 Polaxis™</span>
+        <button type="button" className="app-footer-feedback-btn" onClick={() => setFeedbackOpen(true)}>Send Feedback</button>
+      </footer>
     </div>
   );
 }
