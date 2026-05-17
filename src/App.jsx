@@ -3899,7 +3899,7 @@ export default function App() {
       )}
       <footer className={`app-footer${isDarkMode ? ' dark' : ''}`}>
         <span className="app-footer-copy">© 2026 Polaxis™</span>
-        <button type="button" className="app-footer-feedback-btn" onClick={() => setFeedbackOpen(true)}>Send Feedback</button>
+        <button type="button" className="app-footer-feedback-btn" onClick={() => setFeedbackOpen(true)}>Feedback</button>
       </footer>
     </div>
   );

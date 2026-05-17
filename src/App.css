@@ -4830,12 +4830,9 @@
   align-items: center;
   gap: 12px;
   padding: 0 16px;
-  border-top: 1px solid rgba(0, 0, 0, 0.07);
   margin-top: 40px;
 }
-.app-footer.dark {
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-}
+.app-footer.dark {}
 .app-footer-copy {
   font-size: 0.72rem;
   color: #94a3b8;
@@ -4851,12 +4848,11 @@
   font-size: 0.72rem;
   color: #94a3b8;
   font-weight: 400;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration: none;
 }
-.app-footer-feedback-btn:hover { color: #64748b; }
+.app-footer-feedback-btn:hover { text-decoration: underline; text-underline-offset: 2px; }
 .app-footer.dark .app-footer-feedback-btn { color: #64748b; }
-.app-footer.dark .app-footer-feedback-btn:hover { color: #94a3b8; }
+.app-footer.dark .app-footer-feedback-btn:hover { color: #64748b; }
 
 /* ── Feedback modal ── */
 .feedback-overlay {
