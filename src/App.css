@@ -1260,6 +1260,26 @@
   font-style: italic;
 }
 
+/* Overlay filter embedded in the alignment panel */
+.overlay-filter--panel {
+  margin-top: 14px;
+  width: 100%;
+}
+
+.filter-toggle--big {
+  width: 100%;
+  justify-content: center;
+  padding: 11px 16px;
+  font-size: 0.88rem;
+  border-radius: 12px;
+}
+
+/* Menu opens upward when inside the alignment panel */
+.filter-menu--up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
 /* Pulsing ring on the Overlay button until user first opens it */
 @keyframes overlay-ring-pulse {
   0%   { box-shadow: 0 0 0 0px rgba(124, 58, 237, 0.55); }

@@ -1145,7 +1145,10 @@ const ComparisonDiffCard = ({ participants, myParticipantIndex = -1 }) => {
   );
 };
 
-const AxisBreakdownPanel = ({ x, y, archetype, isViewingOnly, resultPoints, onSetOverlay }) => {
+const AxisBreakdownPanel = ({ x, y, archetype, isViewingOnly, resultPoints,
+  overlayPreset, onSetOverlay, isFilterOpen, setIsFilterOpen,
+  hasOpenedOverlay, setHasOpenedOverlay,
+  showIdeologiesNew, showTraitsNew, setShowIdeologiesNew, setShowTraitsNew }) => {
   const matches = calcPartyMatch(x, y);
   const econPct = Math.round(((x + 10) / 20) * 100);
   const socialPct = Math.round(((y + 10) / 20) * 100);
@@ -1286,13 +1289,79 @@ const AxisBreakdownPanel = ({ x, y, archetype, isViewingOnly, resultPoints, onSe
         </div>
       )}
       {!isViewingOnly && onSetOverlay && (
-        <div className="overlay-map-links">
-          <button type="button" className="overlay-map-link" onClick={() => onSetOverlay('ideologies')}>
-            <Compass size={12} /> View Ideologies Map
+        <div className="overlay-filter overlay-filter--panel">
+          {showIdeologiesNew && !isFilterOpen && (
+            <div className="new-bubble">✨ New: Ideology Map</div>
+          )}
+          {!showIdeologiesNew && showTraitsNew && !isFilterOpen && (
+            <div className="new-bubble new-bubble-traits">✨ New: Traits Map</div>
+          )}
+          <button
+            type="button"
+            className={`filter-toggle filter-toggle--big${!hasOpenedOverlay && !isFilterOpen ? ' filter-toggle--pulse' : ''}`}
+            onClick={() => {
+              setIsFilterOpen((prev) => !prev);
+              if (!hasOpenedOverlay) {
+                setHasOpenedOverlay(true);
+                sessionStorage.setItem('overlay_opened', '1');
+              }
+            }}
+            aria-expanded={isFilterOpen}
+          >
+            <SlidersHorizontal size={16} />
+            Overlay
           </button>
-          <button type="button" className="overlay-map-link overlay-map-link-traits" onClick={() => onSetOverlay('traits')}>
-            <Smile size={12} /> View Traits Map
-          </button>
+          {isFilterOpen && (
+            <div className="filter-menu filter-menu--up">
+              <button
+                type="button"
+                className={`filter-option ${overlayPreset === 'global' ? 'active' : ''}`}
+                onClick={() => { onSetOverlay('global'); setIsFilterOpen(false); }}
+              >
+                <Globe2 size={15} /> Global
+              </button>
+              <button
+                type="button"
+                className={`filter-option ${overlayPreset === 'republican' ? 'active' : ''}`}
+                onClick={() => { onSetOverlay('republican'); setIsFilterOpen(false); }}
+              >
+                <img src="/images/republican.png" alt="Republican" className="filter-party-icon" /> Republican
+              </button>
+              <button
+                type="button"
+                className={`filter-option ${overlayPreset === 'democratic' ? 'active' : ''}`}
+                onClick={() => { onSetOverlay('democratic'); setIsFilterOpen(false); }}
+              >
+                <img src="/images/democrat.png" alt="Democratic" className="filter-party-icon" /> Democratic
+              </button>
+              <button
+                type="button"
+                className={`filter-option ${overlayPreset === 'ideologies' ? 'active' : ''}`}
+                onClick={() => {
+                  onSetOverlay('ideologies');
+                  setShowIdeologiesNew(false);
+                  sessionStorage.setItem('ideologies_new_seen', '1');
+                  setIsFilterOpen(false);
+                }}
+              >
+                <Compass size={15} /> Ideologies
+                <span className="new-badge">New!</span>
+              </button>
+              <button
+                type="button"
+                className={`filter-option ${overlayPreset === 'traits' ? 'active' : ''}`}
+                onClick={() => {
+                  onSetOverlay('traits');
+                  setShowTraitsNew(false);
+                  sessionStorage.setItem('traits_new_seen', '1');
+                  setIsFilterOpen(false);
+                }}
+              >
+                <Smile size={15} /> Traits
+                <span className="new-badge new-badge-traits">New!</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -2502,6 +2571,7 @@ export default function App() {
     setDebateChoiceOpen(false);
     setPeerDebateOpen(false);
     setIsDebugPoint(false);
+    setIsDebugBypassEnabled(false);
     if (typeof window !== 'undefined' && window.history?.replaceState) {
       window.history.replaceState({}, '', '/');
     }
@@ -2959,9 +3029,9 @@ export default function App() {
 
   return (
     <div className={`app-shell ${isDarkMode ? 'dark' : ''} ${getOverlayThemeClass()}`}>
-      {(isDebugPoint || isDebugBypassEnabled) && (
+      {isDebugPoint && (
         <div className="badge-stack">
-          {isDebugPoint && <div className="debug-badge">Debug mode</div>}
+          <div className="debug-badge">Debug mode</div>
           {isDebugBypassEnabled && <div className="dev-mode-badge">Dev mode</div>}
         </div>
       )}
@@ -3114,6 +3184,8 @@ export default function App() {
             setSourcePrompt('');
             setHasGeminiQuizResult(false);
             setIsAnalysisPending(false);
+            setIsDebugPoint(false);
+            setIsDebugBypassEnabled(false);
             window.history.replaceState({}, '', '/');
             setShowLanding(true);
           }} title="Go to home">
@@ -3395,7 +3467,16 @@ export default function App() {
             )}
 
             <div className="compass-area">
-              <AxisBreakdownPanel x={result.x} y={result.y} archetype={result.archetype} isViewingOnly={isViewingOnly} resultPoints={resultPoints} onSetOverlay={isViewingOnly ? null : (preset) => { setOverlayPreset(preset); setShowOverlayNudge(false); sessionStorage.setItem('overlay_nudge_seen', '1'); }} />
+              <AxisBreakdownPanel
+                x={result.x} y={result.y} archetype={result.archetype}
+                isViewingOnly={isViewingOnly} resultPoints={resultPoints}
+                overlayPreset={overlayPreset}
+                onSetOverlay={isViewingOnly ? null : (preset) => { setOverlayPreset(preset); setShowOverlayNudge(false); sessionStorage.setItem('overlay_nudge_seen', '1'); }}
+                isFilterOpen={isFilterOpen} setIsFilterOpen={setIsFilterOpen}
+                hasOpenedOverlay={hasOpenedOverlay} setHasOpenedOverlay={setHasOpenedOverlay}
+                showIdeologiesNew={showIdeologiesNew} showTraitsNew={showTraitsNew}
+                setShowIdeologiesNew={setShowIdeologiesNew} setShowTraitsNew={setShowTraitsNew}
+              />
               {comparison && Array.isArray(comparison.participants) && comparison.participants.length >= 2 && (
                 <ComparisonDiffCard participants={comparison.participants} myParticipantIndex={myComparisonParticipantIndex} />
               )}
@@ -3406,87 +3487,6 @@ export default function App() {
                 overlayPreset={overlayPreset}
                 suppressAnalysis={isIncomingShare || !!activeComparisonId}
               />
-              <div className="overlay-filter">
-                {showIdeologiesNew && !isFilterOpen && (
-                  <div className="new-bubble">
-                    ✨ New: Ideology Map
-                  </div>
-                )}
-                {!showIdeologiesNew && showTraitsNew && !isFilterOpen && (
-                  <div className="new-bubble new-bubble-traits">
-                    ✨ New: Traits Map
-                  </div>
-                )}
-                <button
-                  type="button"
-                  className={`filter-toggle${!hasOpenedOverlay && !isFilterOpen ? ' filter-toggle--pulse' : ''}`}
-                  onClick={() => {
-                    setIsFilterOpen((prev) => !prev);
-                    if (!hasOpenedOverlay) {
-                      setHasOpenedOverlay(true);
-                      sessionStorage.setItem('overlay_opened', '1');
-                    }
-                  }}
-                  aria-expanded={isFilterOpen}
-                >
-                  <SlidersHorizontal size={16} />
-                  Overlay
-                </button>
-                {isFilterOpen && (
-                  <div className="filter-menu">
-                    <button
-                      type="button"
-                      className={`filter-option ${overlayPreset === 'global' ? 'active' : ''}`}
-                      onClick={() => setOverlayPreset('global')}
-                    >
-                      <Globe2 size={15} />
-                      Global
-                    </button>
-                    <button
-                      type="button"
-                      className={`filter-option ${overlayPreset === 'republican' ? 'active' : ''}`}
-                      onClick={() => setOverlayPreset('republican')}
-                    >
-                      <img src="/images/republican.png" alt="Republican" className="filter-party-icon" />
-                      Republican
-                    </button>
-                    <button
-                      type="button"
-                      className={`filter-option ${overlayPreset === 'democratic' ? 'active' : ''}`}
-                      onClick={() => setOverlayPreset('democratic')}
-                    >
-                      <img src="/images/democrat.png" alt="Democratic" className="filter-party-icon" />
-                      Democratic
-                    </button>
-                    <button
-                      type="button"
-                      className={`filter-option ${overlayPreset === 'ideologies' ? 'active' : ''}`}
-                      onClick={() => {
-                        setOverlayPreset('ideologies');
-                        setShowIdeologiesNew(false);
-                        sessionStorage.setItem('ideologies_new_seen', '1');
-                      }}
-                    >
-                      <Compass size={15} />
-                      Ideologies
-                      <span className="new-badge">New!</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`filter-option ${overlayPreset === 'traits' ? 'active' : ''}`}
-                      onClick={() => {
-                        setOverlayPreset('traits');
-                        setShowTraitsNew(false);
-                        sessionStorage.setItem('traits_new_seen', '1');
-                      }}
-                    >
-                      <Smile size={15} />
-                      Traits
-                      <span className="new-badge new-badge-traits">New!</span>
-                    </button>
-                  </div>
-                )}
-              </div>
             </div>
             {(overlayPreset === 'republican' || overlayPreset === 'democratic') && (
               <div className="party-badge">
