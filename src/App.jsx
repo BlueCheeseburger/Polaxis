@@ -1959,6 +1959,16 @@ export default function App() {
   }, [isDarkMode]);
 
   useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e) => {
+      try { localStorage.removeItem('theme_preference'); } catch { /* ignore */ }
+      setIsDarkMode(e.matches);
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  useEffect(() => {
     if (!isSavedPanelOpen) return undefined;
     const handlePointerDown = (event) => {
       if (savedMenuWrapRef.current && !savedMenuWrapRef.current.contains(event.target)) {
@@ -3006,10 +3016,15 @@ export default function App() {
               </div>
             </div>
             <h1 className="landing-app-name">Polaxis</h1>
-            <p className="landing-title">Where do your beliefs actually land?</p>
+            <p className="landing-title">Find your position. Then defend it.</p>
             <p className="landing-subtitle">
-              Find your position on a political compass using AI analysis or a structured quiz. No labels. No judgment.
+              Map your political beliefs with AI — then debate an adversary that argues the opposite. No labels. No judgment.
             </p>
+            <div className="landing-feature-pills">
+              <span className="landing-pill landing-pill-compass"><Compass size={13} /> Political Compass</span>
+              <span className="landing-pill landing-pill-debate"><Swords size={13} /> AI Debate</span>
+              <span className="landing-pill landing-pill-peer"><Users size={13} /> Live Debate</span>
+            </div>
             <div className="landing-ctas">
               <button
                 className="landing-cta-primary"
@@ -3055,7 +3070,7 @@ export default function App() {
             <div className="landing-feature">
               <span className="landing-feature-icon landing-feature-icon-coming"><Users size={20} /></span>
               <div>
-                <strong>Live Peer Debate <span className="landing-coming-badge">Coming Soon</span></strong>
+                <strong>Live Peer Debate</strong>
                 <p>Get matched with a real person whose views are most opposed to yours — debate live.</p>
               </div>
             </div>
@@ -3806,16 +3821,14 @@ export default function App() {
                 <span className="debate-choice-desc">Gemini embodies your political mirror and attacks your worldview.</span>
               </span>
             </button>
-            <div className={`debate-choice-peer-wrap${isDebugBypassEnabled ? '' : ' debate-choice-coming-soon'}`}>
+            <div className="debate-choice-peer-wrap">
               <button
                 type="button"
                 className="debate-choice-option"
                 onClick={() => {
-                  if (!isDebugBypassEnabled) return;
                   setDebateChoiceOpen(false);
                   setPeerDebateOpen(true);
                 }}
-                disabled={!isDebugBypassEnabled}
               >
                 <span className="debate-choice-icon"><Users size={22} /></span>
                 <span className="debate-choice-body">
@@ -3824,17 +3837,10 @@ export default function App() {
                     {isDebugBypassEnabled && <span className="peer-debug-pill">DEV</span>}
                   </span>
                   <span className="debate-choice-desc">
-                    {isDebugBypassEnabled
-                      ? 'Dev mode on — matches whoever is available, any distance.'
-                      : 'Live match with a real person whose views are most opposed to yours.'}
+                    Get matched with a real person whose views are most opposed to yours — debate live.
                   </span>
                 </span>
               </button>
-              {!isDebugBypassEnabled && (
-                <div className="debate-coming-soon-banner" aria-hidden="true">
-                  <span className="debate-coming-soon-text">Coming soon</span>
-                </div>
-              )}
             </div>
           </div>
         </div>

@@ -236,6 +236,7 @@ export default function PeerDebateMode({
               <li>Listen to understand, not just to respond.</li>
               <li>You may disengage at any time.</li>
             </ul>
+            <p className="peer-rules-disclaimer">Polaxis is not responsible for what other users say during debates. By continuing, you agree to debate respectfully.</p>
             <button type="button" className="peer-primary-btn" onClick={handleAcceptRules}>
               I agree — let's debate
             </button>
