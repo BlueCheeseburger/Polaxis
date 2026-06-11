@@ -25,5 +25,5 @@ dist-ssr
 .env
 .npm-cache/
 
-# Claude Code - worktrees are local-only development branches
-.claude/worktrees/
+# Claude Code - local dev tooling only, not needed for deployment
+.claude/
