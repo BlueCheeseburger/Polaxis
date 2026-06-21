@@ -1,16 +1,50 @@
-# React + Vite
+# Polaxis
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A 2D political compass that maps your beliefs onto economic and social axes using AI analysis. Describe your views in text or take a 20-question quiz, get a political archetype and party alignment breakdown, save and share your result, and debate live with other users — either against an AI adversary or matched with a real opponent via WebSocket.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Text & quiz modes** — free-form belief input analyzed by Gemini AI, or a scored 20-question quiz with instant results
+- **Political archetype** — a punchy 2–3 word identity specific to your placement (e.g. "The Pragmatist")
+- **Party affinity** — percentage alignment with Democrat, Republican, Libertarian, and Green parties
+- **Reference overlays** — plot your position against global leaders, U.S. party figures, ideologies, or personality traits
+- **Multi-point support** — contradictory beliefs split into 2–4 points with individual analysis
+- **Refinement mode** — targeted follow-up questions to sharpen your placement
+- **Share links** — shareable URLs with OG embeds for Discord, iMessage, and Reddit
+- **Share images** — generated 1080×1500px cards with your archetype, compass, and party bars
+- **Comparison mode** — load a friend's result alongside yours on the same canvas
+- **AI debate** — argue against a dynamically generated adversary based on your placement
+- **Peer debate** — real-time 1v1 debates with matched opponents via Socket.IO
 
-## React Compiler
+## Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend:** React 19, Vite, Canvas API
+- **Backend:** Express 5, Node.js
+- **AI:** Google Gemini API
+- **Database:** Supabase (PostgreSQL)
+- **Real-time:** Socket.IO
+- **Mobile:** Capacitor (Android)
 
-## Expanding the ESLint configuration
+## Setup
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm install
+```
+
+Create a `.env` file in the root:
+
+```
+GEMINI_API_KEY=your_key
+SUPABASE_URL=your_url
+SUPABASE_SERVICE_ROLE_KEY=your_key
+RESEND_API_KEY=your_key
+FEEDBACK_TO_EMAIL=your_email
+```
+
+```bash
+# Run frontend
+npm run dev
+
+# Run backend
+npm run server
+```
